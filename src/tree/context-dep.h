@@ -61,7 +61,9 @@ class ContextDependency: public ContextDependencyInterface {
   virtual int32 CentralPosition() const { return P_; }
 
 
-  /// returns success or failure; outputs pdf to pdf_id
+  /// returns success or failure; outputs pdf to pdf_id For positions that were
+  /// outside the sequence (due to end effects), put zero.  Naturally
+  /// phoneseq[CentralPosition()] must be nonzero.
   virtual bool Compute(const std::vector<int32> &phoneseq,
                        int32 pdf_class, int32 *pdf_id) const;
 
@@ -90,7 +92,7 @@ class ContextDependency: public ContextDependencyInterface {
       N_(N), P_(P), to_pdf_(to_pdf) { }
   void Write (std::ostream &os, bool binary) const;
 
-  ~ContextDependency() { if (to_pdf_ != NULL) delete to_pdf_; }
+  ~ContextDependency() { delete to_pdf_; }
 
   const EventMap &ToPdfMap() const { return *to_pdf_; }
 

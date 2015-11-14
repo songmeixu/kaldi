@@ -50,7 +50,9 @@ class CuArray {
   explicit CuArray<T>(const std::vector<T> &src):
     dim_(0), data_(NULL) { CopyFromVec(src); }
 
-  explicit CuArray<T>(const CuArray<T> &src):
+  /// Copy constructor.  We don't make this explicit because we want to be able
+  /// to create a std::vector<CuArray>.
+  CuArray<T>(const CuArray<T> &src):
    dim_(0), data_(NULL) { CopyFromArray(src); }
 
   /// Destructor
@@ -85,6 +87,11 @@ class CuArray {
   /// is done via memcpy.  So be very careful calling this function if your
   /// objects are more than plain structs.
   void CopyToVec(std::vector<T> *dst) const;
+
+  /// Version of the above function that copies contents to a host array.
+  /// This function requires *dst to be allocated before calling. The allocated
+  /// size should be dim_ * sizeof(T)
+  void CopyToHost(T *dst) const;
 
   /// Sets the memory for the object to zero, via memset.  You should verify
   /// that this makes sense for type T.

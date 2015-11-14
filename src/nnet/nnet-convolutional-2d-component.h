@@ -1,4 +1,4 @@
-// nnet/nnet-convolutional-component.h
+// nnet/nnet-convolutional-2d-component.h
 
 // Copyright 2014-2015  Johns Hopkins University (author: Sri Harish Mallidi)
 //                      Brno University of Technology (author: Karel Vesely),
@@ -297,7 +297,8 @@ class Convolutional2DComponent : public UpdatableComponent {
         column_mask.push_back(c);
       }
     }
-    vectorized_feature_patches_[out_fmap_cnt].CopyCols(in, column_mask);
+    CuArray<int32> cu_column_mask(column_mask);
+    vectorized_feature_patches_[out_fmap_cnt].CopyCols(in, cu_column_mask);
     out_fmap_cnt++;
       }
     }

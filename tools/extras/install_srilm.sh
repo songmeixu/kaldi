@@ -7,6 +7,7 @@ if [ ! -f srilm.tgz ]; then
   echo way because you need to put your address in a download form.
   echo Please download SRILM from http://www.speech.sri.com/projects/srilm/download.html
   echo put it in ./srilm.tgz, then run this script.
+  exit 1
 fi
 
 ! which gawk 2>/dev/null && \
@@ -36,7 +37,7 @@ cd ..
     echo >&2 "SRILM config is already in env.sh" && exit
 
   wd=`pwd`
-  wd=`readlink -f $wd`
+  wd=`readlink -f $wd || pwd`
 
   echo "export SRILM=$wd/srilm"
   dirs="\${PATH}"
