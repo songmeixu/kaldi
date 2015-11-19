@@ -105,3 +105,4 @@ GSYMS
 .DS_Store
 src/.idea
 CMakeLists.txt
+.idea
