@@ -107,3 +107,11 @@ GSYMS
 /tools/srilm.tgz
 
 /kaldiwin_vs*
+
+src/.idea/modules.xml
+src/.idea/misc.xml
+.idea
+src/base/.DS_Store
+src/CMakeLists.txt
+src/nnet2bin/.DS_Store
+CMakeLists.txt
