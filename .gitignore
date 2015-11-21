@@ -102,3 +102,10 @@ GSYMS
 /tools/mpg123-1.21.0
 /tools/sequitur
 /tools/srilm.tgz
+src/.idea/modules.xml
+src/.idea/misc.xml
+.idea
+src/base/.DS_Store
+src/CMakeLists.txt
+src/nnet2bin/.DS_Store
+CMakeLists.txt
