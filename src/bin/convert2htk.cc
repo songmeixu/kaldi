@@ -218,10 +218,7 @@ int main(int argc, const char *argv[]) {
     ContextDependency ctx_dep;
     ReadKaldiObject(tree_filename, &ctx_dep);
     // now, for each tree stats element, query the tree to get the pdf-id
-    for (size_t i = 0; i < stats.size(); ++i) {
-      std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
-    }
-
+    std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
 
     delete phones_symtab;
 
