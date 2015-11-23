@@ -40,9 +40,7 @@ class MarsNet {
       }
       os << m_nTotalParamNum << endl;
       os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
-      for (int l = 0; l < m_nLayer; ++l) {
-        os.write(reinterpret_cast<const char*>(m_LayerDim.data()), sizeof(int) * m_LayerDim.size());
-      }
+      os.write(reinterpret_cast<const char*>(m_LayerDim.data()), sizeof(int) * m_LayerDim.size());
       os.write(reinterpret_cast<const char*>(params_.data()), sizeof(BaseFloat) * params_.size());
     } else {
     }
