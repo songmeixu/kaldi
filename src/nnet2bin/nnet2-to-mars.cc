@@ -33,7 +33,7 @@ class MarsNet {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
     if (binary) {
-      os << head << endl;
+      os << "#MUSE_NETWORK VERSION 1.0" << endl;
       os << "#NETWORK TOPOLOGY:\t";
       for (int l = 0; l < m_nLayer; ++l) {
         os << m_LayerDim[l] << (l == m_nLayer - 1 ? "\n" : ",");
@@ -109,9 +109,13 @@ int main (int argc, const char *argv[]) {
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
       AddToParams(mars_net, acpo);
-      mars_net.m_LayerDim.push_back(mars_net.m_nLayer == 0 ? acpo.LinearParams().NumCols() : acpo.BiasParams().Dim());
-      mars_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
+      if (mars_net.m_nLayer == 0) {
+        mars_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
+        ++mars_net.m_nLayer;
+      }
+      mars_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
       ++mars_net.m_nLayer;
+      mars_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
       ++layer_id;
     }
   }
