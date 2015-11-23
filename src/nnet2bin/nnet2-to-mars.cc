@@ -62,11 +62,6 @@ bool AddToParams(MarsNet &mars_net, AffineComponent &ac) {
   for (int d = 0; d < ac.BiasParams().Dim(); ++d) {
     mars_net.params_.push_back(ac.BiasParams()(d));
   }
-  mars_net.m_LayerDim.push_back(ac.LinearParams().NumCols());
-  mars_net.m_LayerDim.push_back(ac.BiasParams().Dim());
-  mars_net.m_nTotalParamNum += ac.LinearParams().NumRows() * ac.LinearParams().NumCols() + ac.BiasParams().Dim();
-  mars_net.m_nLayer += 2;
-
   return true;
 }
 
@@ -114,6 +109,9 @@ int main (int argc, const char *argv[]) {
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
       AddToParams(mars_net, acpo);
+      mars_net.m_LayerDim.push_back(mars_net.m_nLayer == 0 ? acpo.LinearParams().NumCols() : acpo.BiasParams().Dim());
+      mars_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
+      ++mars_net.m_nLayer;
       ++layer_id;
     }
   }
