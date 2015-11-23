@@ -52,15 +52,17 @@ class MarsNet {
 };
 
 bool AddToParams(MarsNet &mars_net, AffineComponent &ac) {
-  for (int r = 0; r < ac.LinearParams().NumRows(); ++r) {
-    for (int c = 0; c < ac.LinearParams().NumCols(); ++c) {
-      mars_net.params_.push_back(ac.LinearParams()(r,c));
+  CuMatrix<BaseFloat> weight = ac.LinearParams();
+//  weight.Transpose();
+  for (int r = 0; r < weight.NumRows(); ++r) {
+    for (int c = 0; c < weight.NumCols(); ++c) {
+      mars_net.params_.push_back((BaseFloat) weight(r,c));
     }
   }
   for (int d = 0; d < ac.BiasParams().Dim(); ++d) {
     mars_net.params_.push_back(ac.BiasParams()(d));
   }
-  mars_net.m_LayerDim.push_back(ac.LinearParams().NumRows() * ac.LinearParams().NumCols());
+  mars_net.m_LayerDim.push_back(ac.LinearParams().NumCols());
   mars_net.m_LayerDim.push_back(ac.BiasParams().Dim());
   mars_net.m_nTotalParamNum += ac.LinearParams().NumRows() * ac.LinearParams().NumCols() + ac.BiasParams().Dim();
   mars_net.m_nLayer += 2;
