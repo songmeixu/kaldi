@@ -222,7 +222,6 @@ int main(int argc, const char *argv[]) {
       std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
     }
 
-
     delete phones_symtab;
 
     return 0;
