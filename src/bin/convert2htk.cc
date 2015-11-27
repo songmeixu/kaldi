@@ -214,7 +214,7 @@ int main(int argc, const char *argv[]) {
         model_in_filename = po.GetArg(2),
         acc_filename = po.GetOptArg(3),
         occ_filename = po.GetOptArg(4),
-        tree_filename = po.GetOptArg(4);
+        tree_filename = po.GetOptArg(5);
 //                 mmf_filename = po.GetOptArg(5);
 
     // 1. load phones.txt
