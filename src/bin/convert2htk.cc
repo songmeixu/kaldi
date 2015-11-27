@@ -44,7 +44,7 @@ using kaldi::int32;
 // optional, so is the request for positional symbols (tri-phones: 0-left,
 // 1-center, 2-right.
 static std::string EventTypeToString(EventType &e,
-                                     fst::SymbolTable *phones_symtab,
+                                     const fst::SymbolTable *phones_symtab,
                                      const TransitionModel &trans_model, const ContextDependency &ctx_dep) {
   // make sure it's sorted so that the kPdfClass is the first element!
   std::sort(e.begin(), e.end());
@@ -124,6 +124,70 @@ static std::string EventTypeToString(EventType &e,
   return ss.str();
 }
 
+void PrintUnseen(std::ostream &os,
+                 const TransitionModel &trans_model,
+                 const fst::SymbolTable *phones_symtab,
+                 const Vector<double> *occs,
+                 const ContextDependency &ctx_dep) {
+  KALDI_ASSERT(occs->Dim() == trans_model.NumPdfs());
+  std::set<int32> unseen_phone;
+  for (int pdf = 0; pdf < occs->Dim(); ++pdf) {
+    if ((*occs)(pdf) != 0) {
+      continue;
+    }
+    std::vector<int32> pdfs(1, pdf), phones;
+    GetPhonesForPdfs(trans_model, pdfs, &phones);
+    KALDI_ASSERT(phones.size() == 1);
+    unseen_phone.insert(phones[0]);
+  }
+
+  for (std::set<int32>::iterator it = unseen_phone.begin(); it != unseen_phone.end(); ++it) {
+    std::string phn = phones_symtab->Find(*it);
+    std::vector<int32> triphone(3, 1);
+    std::vector<int32> pdfs_id;
+    triphone[1] = *it;
+    for (int32 i = 0; i < 3; ++i) {
+      int32 pdf_id;
+      ctx_dep.Compute(triphone, i, &pdf_id);
+      pdfs_id.push_back(pdf_id);
+    }
+    os << "~h sil-" << phn << "+sil" << std::endl;
+    os << "<BEGINHMM>" << std::endl;
+    os << "<NUMSTATES> 5" << endl;
+    for (size_t i = 0; i < 3; ++i) {
+      os << "<STATE> " << i + 2 << std::endl;
+      os << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
+    }
+    // print transion prob
+    os << "<TRANSP> 5" << std::endl;
+    os << " 0 1 0 0 0" << std::endl;
+    int32 trans_state;
+    int32 trans_id;
+    BaseFloat loop_prob;
+    BaseFloat out_prob;
+    trans_state = trans_model.TripleToTransitionState(*it, 0, pdfs_id[0]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    os << " 0 " << loop_prob << " " << out_prob << " 0 0" << std::endl;
+    trans_state = trans_model.TripleToTransitionState(*it, 1, pdfs_id[1]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    os << " 0 0 " << loop_prob << " " << out_prob << " 0" << std::endl;
+    trans_state = trans_model.TripleToTransitionState(*it, 2, pdfs_id[2]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    os << " 0 0 0 " << loop_prob << " " << out_prob << std::endl;
+    os << " 0 0 0 0 0" << std::endl;
+    os << "<ENDHMM>" << std::endl;
+  }
+}
+
 
 int main(int argc, const char *argv[]) {
   try {
@@ -133,15 +197,15 @@ int main(int argc, const char *argv[]) {
 
     const char *usage =
         "convert kaldi hmm.mdl to htk mmf\n"
-            "Usage:  convert2htk <phones-symbol-table> <in-kaldi-mdl-file> <occs-file> <treeacc> <tree> <out-htk-mmf-file>\n"
+            "Usage:  convert2htk <phones-symbol-table> <in-kaldi-mdl-file> <treeacc> <*.occs> <tree>\n"
             "e.g.: \n"
-            " convert2htk phones.txt final.mdl treeacc tree hmmdefs\n";
+            " convert2htk phones.txt final.mdl treeacc occs tree > hmmdefs\n";
 
     ParseOptions po(usage);
 
     po.Read(argc, argv);
 
-    if (po.NumArgs() != 4) {
+    if (po.NumArgs() != 5) {
       po.PrintUsage();
       exit(1);
     }
@@ -149,6 +213,7 @@ int main(int argc, const char *argv[]) {
     std::string phones_symtab_filename = po.GetArg(1),
         model_in_filename = po.GetArg(2),
         acc_filename = po.GetOptArg(3),
+        occ_filename = po.GetOptArg(4),
         tree_filename = po.GetOptArg(4);
 //                 mmf_filename = po.GetOptArg(5);
 
@@ -156,9 +221,6 @@ int main(int argc, const char *argv[]) {
     fst::SymbolTable *phones_symtab = fst::SymbolTable::ReadText(phones_symtab_filename);
     if (!phones_symtab)
       KALDI_ERR << "Could not read symbol table from file " << phones_symtab_filename;
-    std::vector<std::string> names(phones_symtab->NumSymbols());
-    for (int32 i = 0; i < phones_symtab->NumSymbols(); i++)
-      names[i] = phones_symtab->Find(i);
 
     // 2. construct AmDiagGmm & TransitionModel
     AmDiagGmm am_gmm;
@@ -220,6 +282,14 @@ int main(int argc, const char *argv[]) {
     for (size_t i = 0; i < stats.size(); ++i) {
       std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
     }
+    // print ~h proto of unseen phones
+    Vector<double> occs;
+    if (occ_filename != "") {
+      bool binary_in;
+      Input ki(occ_filename, &binary_in);
+      occs.Read(ki.Stream(), binary_in);
+    }
+    PrintUnseen(std::cout, trans_model, phones_symtab, &occs, ctx_dep);
 
     delete phones_symtab;
 
