@@ -38,8 +38,7 @@
 
 using namespace kaldi;
 using std::vector;
-
-typedef kaldi::int32 int32;
+using kaldi::int32;
 
 // Generate a string representation of the given EventType;  the symtable is
 // optional, so is the request for positional symbols (tri-phones: 0-left,
