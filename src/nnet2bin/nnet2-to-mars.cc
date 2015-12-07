@@ -127,7 +127,8 @@ int main (int argc, const char *argv[]) {
 //    priors = am_nnet.Priors();
 //    priors.ApplyLog();
 //    priors.Scale(1 / kaldi::Log(10.0));
-    out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
+    am_nnet.Priors().Write(out.Stream(), false);
+//     out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
   }
 
   return 0;
