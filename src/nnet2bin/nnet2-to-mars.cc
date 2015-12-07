@@ -122,7 +122,7 @@ int main (int argc, const char *argv[]) {
 
   // 3. output prior
   if (!prior_wxfilename.empty()) {
-    Output out(prior_wxfilename, binary_write);
+    Output out(prior_wxfilename, false);
 //    kaldi::CuVector<kaldi::BaseFloat> priors;
 //    priors = am_nnet.Priors();
 //    priors.ApplyLog();
