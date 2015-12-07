@@ -123,11 +123,11 @@ int main (int argc, const char *argv[]) {
   // 3. output prior
   if (!prior_wxfilename.empty()) {
     Output out(prior_wxfilename, binary_write);
-    kaldi::CuVector<kaldi::BaseFloat> priors;
-    priors = am_nnet.Priors();
+//    kaldi::CuVector<kaldi::BaseFloat> priors;
+//    priors = am_nnet.Priors();
 //    priors.ApplyLog();
 //    priors.Scale(1 / kaldi::Log(10.0));
-    out.Stream().write(priors.Data(), sizeof(BaseFloat) * priors.Dim());
+    out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
   }
 
   return 0;
