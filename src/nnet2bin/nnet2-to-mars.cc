@@ -129,6 +129,7 @@ int main (int argc, const char *argv[]) {
 //    priors.Scale(1 / kaldi::Log(10.0));
     for (int i = 0; i < priors.Dim(); ++i) {
       out.Stream().write(reinterpret_cast<const char*>(&priors(i)), sizeof(BaseFloat));
+      cout << priors(i) << endl;
     }
 //     out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
   }
