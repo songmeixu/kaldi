@@ -122,15 +122,17 @@ int main (int argc, const char *argv[]) {
 
   // 3. output prior
   if (!prior_wxfilename.empty()) {
-    Output out(prior_wxfilename, binary_write);
+    ofstream out(prior_wxfilename.c_str(), ios::out | ios::binary);
     Vector<BaseFloat> priors;
     priors = am_nnet.Priors();
 //    priors.ApplyLog();
 //    priors.Scale(1 / kaldi::Log(10.0));
     for (int i = 0; i < priors.Dim(); ++i) {
-      out.Stream().write(reinterpret_cast<const char*>(&priors(i)), sizeof(BaseFloat));
+//       out.Stream().write(reinterpret_cast<const char*>(&priors(i)), sizeof(BaseFloat));
+      out.write((char *)&priors(i), sizeof(BaseFloat));
       cout << priors(i) << endl;
     }
+    out.close();
 //     out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
   }
 
