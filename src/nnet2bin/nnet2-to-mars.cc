@@ -125,7 +125,7 @@ int main (int argc, const char *argv[]) {
     Output out(prior_wxfilename, binary_write);
     kaldi::CuVector<kaldi::BaseFloat> priors;
     priors = am_nnet.Priors();
-    priors.ApplyLog();
+//    priors.ApplyLog();
 //    priors.Scale(1 / kaldi::Log(10.0));
     out.Stream().write(reinterpret_cast<const char*>(priors.Data()), sizeof(BaseFloat) * priors.Dim());
   }
