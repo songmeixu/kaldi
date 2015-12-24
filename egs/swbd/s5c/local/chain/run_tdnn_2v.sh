@@ -1,16 +1,34 @@
 #!/bin/bash
 
+# _2v is as _2u, but adding the --scale-stats-for-pdf-classes="1=0.5" option to
+# the tree building, to scale down the stats for the self-loop to have fewer pdf-ids
+# assigned there and more to the initial state.
+
+# It's maybe a shade better than 2u, but certainly not better than 2o.  I don't
+# think I'll pursue this.  Note: the code and the script option may not be
+# checked in, and won't be checked in with this commit.
+
+# WER on            2o       2u       2v
+# train_dev,tg      17.24    17.23    17.28   0.05% worse than 2u
+# train_dev,fg      15.93    15.98    16.05   0.05% worse than 2u
+# eval2000,tg       18.7     19.3     19.1    0.2% better than 2u
+# eval2000,fg       16.9     17.3     17.1    0.2% better than 2u.
+
+
+# _2u is as _2o, but using 'not-shared' in the roots files, to ensure that
+# the initial and non-initial states will never be shared.  I don't expect this
+# to make any difference, as that question always gets asked, but it's a baseline for _2v.
+
 # _2o is as _2m, but going back to our original 2-state topology, which it turns
 # out that I never tested to WER.
 # hm--- it's about the same, or maybe slightly better!
-#   Correction: after rerunning, it actually seems a little worse.
 # caution: accidentally overwrote most of this dir, but kept the key stuff.
 
-# WER on          2m        2o        2o[rerun after delete]
-# train_dev,tg    17.22     17.24     17.19
-# train_dev,fg    15.87     15.93     15.89
-# eval2000,tg     18.7      18.7      19.3
-# eval2000,fg     17.0      16.9      17.4
+# WER on          2m        2o
+# train_dev,tg    17.22     17.24       no diff
+# train_dev,fg    15.87     15.93       no diff
+# eval2000,tg     18.7      18.7        no diff
+# eval2000,fg     17.0      16.9        0.1 better
 
 # train-prob,final  -0.0803   -0.0835
 # valid-prob,final  -0.0116   -0.0122
@@ -116,7 +134,7 @@ stage=10
 train_stage=-10
 get_egs_stage=-10
 speed_perturb=true
-dir=exp/chain/tdnn_2o  # Note: _sp will get added to this if $speed_perturb == true.
+dir=exp/chain/tdnn_2v  # Note: _sp will get added to this if $speed_perturb == true.
 
 # TDNN options
 splice_indexes="-2,-1,0,1,2 -1,2 -3,3 -6,3 -6,3"
@@ -161,9 +179,8 @@ fi
 dir=${dir}$suffix
 train_set=train_nodup$suffix
 ali_dir=exp/tri4_ali_nodup$suffix
-treedir=exp/chain/tri5_2o_tree$suffix
-lang=data/lang_chain_2o
-
+treedir=exp/chain/tri5_2v_tree$suffix
+lang=data/lang_chain_2v
 
 # if we are using the speed-perturbed data we need to generate
 # alignments for it.
@@ -193,11 +210,16 @@ if [ $stage -le 10 ]; then
   # Use our special topology... note that later on may have to tune this
   # topology.
   steps/nnet3/chain/gen_topo.py $nonsilphonelist $silphonelist >$lang/topo
+  # use 'not-shared' roots so initial and non-initial pdf-ids cannot be the
+  # same.
+  awk '{$1 = "not-shared"; print;}' <data/lang/phones/roots.txt >$lang/phones/roots.txt
+  awk '{$1 = "not-shared"; print;}' <data/lang/phones/roots.int >$lang/phones/roots.int
 fi
 
 if [ $stage -le 11 ]; then
   # Build a tree using our new topology.
   steps/nnet3/chain/build_tree.sh --frame-subsampling-factor 3 \
+      --scale-stats-for-pdf-classes "1=0.5" \
       --leftmost-questions-truncate $leftmost_questions_truncate \
       --cmd "$train_cmd" 9000 data/$train_set $lang $ali_dir $treedir
 fi

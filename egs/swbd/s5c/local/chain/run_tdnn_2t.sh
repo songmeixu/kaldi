@@ -1,19 +1,24 @@
 #!/bin/bash
 
+# _2t is as _2o and _2s, but another topology: with 3 pdf-ids like 2s, but
+# differently arranged.
+# see table below, it's worse.
+
+#[ _2s is as _2o, but another topology, this time with 3 states and 3 pdf-ids
+# worse :-(]
+
+# WER on           2o      2s       2t
+# train_dev,tg    17.24    17.19    17.44
+# train_dev,fg    15.93    15.97
+# eval2000,tg     18.7     19.0     19.4
+# eval2000,fg     16.9     17.2
+#
+
+
 # _2o is as _2m, but going back to our original 2-state topology, which it turns
 # out that I never tested to WER.
 # hm--- it's about the same, or maybe slightly better!
-#   Correction: after rerunning, it actually seems a little worse.
-# caution: accidentally overwrote most of this dir, but kept the key stuff.
 
-# WER on          2m        2o        2o[rerun after delete]
-# train_dev,tg    17.22     17.24     17.19
-# train_dev,fg    15.87     15.93     15.89
-# eval2000,tg     18.7      18.7      19.3
-# eval2000,fg     17.0      16.9      17.4
-
-# train-prob,final  -0.0803   -0.0835
-# valid-prob,final  -0.0116   -0.0122
 
 # _2m is as _2k, but setting --leftmost-questions-truncate=-1, i.e. disabling
 # that mechanism.
@@ -116,7 +121,7 @@ stage=10
 train_stage=-10
 get_egs_stage=-10
 speed_perturb=true
-dir=exp/chain/tdnn_2o  # Note: _sp will get added to this if $speed_perturb == true.
+dir=exp/chain/tdnn_2t  # Note: _sp will get added to this if $speed_perturb == true.
 
 # TDNN options
 splice_indexes="-2,-1,0,1,2 -1,2 -3,3 -6,3 -6,3"
@@ -161,8 +166,8 @@ fi
 dir=${dir}$suffix
 train_set=train_nodup$suffix
 ali_dir=exp/tri4_ali_nodup$suffix
-treedir=exp/chain/tri5_2o_tree$suffix
-lang=data/lang_chain_2o
+treedir=exp/chain/tri5_2t_tree$suffix
+lang=data/lang_chain_2t
 
 
 # if we are using the speed-perturbed data we need to generate
@@ -192,7 +197,7 @@ if [ $stage -le 10 ]; then
   nonsilphonelist=$(cat $lang/phones/nonsilence.csl) || exit 1;
   # Use our special topology... note that later on may have to tune this
   # topology.
-  steps/nnet3/chain/gen_topo.py $nonsilphonelist $silphonelist >$lang/topo
+  steps/nnet3/chain/gen_topo5.py $nonsilphonelist $silphonelist >$lang/topo
 fi
 
 if [ $stage -le 11 ]; then
