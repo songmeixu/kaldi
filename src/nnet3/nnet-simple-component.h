@@ -5,6 +5,7 @@
 //                2013  Xiaohui Zhang
 //           2014-2015  Vijayaditya Peddinti
 //           2014-2015  Guoguo Chen
+//                2015  Daniel Galvez
 
 // See ../../COPYING for clarification regarding multiple authors
 //
@@ -438,7 +439,7 @@ class RepeatedAffineComponent: public UpdatableComponent {
   const CuVector<BaseFloat> &BiasParams() { return bias_params_; }
   const CuMatrix<BaseFloat> &LinearParams() { return linear_params_; }
   explicit RepeatedAffineComponent(const RepeatedAffineComponent &other);
-  // The next constructor is used in converting from nnet1.
+
    RepeatedAffineComponent(const CuMatrixBase<BaseFloat> &linear_params,
                            const CuVectorBase<BaseFloat> &bias_params,
                            int32 num_repeats,
@@ -452,6 +453,76 @@ class RepeatedAffineComponent: public UpdatableComponent {
   CuMatrix<BaseFloat> linear_params_;
   CuVector<BaseFloat> bias_params_;
   int32 num_repeats_;
+};
+
+/// This class implements an affine transform using a block diagonal matrix
+/// e.g., one whose weight matrix is all zeros except for blocks on the
+/// diagonal. All these blocks have the same dimensions.
+///  input-dim: num cols of block diagonal matrix.
+///  output-dim: num rows of block diagonal matrix.
+/// num-blocks: number of blocks in diagonal of the matrix.
+/// num-blocks must divide both input-dim and output-dim
+class BlockAffineComponent : public UpdatableComponent {
+ public:
+  virtual int32 InputDim() const { return linear_params_.NumCols() * num_blocks_; }
+  virtual int32 OutputDim() const { return linear_params_.NumRows(); }
+
+  virtual std::string Info() const;
+  virtual void InitFromConfig(ConfigLine *cfl);
+
+  BlockAffineComponent() { }
+  virtual std::string Type() const { return "BlockAffineComponent"; }
+  virtual int32 Properties() const {
+    return kSimpleComponent|kUpdatableComponent|kLinearInParameters|
+      kBackpropNeedsInput|kBackpropAdds;
+  }
+
+  virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
+                         const CuMatrixBase<BaseFloat> &in,
+                         CuMatrixBase<BaseFloat> *out) const;
+
+  virtual void Backprop(const std::string &debug_info,
+                        const ComponentPrecomputedIndexes *indexes,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &, // out_value
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update,
+                        CuMatrixBase<BaseFloat> *in_deriv) const;
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+
+  virtual Component* Copy() const;
+
+  // Functions from base-class UpdatableComponent.
+  virtual void Scale(BaseFloat scale);
+  virtual void Add(BaseFloat alpha, const Component &other);
+  virtual void SetZero(bool treat_as_gradient);
+  virtual void PerturbParams(BaseFloat stddev);
+  virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
+  virtual int32 NumParameters() const;
+  virtual void Vectorize(VectorBase<BaseFloat> *params) const;
+  virtual void UnVectorize(const VectorBase<BaseFloat> &params);
+
+  // BlockAffine-specific functions.
+  void Init(BaseFloat learning_rate, int32 input_dim,
+            int32 output_dim, int32 num_blocks,
+            BaseFloat param_stddev, BaseFloat bias_stddev);
+  explicit BlockAffineComponent(const BlockAffineComponent &other);
+ protected:
+  // The matrix linear_params_ has a block structure, with num_blocks_ blocks of
+  // equal size.  The blocks are stored in linear_params_ as
+  // [ M
+  //   N
+  //   O ] but we actually treat it as the matrix:
+  // [ M 0 0
+  //   0 N 0
+  //   0 0 O ]
+  CuMatrix<BaseFloat> linear_params_;
+  CuVector<BaseFloat> bias_params_;
+  int32 num_blocks_;
+ private:
+  const BlockAffineComponent &operator = (const BlockAffineComponent &other); // Disallow.
 };
 
 class SoftmaxComponent: public NonlinearComponent {
@@ -523,8 +594,7 @@ class NaturalGradientAffineComponent: public AffineComponent {
   virtual void Write(std::ostream &os, bool binary) const;
   void Init(BaseFloat learning_rate,
             int32 input_dim, int32 output_dim,
-            BaseFloat param_stddev, BaseFloat bias_init,
-            BaseFloat bias_mean, BaseFloat bias_stddev,
+            BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
             int32 rank_in, int32 rank_out, int32 update_period,
             BaseFloat num_samples_history, BaseFloat alpha,
             BaseFloat max_change_per_sample);
@@ -875,17 +945,23 @@ class ClipGradientComponent: public Component {
 
 };
 
-// PermuteComponent shuffles the columns in the input, according to the
-// specification.
+/** PermuteComponent changes the order of the columns (i.e. the feature or
+    activation dimensions).  Output dimension i is mapped to input dimension
+    column_map_[i], so it's like doing:
+      for each row:
+        for each feature/activation dimension i:
+          output(row, i) = input(row, column_map_[i]).
+
+*/
 class PermuteComponent: public Component {
  public:
   PermuteComponent()  {}
-  PermuteComponent(CuArray<int32> column_map): column_map_(column_map){}
+  PermuteComponent(const std::vector<int32> &column_map) { Init(column_map); }
 
   virtual int32 InputDim() const { return column_map_.Dim(); }
   virtual int32 OutputDim() const { return column_map_.Dim(); }
   virtual void InitFromConfig(ConfigLine *cfl);
-  void Init(CuArray<int32> column_map) { column_map_ = column_map;}
+  void Init(const std::vector<int32> &column_map);
 
   virtual std::string Type() const { return "PermuteComponent"; }
 
@@ -895,8 +971,7 @@ class PermuteComponent: public Component {
 
   virtual void ZeroStats() {}
 
-  virtual Component* Copy() const {
-    return new PermuteComponent(column_map_);}
+  virtual Component* Copy() const;
 
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
                          const CuMatrixBase<BaseFloat> &in,
@@ -917,7 +992,13 @@ class PermuteComponent: public Component {
   virtual void Write(std::ostream &os, bool binary) const;
   virtual std::string Info() const;
  private:
+  // computes the reverse column map.  Must not be called if column_map_.Dim()
+  // == 0
+  void ComputeReverseColumnMap();
   CuArray<int32> column_map_;
+  // the following is a derived variable, not written to disk.
+  // It is used in backprop.
+  CuArray<int32> reverse_column_map_;
   PermuteComponent &operator =
       (const PermuteComponent &other); // Disallow.
 };
@@ -1507,11 +1588,13 @@ class MaxpoolingComponent: public Component {
 
   /// Write component to stream
   virtual void Write(std::ostream &os, bool binary) const;
+  // We don't implement InitFromConfig() at this level: child-class should do
+  // it.
   virtual Component* Copy() const {
     return new MaxpoolingComponent(input_dim_, output_dim_,
 		    pool_size_, pool_stride_); }
 
-  // Some functions that are specific to this
+  // Some functions that are specific to this class
   void Init(int32 input_dim, int32 output_dim,
             int32 pool_size, int32 pool_stride);
 
@@ -1520,6 +1603,101 @@ class MaxpoolingComponent: public Component {
   int32 output_dim_;
   int32 pool_size_;
   int32 pool_stride_;
+};
+
+/**
+   CompositeComponent is a base-class for components that are sequences of other
+   [simple] components.  The config line would be something like the following
+   (imagine this is all on one line):
+
+   component name=composite1 type=CompositeComponent max-rows-process=2048 num-components=3 \
+      component1='type=BlockAffineComponent input-dim=1000 output-dim=10000 num-blocks=100' \
+      component2='type=RectifiedLinearComponent dim=10000' \
+      component3='type=BlockAffineComponent input-dim=10000 output-dim=1000 num-blocks=100'
+
+
+   The reason you might want to use this component, instead of directly using
+   the same sequence of components in the config file, is to save GPU memory (at
+   the expense of more compute)-- because doing it like this means we have to
+   re-do parts of the forward pass in the backprop phase, but we avoid using
+   much memory for very long (and you can make the memory usage very small by
+   making max-rows-process small).  We inherit from UpdatableComponent just in
+   case one or more of the components in the sequence are updatable.
+ */
+class CompositeComponent: public UpdatableComponent {
+ public:
+  virtual int32 InputDim() const;
+  virtual int32 OutputDim() const;
+
+  virtual std::string Info() const;
+
+  virtual void InitFromConfig(ConfigLine *cfl);
+
+  virtual Component* Copy() const;
+
+  CompositeComponent() { } // use Init() or InitFromConfig() to really initialize.
+
+  // Initialize from this list of components; takes ownership of the pointers.
+  void Init(const std::vector<Component*> &components,
+            int32 max_rows_process);
+
+  virtual std::string Type() const { return "CompositeComponent"; }
+
+  // The properties depend on the properties of the constituent components.  As
+  // a special case, we never return kStoresStats in the properties: by default
+  // we store things like activation stats (e.g. for nonlinear components like
+  // ReLU) as part of the backprop.  This means we may wastefully store stats
+  // even when not requested, but it does save time as a separate StoreStats()
+  // call would involve propagating the internals.
+  virtual int32 Properties() const;
+
+  virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
+                         const CuMatrixBase<BaseFloat> &in,
+                         CuMatrixBase<BaseFloat> *out) const;
+  virtual void Backprop(const std::string &debug_info,
+                        const ComponentPrecomputedIndexes *indexes,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &, // out_value
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update,
+                        CuMatrixBase<BaseFloat> *in_deriv) const;
+
+  // note, we don't implement StoreStats() as it would be inefficient.  Instead,
+  // by default we call StoreStats() on all members that have the flag set,
+  // inside the Backprop.
+  virtual void ZeroStats();
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+
+  // Don't implement Copy() at this level: implement it in the child class.
+
+  // Some functions from base-class UpdatableComponent.
+  virtual void SetLearningRate(BaseFloat lrate);
+  virtual void Scale(BaseFloat scale);
+  virtual void Add(BaseFloat alpha, const Component &other);
+  virtual void SetZero(bool treat_as_gradient);
+  virtual void PerturbParams(BaseFloat stddev);
+  virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
+  virtual int32 NumParameters() const;
+  virtual void Vectorize(VectorBase<BaseFloat> *params) const;
+  virtual void UnVectorize(const VectorBase<BaseFloat> &params);
+
+  // note: we dont implement the StoreStats function as it would be quite
+  // expensive; instead, by default we call StoreStats() for any components that
+  // want to store stats, as part of the backprop pass.  This is not 100% ideal
+  // but it will usually do what you want.  We can revisit this later if needed.
+
+  virtual ~CompositeComponent() { DeletePointers(&components_); }
+ protected:
+  // returns true if at least one of 'components_' returns the kUpdatable flag
+  // in its flags.
+  bool IsUpdatable() const;
+
+  // the maximum number of
+  int32 max_rows_process_;
+  std::vector<Component*> components_;
+
 };
 
 
