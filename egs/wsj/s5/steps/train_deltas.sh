@@ -93,7 +93,7 @@ if [ $stage -le -2 ]; then
 
   echo "$0: building the tree"
   $cmd $dir/log/build_tree.log \
-    build-tree $context_opts --verbose=1 --max-leaves=$numleaves \
+    build-tree --binary=false $context_opts --verbose=1 --max-leaves=$numleaves \
     --cluster-thresh=$cluster_thresh $dir/treeacc $lang/phones/roots.int \
     $dir/questions.qst $lang/topo $dir/tree || exit 1;
 
@@ -109,7 +109,7 @@ if [ $stage -le -2 ]; then
   fi
 
   gmm-mixup --mix-up=$numgauss $dir/1.mdl $dir/1.occs $dir/1.mdl 2>$dir/log/mixup.log || exit 1;
-  rm $dir/treeacc
+  # rm $dir/treeacc
 fi
 
 if [ $stage -le -1 ]; then
@@ -162,4 +162,3 @@ ln -s $x.occs $dir/final.occs
 utils/summarize_warnings.pl  $dir/log
 
 echo "$0: Done training system with delta+delta-delta features in $dir"
-

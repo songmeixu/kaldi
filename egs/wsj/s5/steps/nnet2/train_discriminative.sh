@@ -3,7 +3,7 @@
 # Copyright 2012  Johns Hopkins University (Author: Daniel Povey).  Apache 2.0.
 
 # This script does MPE or MMI or state-level minimum bayes risk (sMBR) training
-# of neural nets. 
+# of neural nets.
 
 # Begin configuration section.
 cmd=run.pl
@@ -37,7 +37,7 @@ io_opts="-tc 5" # for jobs with a lot of I/O, limits the number running at one t
 
 num_threads=16  # this is the default but you may want to change it, e.g. to 1 if
                 # using GPUs.
-parallel_opts="--num-threads 16 --mem 1G" # by default we use 4 threads; this lets the queue know.
+parallel_opts="--num-threads 16 -l ram_free=1G,mem_free=1G" # by default we use 4 threads; this lets the queue know.
   # note: parallel_opts doesn't automatically get adjusted if you adjust num-threads.
 transform_dir= # If this is a SAT system, directory for transforms
 cleanup=true
@@ -45,6 +45,7 @@ transform_dir=
 degs_dir=
 retroactive=false
 online_ivector_dir=
+delta_order=
 # End configuration section.
 
 
@@ -151,11 +152,15 @@ fi
 echo "$0: feature type is $feat_type"
 
 case $feat_type in
-  raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
-   ;;
-  lda) 
+  raw)
+    feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
+    if [ ! -z "$delta_order" ]; then
+      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+    fi
+    ;;
+  lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
-    cp $alidir/final.mat $dir    
+    cp $alidir/final.mat $dir
     feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- | splice-feats $splice_opts ark:- ark:- | transform-feats $dir/final.mat ark:- ark:- |"
     ;;
   *) echo "$0: invalid feature type $feat_type" && exit 1;
@@ -172,7 +177,7 @@ if [ ! -z "$transform_dir" ]; then
   [ ! -s $transform_dir/num_jobs ] && \
     echo "$0: expected $transform_dir/num_jobs to contain the number of jobs." && exit 1;
   nj_orig=$(cat $transform_dir/num_jobs)
-  
+
   if [ $feat_type == "raw" ]; then trans=raw_trans;
   else trans=trans; fi
   if [ $feat_type == "lda" ] && ! cmp $transform_dir/final.mat $alidir/final.mat; then
@@ -348,18 +353,19 @@ else
 fi
 
 
-x=0   
+x=0
 while [ $x -lt $num_iters ]; do
   if [ $stage -le $x ]; then
-    
+
     echo "Training neural net (pass $x)"
 
     $cmd $parallel_opts JOB=1:$num_jobs_nnet $dir/log/train.$x.JOB.log \
       nnet-train-discriminative$train_suffix --silence-phones=$silphonelist \
        --criterion=$criterion --drop-frames=$drop_frames \
        --one-silence-class=$one_silence_class --boost=$boost \
-       --acoustic-scale=$acoustic_scale $dir/$x.mdl \
-       "ark:nnet-combine-egs-discriminative ark:$degs_dir/degs.JOB.$[$x%$iters_per_epoch].ark ark:- |" \
+       --acoustic-scale=$acoustic_scale \
+       --binary=false \
+       $dir/$x.mdl "ark:nnet-combine-egs-discriminative ark:$degs_dir/degs.JOB.$[$x%$iters_per_epoch].ark ark:- |" \
         $dir/$[$x+1].JOB.mdl \
       || exit 1;
 
@@ -373,6 +379,7 @@ while [ $x -lt $num_iters ]; do
         nnet-modify-learning-rates --retroactive=$retroactive \
         --last-layer-factor=$last_layer_factor \
         --first-layer-factor=$first_layer_factor \
+        --binary=false \
         $dir/$x.mdl $dir/$[$x+1].mdl $dir/$[$x+1].mdl || exit 1;
     fi
     rm $nnets_list
@@ -390,10 +397,10 @@ echo Done
 if $cleanup; then
   echo Cleaning up data
 
-  echo Removing training examples
-  if [ -d $dir/degs ] && [ ! -L $dir/degs ]; then # only remove if directory is not a soft link.
-    remove $dir/degs/degs.*
-  fi
+  # echo Removing training examples
+  # if [ -d $dir/degs ] && [ ! -L $dir/degs ]; then # only remove if directory is not a soft link.
+  #   remove $dir/degs/degs.*
+  # fi
 
   echo Removing most of the models
   for x in `seq 0 $num_iters`; do
