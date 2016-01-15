@@ -176,6 +176,8 @@ void DenominatorComputation::Backward(
   BetaLastFrame();
   for (int32 t = frames_per_sequence_ - 1; t >= 0; t--) {
     BetaGeneralFrame(t);
+    if (GetVerboseLevel() >= 1 || t == 0)
+      BetaGeneralFrameDebug(t);
     if (t % kMaxDerivTimeSteps == 0) {
       // commit the derivative stored in exp_nnet_output_transposed_ by adding
       // its transpose to the appropriate sub-matrix of 'nnet_output_deriv'.
@@ -190,8 +192,10 @@ void DenominatorComputation::Backward(
           *nnet_output_deriv,
           t * num_sequences_, chunk_frames * num_sequences_,
           0, num_pdfs);
-      output_deriv_part.AddMat(deriv_weight, transposed_deriv_part,
-                               kTrans);
+      const BaseFloat occupation_arbitrary_factor_inv =
+          (1 << kOccupationRescalingPowerOfTwo);
+      output_deriv_part.AddMat(deriv_weight * occupation_arbitrary_factor_inv,
+                               transposed_deriv_part, kTrans);
       if (t != 0)
         transposed_deriv_part.SetZero();
     }
@@ -266,8 +270,12 @@ void DenominatorComputation::BetaGeneralFrame(int32 t) {
             inv_arbitrary_scale =
             this_alpha[special_hmm_state * num_sequences + s];
         double tot_variable_factor = 0.0;
-        BaseFloat
-            occupation_factor = this_alpha_prob / inv_arbitrary_scale;
+        // search for 'occupation_arbitrary_factor' in chain-kernels.cu for
+        // an explanation.
+        const BaseFloat occupation_arbitrary_factor =
+            (1.0 / (1 << kOccupationRescalingPowerOfTwo));
+        BaseFloat occupation_factor = (occupation_arbitrary_factor *
+                                       this_alpha_prob) / inv_arbitrary_scale;
         const DenominatorGraphTransition
             *trans_iter = transitions + forward_transitions[h].first,
             *trans_end = transitions + forward_transitions[h].second;
@@ -287,6 +295,33 @@ void DenominatorComputation::BetaGeneralFrame(int32 t) {
       }
     }
   }
+}
+
+void DenominatorComputation::BetaGeneralFrameDebug(int32 t) const {
+  CuSubVector<BaseFloat> this_alpha(alpha_, t),
+      this_beta(beta_, t % 2);
+  int32 t_wrapped = t % static_cast<int32>(kMaxDerivTimeSteps),
+      num_pdfs = exp_nnet_output_transposed_.NumRows();
+  CuSubMatrix<BaseFloat> this_log_prob_deriv(
+      nnet_output_deriv_transposed_, 0, num_pdfs,
+      t_wrapped * num_sequences_, num_sequences_);
+  const BaseFloat occupation_inv_arbitrary_factor =
+      1 << kOccupationRescalingPowerOfTwo;
+  BaseFloat alpha_beta_product = VecVec(this_alpha, this_beta),
+      this_log_prob_deriv_sum = this_log_prob_deriv.Sum() *
+      occupation_inv_arbitrary_factor;
+  if (!ApproxEqual(alpha_beta_product, num_sequences_)) {
+    KALDI_WARN << "On time " << t << ", alpha-beta product "
+               << alpha_beta_product << " != " << num_sequences_
+               << " alpha-sum = " << this_alpha.Sum() << ", beta-sum = "
+               << this_beta.Sum();
+  }
+  // use higher tolerance, since we are using randomized pruning for the
+  // log-prob derivatives.
+  if (!ApproxEqual(this_log_prob_deriv_sum,
+                   num_sequences_, 0.01))
+    KALDI_WARN << "On time " << t << ", log-prob-deriv sum "
+               << this_log_prob_deriv_sum << " != " << num_sequences_;
 }
 
 
