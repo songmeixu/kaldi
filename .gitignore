@@ -103,3 +103,6 @@ GSYMS
 /tools/sequitur
 /tools/srilm.tgz
 .DS_Store
+*.patch
+tools/atlas3.10.0.tar.bz2
+

@@ -6,7 +6,7 @@
 # See http://kaldi.sourceforge.net/data_prep.html#data_prep_data
 # for what these directories contain.
 
-# Begin configuration section. 
+# Begin configuration section.
 extra_files= # specify addtional files in 'src-data-dir' to merge, ex. "file1 file2 ..."
 skip_fix=false # skip the fix_data_dir.sh in the end
 # End configuration section.
@@ -40,7 +40,7 @@ for dir in $*; do
 done
 
 # W.r.t. utt2uniq file the script has different behavior compared to other files
-# it is not compulsary for it to exist in src directories, but if it exists in 
+# it is not compulsary for it to exist in src directories, but if it exists in
 # even one it should exist in all. We will create the files where necessary
 has_utt2uniq=false
 for in_dir in $*; do
@@ -55,11 +55,11 @@ if $has_utt2uniq; then
   for in_dir in $*; do
     if [ ! -f $in_dir/utt2uniq ]; then
       # we assume that utt2uniq is a one to one mapping
-      cat $in_dir/utt2spk | awk '{printf("%s %s\n", $1, $1);}' 
+      cat $in_dir/utt2spk | awk '{printf("%s %s\n", $1, $1);}'
     else
       cat $in_dir/utt2uniq
     fi
-  done | sort -k1 > $dest/utt2uniq
+  done | sort -T /gfs/tmp -k1 > $dest/utt2uniq
   echo "$0: combined utt2uniq"
 fi
 # some of the old scripts might provide utt2uniq as an extrafile, so just remove it
@@ -67,7 +67,7 @@ extra_files=$(echo "$extra_files"|sed -e "s/utt2uniq//g")
 
 for file in utt2spk utt2lang feats.scp text cmvn.scp segments reco2file_and_channel wav.scp spk2gender $extra_files; do
   if [ -f $first_src/$file ]; then
-    ( for f in $*; do cat $f/$file; done ) | sort -k1 > $dest/$file || exit 1;
+    ( for f in $*; do cat $f/$file; done ) | sort -T /gfs/tmp -k1 > $dest/$file || exit 1;
     echo "$0: combined $file"
   else
     echo "$0 [info]: not combining $file as it does not exist"
