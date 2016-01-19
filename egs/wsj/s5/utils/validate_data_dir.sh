@@ -54,13 +54,13 @@ if [ "$ns" == 1 ]; then
 fi
 
 
-tmpdir=$(mktemp -d /tmp/kaldi.XXXX);
+tmpdir=$(mktemp -d /gfs/tmp/kaldi.XXXX);
 trap 'rm -rf "$tmpdir"' EXIT HUP INT PIPE TERM
 
 export LC_ALL=C
 
 function check_sorted_and_uniq {
-  ! awk '{print $1}' $1 | sort | uniq | cmp -s - <(awk '{print $1}' $1) && \
+  ! awk '{print $1}' $1 | sort -T /gfs/tmp | uniq | cmp -s - <(awk '{print $1}' $1) && \
     echo "$0: file $1 is not in sorted order or has duplicates" && exit 1;
 }
 
@@ -75,7 +75,7 @@ function partial_diff {
 
 check_sorted_and_uniq $data/utt2spk
 
-! cat $data/utt2spk | sort -k2 | cmp -s - $data/utt2spk && \
+! cat $data/utt2spk | sort -T /gfs/tmp -k2 | cmp -s - $data/utt2spk && \
    echo "$0: utt2spk is not in sorted order when sorted first on speaker-id " && \
    echo "(fix this by making speaker-ids prefixes of utt-ids)" && exit 1;
 
@@ -133,7 +133,7 @@ if [ -f $data/wav.scp ]; then
     ! cat $data/segments | \
       awk '{if (NF != 4 || ($4 <= $3 && $4 != -1)) { print "Bad line in segments file", $0; exit(1); }}' && \
       echo "$0: badly formatted segments file" && exit 1;
-    
+
     segments_len=`cat $data/segments | wc -l`
     if [ -f $data/text ]; then
       ! cmp -s $tmpdir/utts <(awk '{print $1}' <$data/text) && \
@@ -141,7 +141,7 @@ if [ -f $data/wav.scp ]; then
         echo "$0: Lengths are $segments_len vs $num_utts";
     fi
 
-    cat $data/segments | awk '{print $2}' | sort | uniq > $tmpdir/recordings
+    cat $data/segments | awk '{print $2}' | sort -T /gfs/tmp | uniq > $tmpdir/recordings
     awk '{print $1}' $data/wav.scp > $tmpdir/recordings.wav
     if ! cmp -s $tmpdir/recordings{,.wav}; then
       echo "$0: Error: in $data, recording-ids extracted from segments and wav.scp"
@@ -153,14 +153,14 @@ if [ -f $data/wav.scp ]; then
       # this file is needed only for ctm scoring; it's indexed by recording-id.
       check_sorted_and_uniq $data/reco2file_and_channel
       ! cat $data/reco2file_and_channel | \
-        awk '{if (NF != 3 || ($3 != "A" && $3 != "B" )) { 
+        awk '{if (NF != 3 || ($3 != "A" && $3 != "B" )) {
                 if ( NF == 3 && $3 == "1" ) {
                   warning_issued = 1;
                 } else {
-                  print "Bad line ", $0; exit 1; 
+                  print "Bad line ", $0; exit 1;
                 }
               }
-            } 
+            }
             END {
               if (warning_issued == 1) {
                 print "The channel should be marked as A or B, not 1! You should change it ASAP! "
@@ -188,14 +188,14 @@ if [ -f $data/wav.scp ]; then
       # this file is needed only for ctm scoring; it's indexed by recording-id.
       check_sorted_and_uniq $data/reco2file_and_channel
       ! cat $data/reco2file_and_channel | \
-        awk '{if (NF != 3 || ($3 != "A" && $3 != "B" )) { 
+        awk '{if (NF != 3 || ($3 != "A" && $3 != "B" )) {
                 if ( NF == 3 && $3 == "1" ) {
                   warning_issued = 1;
                 } else {
-                  print "Bad line ", $0; exit 1; 
+                  print "Bad line ", $0; exit 1;
                 }
               }
-            } 
+            }
             END {
               if (warning_issued == 1) {
                 print "The channel should be marked as A or B, not 1! You should change it ASAP! "

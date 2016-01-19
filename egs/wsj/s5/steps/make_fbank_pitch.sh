@@ -1,9 +1,9 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Copyright 2013 The Shenzhen Key Laboratory of Intelligent Media and Speech,
 #                PKU-HKUST Shenzhen Hong Kong Institution (Author: Wei Shi)
 # Apache 2.0
-# Combine filterbank and pitch features together 
+# Combine filterbank and pitch features together
 # Note: This file is based on make_fbank.sh and make_pitch_kaldi.sh
 
 # Begin configuration section.
@@ -11,7 +11,7 @@ nj=4
 cmd=run.pl
 fbank_config=conf/fbank.conf
 pitch_config=conf/pitch.conf
-pitch_postprocess_config=
+pitch_postprocess_config=conf/pitch_post.conf
 paste_length_tolerance=2
 compress=true
 # End configuration section.
@@ -83,7 +83,7 @@ fi
 for n in $(seq $nj); do
   # the next command does nothing unless $fbank_pitch_dir/storage/ exists, see
   # utils/create_data_link.pl for more info.
-  utils/create_data_link.pl $fbank_pitch_dir/raw_fbank_pitch_$name.$n.ark  
+  utils/create_data_link.pl $fbank_pitch_dir/raw_fbank_pitch_$name.$n.ark
 done
 
 if [ -f $data/segments ]; then
@@ -95,7 +95,7 @@ if [ -f $data/segments ]; then
 
   utils/split_scp.pl $data/segments $split_segments || exit 1;
   rm $logdir/.error 2>/dev/null
-   
+
   fbank_feats="ark:extract-segments scp,p:$scp $logdir/segments.JOB ark:- | compute-fbank-feats $vtln_opts --verbose=2 --config=$fbank_config ark:- ark:- |"
   pitch_feats="ark,s,cs:extract-segments scp,p:$scp $logdir/segments.JOB ark:- | compute-kaldi-pitch-feats --verbose=2 --config=$pitch_config ark:- ark:- | process-kaldi-pitch-feats $postprocess_config_opt ark:- ark:- |"
 
@@ -113,10 +113,10 @@ else
   done
 
   utils/split_scp.pl $scp $split_scps || exit 1;
-  
+
   fbank_feats="ark:compute-fbank-feats $vtln_opts --verbose=2 --config=$fbank_config scp,p:$logdir/wav.JOB.scp ark:- |"
   pitch_feats="ark,s,cs:compute-kaldi-pitch-feats --verbose=2 --config=$pitch_config scp,p:$logdir/wav.JOB.scp ark:- | process-kaldi-pitch-feats $postprocess_config_opt ark:- ark:- |"
- 
+
   $cmd JOB=1:$nj $logdir/make_fbank_pitch_${name}.JOB.log \
     paste-feats --length-tolerance=$paste_length_tolerance "$fbank_feats" "$pitch_feats" ark:- \| \
     copy-feats --compress=$compress ark:- \
@@ -139,8 +139,8 @@ done > $data/feats.scp
 
 rm $logdir/wav.*.scp  $logdir/segments.* 2>/dev/null
 
-nf=`cat $data/feats.scp | wc -l` 
-nu=`cat $data/utt2spk | wc -l` 
+nf=`cat $data/feats.scp | wc -l`
+nu=`cat $data/utt2spk | wc -l`
 if [ $nf -ne $nu ]; then
   echo "It seems not all of the feature files were successfully processed ($nf != $nu);"
   echo "consider using utils/fix_data_dir.sh $data"

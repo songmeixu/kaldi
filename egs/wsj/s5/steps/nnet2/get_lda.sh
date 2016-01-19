@@ -25,6 +25,7 @@ ivector_randomize_prob=0.0 # if >0.0, randomizes iVectors during training with
                            # this prob per iVector.
 ivector_dir=
 cmvn_opts=  # allows you to specify options for CMVN, if feature type is not lda.
+delta_order=
 
 echo "$0 $@"  # Print the command line for logging
 
@@ -105,10 +106,17 @@ echo "$0: feature type is $feat_type"
 N=$[$num_feats/$nj]
 
 case $feat_type in
-  raw) feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
+  raw)
+    delta_opts=""
+    feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
+    if [ ! -z "$delta_order" ]; then
+      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+      echo $delta_order >$dir/delta_order
+    fi
+#   feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- | add-deltas $delta_opts ark:- ark:- |"
     echo $cmvn_opts >$dir/cmvn_opts
    ;;
-  lda) 
+  lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
     cp $alidir/{splice_opts,cmvn_opts,final.mat} $dir || exit 1;
     [ ! -z "$cmvn_opts" ] && \
@@ -147,7 +155,7 @@ fi
 echo $ivector_dim >$dir/ivector_dim
 
 if [ -z "$lda_dim" ]; then
-  spliced_feats_one="$(echo "$spliced_feats" | sed s:JOB:1:g)"  
+  spliced_feats_one="$(echo "$spliced_feats" | sed s:JOB:1:g)"
   lda_dim=$(feat-to-dim "$spliced_feats_one" -) || exit 1;
 fi
 

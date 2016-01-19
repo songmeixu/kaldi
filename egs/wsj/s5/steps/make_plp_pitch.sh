@@ -1,9 +1,9 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Copyright 2013 The Shenzhen Key Laboratory of Intelligent Media and Speech,
 #                PKU-HKUST Shenzhen Hong Kong Institution (Author: Wei Shi)
 # Apache 2.0
-# Combine PLP and pitch features together 
+# Combine PLP and pitch features together
 # Note: This file is based on make_plp.sh and make_pitch_kaldi.sh
 
 # Begin configuration section.
@@ -11,7 +11,7 @@ nj=4
 cmd=run.pl
 plp_config=conf/plp.conf
 pitch_config=conf/pitch.conf
-pitch_postprocess_config=
+pitch_postprocess_config=conf/pitch_post.conf
 paste_length_tolerance=2
 compress=true
 # End configuration section.
@@ -82,7 +82,7 @@ fi
 for n in $(seq $nj); do
   # the next command does nothing unless $plp_pitch_dir/storage/ exists, see
   # utils/create_data_link.pl for more info.
-  utils/create_data_link.pl $plp_pitch_dir/raw_plp_pitch_$name.$n.ark  
+  utils/create_data_link.pl $plp_pitch_dir/raw_plp_pitch_$name.$n.ark
 done
 
 
@@ -95,7 +95,7 @@ if [ -f $data/segments ]; then
 
   utils/split_scp.pl $data/segments $split_segments || exit 1;
   rm $logdir/.error 2>/dev/null
-   
+
   plp_feats="ark:extract-segments scp,p:$scp $logdir/segments.JOB ark:- | compute-plp-feats $vtln_opts --verbose=2 --config=$plp_config ark:- ark:- |"
   pitch_feats="ark,s,cs:extract-segments scp,p:$scp $logdir/segments.JOB ark:- | compute-kaldi-pitch-feats --verbose=2 --config=$pitch_config ark:- ark:- | process-kaldi-pitch-feats $postprocess_config_opt ark:- ark:- |"
 
@@ -113,11 +113,11 @@ else
   done
 
   utils/split_scp.pl $scp $split_scps || exit 1;
-  
+
 
   plp_feats="ark:compute-plp-feats $vtln_opts --verbose=2 --config=$plp_config scp,p:$logdir/wav_${name}.JOB.scp ark:- |"
   pitch_feats="ark,s,cs:compute-kaldi-pitch-feats --verbose=2 --config=$pitch_config scp,p:$logdir/wav_${name}.JOB.scp ark:- | process-kaldi-pitch-feats $postprocess_config_opt ark:- ark:- |"
- 
+
   $cmd JOB=1:$nj $logdir/make_plp_pitch_${name}.JOB.log \
     paste-feats --length-tolerance=$paste_length_tolerance "$plp_feats" "$pitch_feats" ark:- \| \
     copy-feats --compress=$compress ark:- \
@@ -140,8 +140,8 @@ done > $data/feats.scp
 
 rm $logdir/wav_${name}.*.scp  $logdir/segments.* 2>/dev/null
 
-nf=`cat $data/feats.scp | wc -l` 
-nu=`cat $data/utt2spk | wc -l` 
+nf=`cat $data/feats.scp | wc -l`
+nu=`cat $data/utt2spk | wc -l`
 if [ $nf -ne $nu ]; then
   echo "It seems not all of the feature files were successfully processed ($nf != $nu);"
   echo "consider using utils/fix_data_dir.sh $data"

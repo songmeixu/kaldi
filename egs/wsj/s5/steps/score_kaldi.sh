@@ -46,9 +46,11 @@ done
 ref_filtering_cmd="cat"
 [ -x local/wer_output_filter ] && ref_filtering_cmd="local/wer_output_filter"
 [ -x local/wer_ref_filter ] && ref_filtering_cmd="local/wer_ref_filter"
+[ -x local/word2char.pl ] && ref_filtering_cmd="local/word2char.pl"
 hyp_filtering_cmd="cat"
 [ -x local/wer_output_filter ] && hyp_filtering_cmd="local/wer_output_filter"
 [ -x local/wer_hyp_filter ] && hyp_filtering_cmd="local/wer_hyp_filter"
+[ -x local/word2char.pl ] && hyp_filtering_cmd="local/word2char.pl"
 
 
 if $decode_mbr ; then

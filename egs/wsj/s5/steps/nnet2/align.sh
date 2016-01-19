@@ -5,7 +5,7 @@
 
 # Computes training alignments using DNN
 
-# Begin configuration section.  
+# Begin configuration section.
 nj=4
 cmd=run.pl
 # Begin configuration.
@@ -68,9 +68,11 @@ cmvn_opts=`cat $srcdir/cmvn_opts 2>/dev/null`
 cp $srcdir/cmvn_opts $dir 2>/dev/null
 
 case $feat_type in
+  delta) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- | add-deltas ark:- ark:- |"
+   ;;
   raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
    ;;
-  lda) 
+  lda)
     splice_opts=`cat $srcdir/splice_opts 2>/dev/null`
     cp $srcdir/splice_opts $dir 2>/dev/null
     cp $srcdir/final.mat $dir || exit 1;
@@ -84,7 +86,7 @@ if [ ! -z "$transform_dir" ]; then
   [ ! -s $transform_dir/num_jobs ] && \
     echo "$0: expected $transform_dir/num_jobs to contain the number of jobs." && exit 1;
   nj_orig=$(cat $transform_dir/num_jobs)
-  
+
   if [ $feat_type == "raw" ]; then trans=raw_trans;
   else trans=trans; fi
   if [ $feat_type == "lda" ] && ! cmp $transform_dir/final.mat $srcdir/final.mat; then
@@ -122,4 +124,3 @@ $cmd JOB=1:$nj $dir/log/align.JOB.log \
     $srcdir/${iter}.mdl ark:- "$feats" "ark:|gzip -c >$dir/ali.JOB.gz" || exit 1;
 
 echo "$0: done aligning data."
-

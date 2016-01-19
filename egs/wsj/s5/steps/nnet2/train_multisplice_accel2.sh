@@ -79,7 +79,7 @@ precondition_rank_out=80 # relates to online preconditioning
 mix_up=0 # Number of components to mix up to (should be > #tree leaves, if
         # specified.)
 num_threads=16
-parallel_opts="--num-threads 16 --mem 1G"
+parallel_opts="--num-threads 16 --mem_free 1G"
   # by default we use 16 threads; this lets the queue know.
   # note: parallel_opts doesn't automatically get adjusted if you adjust num-threads.
 combine_num_threads=8
@@ -677,4 +677,3 @@ if $cleanup; then
     fi
   done
 fi
-

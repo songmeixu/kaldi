@@ -20,7 +20,7 @@
 # note: to get this install process to work you have to make
 # sure CPU throttling is disabled.  To do this, on some systems
 # you can edit
-# /etc/sysconfig/cpuspeed  
+# /etc/sysconfig/cpuspeed
 # to set GOVERNOR=performance
 # On others you can do
 #  sudo cpufreq-selector performance
@@ -47,8 +47,6 @@ if [ "$x" == "i686" -o "$x" == "x86" ]; then
 fi
 
 ../configure $opt --prefix=`pwd`/install || exit 1;
-make -j 2 || exit 1;
-make check -j 2 || exit 1;
+make || exit 1;
+make check || exit 1;
 make install || exit 1;
-
-

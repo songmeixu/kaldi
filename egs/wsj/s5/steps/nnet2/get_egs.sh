@@ -19,11 +19,12 @@ samples_per_iter=200000 # each iteration of training, see this many samples
 transform_dir=     # If supplied, overrides alidir
 num_jobs_nnet=16    # Number of neural net jobs to run in parallel
 stage=0
-io_opts="-tc 5" # for jobs with a lot of I/O, limits the number running at one time. 
+io_opts="-tc 5" # for jobs with a lot of I/O, limits the number running at one time.
 splice_width=4 # meaning +- 4 frames on each side for second LDA
 left_context=
 right_context=
 random_copy=false
+delta_order=
 online_ivector_dir=
 ivector_randomize_prob=0.0 # if >0.0, randomizes iVectors during training with
                            # this prob per iVector.
@@ -58,7 +59,7 @@ if [ $# != 4 ]; then
   echo "                                                   # very end."
   echo "  --stage <stage|0>                                # Used to run a partially-completed training process from somewhere in"
   echo "                                                   # the middle."
-  
+
   exit 1;
 fi
 
@@ -89,7 +90,7 @@ mkdir -p $dir/log
 cp $alidir/tree $dir
 
 
-# Get list of validation utterances. 
+# Get list of validation utterances.
 awk '{print $1}' $data/utt2spk | utils/shuffle_list.pl | head -$num_utts_subset \
     > $dir/valid_uttlist || exit 1;
 
@@ -109,7 +110,7 @@ awk '{print $1}' $data/utt2spk | utils/filter_scp.pl --exclude $dir/valid_uttlis
 
 [ -z "$transform_dir" ] && transform_dir=$alidir
 
-## Set up features. 
+## Set up features.
 if [ -z $feat_type ]; then
   if [ -f $alidir/final.mat ] && [ ! -f $transform_dir/raw_trans.1 ]; then feat_type=lda; else feat_type=raw; fi
 fi
@@ -119,9 +120,15 @@ case $feat_type in
   raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
     valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
     train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
-    echo $cmvn_opts >$dir/cmvn_opts
-   ;;
-  lda) 
+    echo $cmvn_opts >$dir/cmvn_opts # caution: the top-level nnet training script should copy this to its own dir now.
+    if [ ! -z "$delta_order" ]; then
+      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+      valid_feats="$valid_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+      train_subset_feats="$train_subset_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+      echo $delta_order >$dir/delta_order
+    fi
+    ;;
+  lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
     cp $alidir/{splice_opts,cmvn_opts,final.mat} $dir || exit 1;
     [ ! -z "$cmvn_opts" ] && \
@@ -173,15 +180,17 @@ echo "$0: giving samples-per-iteration of $samples_per_iter_real (you requested 
 
 # Making soft links to storage directories.  This is a no-up unless
 # the subdirectory $dir/egs/storage/ exists.  See utils/create_split_dir.pl
-for x in `seq 1 $num_jobs_nnet`; do
-  for y in `seq 0 $[$iters_per_epoch-1]`; do
-    utils/create_data_link.pl $dir/egs/egs.$x.$y.ark
-    utils/create_data_link.pl $dir/egs/egs_tmp.$x.$y.ark
+if [ -d $dir/egs/storage ]; then
+  for x in `seq 1 $num_jobs_nnet`; do
+    for y in `seq 0 $[$iters_per_epoch-1]`; do
+      utils/create_data_link.pl $dir/egs/egs.$x.$y.ark
+      utils/create_data_link.pl $dir/egs/egs_tmp.$x.$y.ark
+    done
+    for y in `seq 1 $nj`; do
+      utils/create_data_link.pl $dir/egs/egs_orig.$x.$y.ark
+    done
   done
-  for y in `seq 1 $nj`; do
-    utils/create_data_link.pl $dir/egs/egs_orig.$x.$y.ark
-  done
-done
+fi
 
 remove () { for x in $*; do [ -L $x ] && rm $(readlink -f $x); rm $x; done }
 
@@ -233,12 +242,12 @@ if [ $stage -le 2 ]; then
   rm $dir/egs/valid_all.egs $dir/egs/train_subset_all.egs $dir/egs/{train,valid}_combine.egs $dir/ali_special.gz
 fi
 
-if [ $stage -le 3 ]; then
-  # Other scripts might need to know the following info:
-  echo $num_jobs_nnet >$dir/egs/num_jobs_nnet
-  echo $iters_per_epoch >$dir/egs/iters_per_epoch
-  echo $samples_per_iter_real >$dir/egs/samples_per_iter
+# Other scripts might need to know the following info:
+echo $num_jobs_nnet >$dir/egs/num_jobs_nnet
+echo $iters_per_epoch >$dir/egs/iters_per_epoch
+echo $samples_per_iter_real >$dir/egs/samples_per_iter
 
+if [ $stage -le 3 ]; then
   echo "Creating training examples";
   # in $dir/egs, create $num_jobs_nnet separate files with training examples.
   # The order is not randomized at this point.
@@ -265,7 +274,7 @@ if [ $stage -le 4 ]; then
     echo "$0: Since iters-per-epoch == 1, just concatenating the data."
     for n in `seq 1 $num_jobs_nnet`; do
       cat $dir/egs/egs_orig.$n.*.ark > $dir/egs/egs_tmp.$n.0.ark || exit 1;
-      remove $dir/egs/egs_orig.$n.*.ark 
+      remove $dir/egs/egs_orig.$n.*.ark
     done
   else # We'll have to split it up using nnet-copy-egs.
     egs_list=
@@ -290,7 +299,7 @@ if [ $stage -le 5 ]; then
   for n in `seq 0 $[$iters_per_epoch-1]`; do
     $cmd $io_opts JOB=1:$num_jobs_nnet $dir/log/shuffle.$n.JOB.log \
       nnet-shuffle-egs "--srand=\$[JOB+($num_jobs_nnet*$n)]" \
-      ark:$dir/egs/egs_tmp.JOB.$n.ark ark:$dir/egs/egs.JOB.$n.ark 
+      ark:$dir/egs/egs_tmp.JOB.$n.ark ark:$dir/egs/egs.JOB.$n.ark
     remove $dir/egs/egs_tmp.*.$n.ark
   done
 fi

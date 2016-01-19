@@ -106,3 +106,6 @@ GSYMS
 src/.idea
 CMakeLists.txt
 .idea
+*.patch
+tools/atlas3.10.0.tar.bz2
+
