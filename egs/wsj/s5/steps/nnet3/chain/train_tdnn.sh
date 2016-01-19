@@ -23,13 +23,20 @@ truncate_deriv_weights=0  # can be used to set to zero the weights of derivs fro
 apply_deriv_weights=true
 initial_effective_lrate=0.0002
 final_effective_lrate=0.00002
+extra_left_context=0  # actually for recurrent setups.
 pnorm_input_dim=3000
 pnorm_output_dim=300
 relu_dim=  # you can use this to make it use ReLU's instead of p-norms.
+
+jesus_opts=  # opts to steps/nnet3/make_jesus_configs.py.
+             # If nonempty, assumes you want to use the jesus nonlinearity,
+             # and you should supply various options to that script in
+             # this string.
 rand_prune=4.0 # Relates to a speedup we do for LDA.
 minibatch_size=512  # This default is suitable for GPU-based training.
                     # Set it to 128 for multi-threaded CPU-based training.
 lm_opts=   # options to chain-est-phone-lm
+l2_regularize=0.0
 frames_per_iter=800000  # each iteration of training, see this many [input]
                         # frames per job.  This option is passed to get_egs.sh.
                         # Aim for about a minute of training time
@@ -197,24 +204,33 @@ num_leaves=$(am-info $dir/0.trans_mdl | grep -w pdfs | awk '{print $NF}') || exi
 
 if [ $stage -le -5 ]; then
   echo "$0: creating neural net configs";
-  if [ ! -z "$relu_dim" ]; then
-    dim_opts="--relu-dim $relu_dim"
+  if [ ! -z "$jesus_opts" ]; then
+    python steps/nnet3/make_jesus_configs.py \
+      --include-log-softmax=false \
+      --splice-indexes "$splice_indexes"  \
+      --feat-dim $feat_dim \
+      --ivector-dim $ivector_dim  \
+       $jesus_opts \
+      --num-targets $num_leaves \
+      $dir/configs || exit 1;
   else
-    dim_opts="--pnorm-input-dim $pnorm_input_dim --pnorm-output-dim  $pnorm_output_dim"
+    if [ ! -z "$relu_dim" ]; then
+      dim_opts="--relu-dim $relu_dim"
+    else
+      dim_opts="--pnorm-input-dim $pnorm_input_dim --pnorm-output-dim  $pnorm_output_dim"
+    fi
+    # create the config files for nnet initialization
+    python steps/nnet3/make_tdnn_configs.py \
+      --include-log-softmax=false \
+      --final-layer-normalize-target $final_layer_normalize_target \
+      --splice-indexes "$splice_indexes"  \
+      --feat-dim $feat_dim \
+      --ivector-dim $ivector_dim  \
+      $dim_opts \
+      --num-targets $num_leaves \
+      --use-presoftmax-prior-scale false \
+      $dir/configs || exit 1;
   fi
-
-  # create the config files for nnet initialization
-  python steps/nnet3/make_tdnn_configs.py \
-    --include-log-softmax=false \
-    --final-layer-normalize-target $final_layer_normalize_target \
-    --splice-indexes "$splice_indexes"  \
-    --feat-dim $feat_dim \
-    --ivector-dim $ivector_dim  \
-     $dim_opts \
-    --num-targets $num_leaves \
-    --use-presoftmax-prior-scale false \
-   $dir/configs || exit 1;
-
   # Initialize as "raw" nnet, prior to training the LDA-like preconditioning
   # matrix.  This first config just does any initial splicing that we do;
   # we do this as it's a convenient way to get the stats for the 'lda-like'
@@ -242,7 +258,7 @@ if [ $stage -le -4 ] && [ -z "$egs_dir" ]; then
   extra_opts+=(--transform-dir $transform_dir)
   # we need a bit of extra left-context and right-context to allow for frame
   # shifts (we use shifted version of the data for more variety).
-  extra_opts+=(--left-context $[$left_context+$frame_subsampling_factor/2])
+  extra_opts+=(--left-context $[$left_context+$frame_subsampling_factor/2+$extra_left_context])
   extra_opts+=(--right-context $[$right_context+$frame_subsampling_factor/2])
   echo "$0: calling get_egs.sh"
   steps/nnet3/chain/get_egs.sh $egs_opts "${extra_opts[@]}" \
@@ -414,11 +430,11 @@ while [ $x -lt $num_iters ]; do
     # Set off jobs doing some diagnostics, in the background.
     # Use the egs dir from the previous iteration for the diagnostics
     $cmd $dir/log/compute_prob_valid.$x.log \
-      nnet3-chain-compute-prob  \
+      nnet3-chain-compute-prob --l2-regularize=$l2_regularize \
           "nnet3-am-copy --raw=true $dir/$x.mdl -|" $dir/den.fst \
           "ark:nnet3-chain-merge-egs ark:$egs_dir/valid_diagnostic.cegs ark:- |" &
     $cmd $dir/log/compute_prob_train.$x.log \
-      nnet3-chain-compute-prob \
+      nnet3-chain-compute-prob --l2-regularize=$l2_regularize \
           "nnet3-am-copy --raw=true $dir/$x.mdl -|" $dir/den.fst \
           "ark:nnet3-chain-merge-egs ark:$egs_dir/train_diagnostic.cegs ark:- |" &
 
@@ -476,6 +492,7 @@ while [ $x -lt $num_iters ]; do
 
         $cmd $train_queue_opt $dir/log/train.$x.$n.log \
           nnet3-chain-train --apply-deriv-weights=$apply_deriv_weights \
+             --l2-regularize=$l2_regularize \
               $parallel_train_opts $deriv_time_opts \
              --max-param-change=$this_max_param_change \
             --print-interval=10 "$mdl" $dir/den.fst \
@@ -543,7 +560,7 @@ if [ $stage -le $num_iters ]; then
   # num-threads to 8 to speed it up (this isn't ideal...)
 
   $cmd $combine_queue_opt $dir/log/combine.log \
-    nnet3-chain-combine --num-iters=40 \
+    nnet3-chain-combine --num-iters=40  --l2-regularize=$l2_regularize \
        --enforce-sum-to-one=true --enforce-positive-weights=true \
        --verbose=3 $dir/den.fst "${nnets_list[@]}" "ark:nnet3-chain-merge-egs --minibatch-size=$minibatch_size ark:$egs_dir/combine.cegs ark:-|" \
        "|nnet3-am-copy --set-raw-nnet=- $dir/$first_model_combine.mdl $dir/final.mdl" || exit 1;
@@ -553,11 +570,11 @@ if [ $stage -le $num_iters ]; then
   # the same subset we used for the previous compute_probs, as the
   # different subsets will lead to different probs.
   $cmd $dir/log/compute_prob_valid.final.log \
-    nnet3-chain-compute-prob \
+    nnet3-chain-compute-prob --l2-regularize=$l2_regularize \
            "nnet3-am-copy --raw=true $dir/final.mdl - |" $dir/den.fst \
     "ark:nnet3-chain-merge-egs ark:$egs_dir/valid_diagnostic.cegs ark:- |" &
   $cmd $dir/log/compute_prob_train.final.log \
-    nnet3-chain-compute-prob \
+    nnet3-chain-compute-prob --l2-regularize=$l2_regularize \
       "nnet3-am-copy --raw=true $dir/final.mdl - |" $dir/den.fst \
     "ark:nnet3-chain-merge-egs ark:$egs_dir/train_diagnostic.cegs ark:- |" &
 fi
