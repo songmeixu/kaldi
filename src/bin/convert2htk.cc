@@ -45,7 +45,8 @@ using kaldi::int32;
 // 1-center, 2-right.
 static std::string EventTypeToString(EventType &e,
                                      const fst::SymbolTable *phones_symtab,
-                                     const TransitionModel &trans_model, const ContextDependency &ctx_dep) {
+                                     const TransitionModel &trans_model,
+                                     const ContextDependency &ctx_dep) {
   // make sure it's sorted so that the kPdfClass is the first element!
   std::sort(e.begin(), e.end());
 
@@ -73,12 +74,15 @@ static std::string EventTypeToString(EventType &e,
   }
   ss << "\"" << std::endl;
 
+
+  bool isSil = false;
   if (phones_id.size() == 1) {
     phones_id.push_back(phones_id[0]);
     phones_id.push_back(phones_id[0]);
     pdfs_id.push_back(0);
     pdfs_id.push_back(1);
     pdfs_id.push_back(2);
+    isSil = true;
   } else {
     for (int32 i = 0; i < phones_id.size(); ++i) {
       int32 pdf_id;
@@ -121,6 +125,44 @@ static std::string EventTypeToString(EventType &e,
   ss << " 0 0 0 0 0" << std::endl;
   ss << "<ENDHMM>" << std::endl;
 
+  // "sp" copy from "sil"
+  if(isSil) {
+    ss << "~h \"sp\"" << std::endl;
+    ss << "<BEGINHMM>" << std::endl;
+    ss << "<NUMSTATES> " << phones_id.size() + 2 << endl;
+    for (size_t i = 0; i < phones_id.size(); ++i) {
+      ss << "<STATE> " << i + 2 << std::endl;
+      ss << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
+    }
+    // print transion prob
+    ss << "<TRANSP> " << phones_id.size() + 2 << std::endl;
+    ss << " 0 1 0 0 0" << std::endl;
+    int32 trans_state;
+    int32 trans_id;
+    BaseFloat loop_prob;
+    BaseFloat out_prob;
+    trans_state = trans_model.TripleToTransitionState(phones_id[1], 0, pdfs_id[0]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    ss << " 0 " << loop_prob << " " << out_prob << " 0 0" << std::endl;
+    trans_state = trans_model.TripleToTransitionState(phones_id[1], 1, pdfs_id[1]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    ss << " 0 0 " << loop_prob << " " << out_prob << " 0" << std::endl;
+    trans_state = trans_model.TripleToTransitionState(phones_id[1], 2, pdfs_id[2]);
+    trans_id = trans_model.PairToTransitionId(trans_state, 0);
+    loop_prob = trans_model.GetTransitionProb(trans_id);
+    trans_id = trans_model.PairToTransitionId(trans_state, 1);
+    out_prob = trans_model.GetTransitionProb(trans_id);
+    ss << " 0 0 0 " << loop_prob << " " << out_prob << std::endl;
+    ss << " 0 0 0 0 0" << std::endl;
+    ss << "<ENDHMM>" << std::endl;
+  }
+
   return ss.str();
 }
 
@@ -151,7 +193,7 @@ void PrintUnseen(std::ostream &os,
       ctx_dep.Compute(triphone, i, &pdf_id);
       pdfs_id.push_back(pdf_id);
     }
-    os << "~h sil-" << phn << "+sil" << std::endl;
+    os << "~h \"sil-" << phn << "+sil\"" << std::endl;
     os << "<BEGINHMM>" << std::endl;
     os << "<NUMSTATES> 5" << endl;
     for (size_t i = 0; i < 3; ++i) {
@@ -270,7 +312,7 @@ int main(int argc, const char *argv[]) {
       Input ki(acc_filename, &binary_in);
       ReadBuildTreeStats(ki.Stream(), binary_in, gc, &stats);
     }
-    KALDI_LOG << "Number of separate statistics is " << stats.size();
+//    KALDI_LOG << "Number of separate statistics is " << stats.size();
 
     // typedef std::vector<std::pair<EventKeyType,EventValueType> > EventType
 
@@ -280,7 +322,8 @@ int main(int argc, const char *argv[]) {
     ReadKaldiObject(tree_filename, &ctx_dep);
     // now, for each tree stats element, query the tree to get the pdf-id
     for (size_t i = 0; i < stats.size(); ++i) {
-      std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
+      if (stats[i].first[0].second == 0) // only iter first state of seen triphones
+        std::cout << EventTypeToString(stats[i].first, phones_symtab, trans_model, ctx_dep);
     }
     // print ~h proto of unseen phones
     Vector<double> occs;
