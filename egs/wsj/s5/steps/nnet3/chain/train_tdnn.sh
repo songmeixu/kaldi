@@ -101,7 +101,7 @@ right_deriv_truncate=  # number of time-steps to avoid using the deriv of, on th
 
 # End configuration section.
 
-trap 'for pid in $(jobs -pr); do kill -KILL $pid; done' INT QUIT TERM
+trap 'for pid in $(jobs -pr); do kill -TERM $pid; done' INT QUIT TERM
 
 echo "$0 $@"  # Print the command line for logging
 
@@ -213,7 +213,8 @@ if [ $stage -le -5 ]; then
   echo "$0: creating neural net configs";
 
   if [ ! -z "$jesus_opts" ]; then
-    python steps/nnet3/make_jesus_configs.py \
+    $cmd $dir/log/make_configs.log \
+       python steps/nnet3/make_jesus_configs.py \
       --xent-regularize=$xent_regularize \
       --include-log-softmax=false \
       --splice-indexes "$splice_indexes"  \
@@ -497,7 +498,9 @@ while [ $x -lt $num_iters ]; do
     rm $dir/.error 2>/dev/null
 
 
-    ( # this sub-shell is so that when we "wait" below,
+    (
+      trap 'for pid in $(jobs -pr); do kill -TERM $pid; done' INT QUIT TERM
+      # this sub-shell is so that when we "wait" below,
       # we only wait for the training jobs that we just spawned,
       # not the diagnostic jobs that we spawned above.
 
@@ -508,7 +511,14 @@ while [ $x -lt $num_iters ]; do
         k=$[$num_archives_processed + $n - 1]; # k is a zero-based index that we'll derive
                                                # the other indexes from.
         archive=$[($k%$num_archives)+1]; # work out the 1-based archive index.
-        frame_shift=$[($k/$num_archives)%$frame_subsampling_factor];
+        epoch=$[$k/$num_archives]  # this epoch-index reflects how many times we
+                                   # have gone over the archives.. it counts up to
+                                   # approximately num_epochs * frame_subsampling_factor.
+
+        # the following line is a bit like k%frame_subsampling_factor, but it
+        # ensures that we eventually cycle through each frame_shift of each
+        # archive.
+        frame_shift=$[($archive+$epoch)%$frame_subsampling_factor];
 
         $cmd $train_queue_opt $dir/log/train.$x.$n.log \
           nnet3-chain-train --apply-deriv-weights=$apply_deriv_weights \
