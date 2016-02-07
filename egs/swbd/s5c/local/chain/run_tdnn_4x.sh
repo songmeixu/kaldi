@@ -1,7 +1,17 @@
 #!/bin/bash
 
 # _4x is as _4u, but with --leaky-hmm-coefficient 0.2.   Note: the
-# ultimate baseline is 4f.
+# ultimate baseline is 4f.  It seems a little bit worse than 4u on average: (+0.2, +0.2, 0.0, -0.1).
+# So I'm guessing the best value is around --leaky-hmm-coefficient 0.1.
+#
+# ./compare_wer.sh  4f 4u 4x
+# System                       4f        4u        4x
+# WER on train_dev(tg)      16.83     16.47     16.63
+# WER on train_dev(fg)      15.73     15.23     15.42
+# WER on eval2000(tg)        18.4      18.4      18.4
+# WER on eval2000(fg)        16.6      16.7      16.6
+# Final train prob      -0.105832 -0.118911 -0.130674
+# Final valid prob      -0.123021 -0.135768 -0.146351
 
 # _4u is as _4t, but with --leaky-hmm-coefficient 0.08.  Note: the
 # ultimate baseline is 4f.
