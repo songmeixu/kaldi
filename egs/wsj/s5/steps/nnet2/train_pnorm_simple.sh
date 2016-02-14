@@ -88,6 +88,7 @@ transform_dir=     # If supplied, overrides alidir
 cmvn_opts=  # will be passed to get_lda.sh and get_egs.sh, if supplied.  
             # only relevant for "raw" features, not lda.
 feat_type=  # Can be used to force "raw" features.
+delta_order=
 prior_subset_size=10000 # 10k samples per job, for computing priors.  Should be
                         # more than enough.
 align_cmd=              # The cmd that is passed to steps/nnet2/align.sh
@@ -180,6 +181,7 @@ cp $alidir/tree $dir
 extra_opts=()
 [ ! -z "$cmvn_opts" ] && extra_opts+=(--cmvn-opts "$cmvn_opts")
 [ ! -z "$feat_type" ] && extra_opts+=(--feat-type $feat_type)
+[ ! -z "$delta_order" ] && extra_opts+=(--delta-order $delta_order)
 [ ! -z "$online_ivector_dir" ] && extra_opts+=(--online-ivector-dir $online_ivector_dir)
 [ -z "$transform_dir" ] && transform_dir=$alidir
 extra_opts+=(--transform-dir $transform_dir)

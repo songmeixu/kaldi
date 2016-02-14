@@ -93,6 +93,7 @@ postdir=
 cmvn_opts=  # will be passed to get_lda.sh and get_egs.sh, if supplied.
             # only relevant for "raw" features, not lda.
 feat_type=  # Can be used to force "raw" features.
+delta_order=
 align_cmd=              # The cmd that is passed to steps/nnet2/align.sh
 align_use_gpu=          # Passed to use_gpu in steps/nnet2/align.sh [yes/no]
 realign_times=          # List of times on which we realign.  Each time is
@@ -187,6 +188,7 @@ cp $alidir/tree $dir
 extra_opts=()
 [ ! -z "$cmvn_opts" ] && extra_opts+=(--cmvn-opts "$cmvn_opts")
 [ ! -z "$feat_type" ] && extra_opts+=(--feat-type $feat_type)
+[ ! -z "$delta_order" ] && extra_opts+=(--delta-order $delta_order)
 [ ! -z "$online_ivector_dir" ] && extra_opts+=(--online-ivector-dir $online_ivector_dir)
 [ -z "$transform_dir" ] && transform_dir=$alidir
 extra_opts+=(--transform-dir $transform_dir)
