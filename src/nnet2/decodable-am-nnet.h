@@ -57,9 +57,6 @@ class DecodableAmNnet: public DecodableInterface {
     CuMatrix<BaseFloat> log_probs(num_rows, trans_model.NumPdfs());
     // the following function is declared in nnet-compute.h
     NnetComputation(am_nnet.GetNnet(), feats, pad_input, &log_probs);
-    Output ko("probs.txt", false);
-    log_probs.Write(ko.Stream(), false);
-    ko.Close();
     log_probs.ApplyFloor(1.0e-20); // Avoid log of zero which leads to NaN.
     log_probs.ApplyLog();
     CuVector<BaseFloat> priors(am_nnet.Priors());
@@ -68,9 +65,6 @@ class DecodableAmNnet: public DecodableInterface {
     priors.ApplyLog();
     // subtract log-prior (divide by prior)
     log_probs.AddVecToRows(-1.0, priors);
-    Output ko2("like.txt", false);
-    log_probs.Write(ko2.Stream(), false);
-    ko2.Close();
     // apply probability scale.
     log_probs.Scale(prob_scale);
     // Transfer the log-probs to the CPU for faster access by the
