@@ -102,8 +102,13 @@ OnlineNnet2FeaturePipeline::OnlineNnet2FeaturePipeline(
   }
 
   if (info_.use_ivectors) {
-    ivector_feature_ = new OnlineIvectorFeature(info_.ivector_extractor_info,
-                                                base_feature_);
+    if (info.add_pitch) {
+      ivector_feature_ = new OnlineIvectorFeature(info_.ivector_extractor_info,
+                                                  feature_plus_optional_pitch_);
+    } else {
+      ivector_feature_ = new OnlineIvectorFeature(info_.ivector_extractor_info,
+                                                  base_feature_);
+    }
     final_feature_ = new OnlineAppendFeature(feature_plus_optional_pitch_,
                                              ivector_feature_);
   } else {
