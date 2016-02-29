@@ -364,7 +364,6 @@ while [ $x -lt $num_iters ]; do
        --criterion=$criterion --drop-frames=$drop_frames \
        --one-silence-class=$one_silence_class --boost=$boost \
        --acoustic-scale=$acoustic_scale \
-       --binary=false \
        $dir/$x.mdl "ark:nnet-combine-egs-discriminative ark:$degs_dir/degs.JOB.$[$x%$iters_per_epoch].ark ark:- |" \
         $dir/$[$x+1].JOB.mdl \
       || exit 1;
@@ -379,7 +378,6 @@ while [ $x -lt $num_iters ]; do
         nnet-modify-learning-rates --retroactive=$retroactive \
         --last-layer-factor=$last_layer_factor \
         --first-layer-factor=$first_layer_factor \
-        --binary=false \
         $dir/$x.mdl $dir/$[$x+1].mdl $dir/$[$x+1].mdl || exit 1;
     fi
     rm $nnets_list
