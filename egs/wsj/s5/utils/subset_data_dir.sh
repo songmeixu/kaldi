@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2010-2011  Microsoft Corporation 
+# Copyright 2010-2011  Microsoft Corporation
 #           2012-2013  Johns Hopkins University (Author: Daniel Povey)
 # Apache 2.0
 
@@ -97,7 +97,7 @@ fi
 export LC_ALL=C
 
 if [ ! -f $srcdir/utt2spk ]; then
-  echo "subset_data_dir.sh: no such file $srcdir/utt2spk" 
+  echo "subset_data_dir.sh: no such file $srcdir/utt2spk"
   exit 1;
 fi
 
@@ -114,15 +114,15 @@ function do_filtering {
   [ -f $srcdir/cmvn.scp ] && utils/filter_scp.pl $destdir/spk2utt <$srcdir/cmvn.scp >$destdir/cmvn.scp
   if [ -f $srcdir/segments ]; then
      utils/filter_scp.pl $destdir/utt2spk <$srcdir/segments >$destdir/segments
-     awk '{print $2;}' $destdir/segments | sort | uniq > $destdir/reco # recordings.
+     awk '{print $2;}' $destdir/segments | sort -T /gfs/tmp | uniq > $destdir/reco # recordings.
      # The next line would override the command above for wav.scp, which would be incorrect.
      [ -f $srcdir/wav.scp ] && utils/filter_scp.pl $destdir/reco <$srcdir/wav.scp >$destdir/wav.scp
      [ -f $srcdir/reco2file_and_channel ] && \
        utils/filter_scp.pl $destdir/reco <$srcdir/reco2file_and_channel >$destdir/reco2file_and_channel
-     
+
      # Filter the STM file for proper sclite scoring (this will also remove the comments lines)
      [ -f $srcdir/stm ] && utils/filter_scp.pl $destdir/reco < $srcdir/stm > $destdir/stm
-     
+
      rm $destdir/reco
   fi
   srcutts=`cat $srcdir/utt2spk | wc -l`
@@ -146,14 +146,14 @@ elif $utt_list_specified; then
 elif $speakers; then
   mkdir -p $destdir
   utils/shuffle_list.pl < $srcdir/spk2utt | awk -v numutt=$numutt '{ if (tot < numutt){ print; } tot += (NF-1); }' | \
-    sort > $destdir/spk2utt
+    sort -T /gfs/tmp > $destdir/spk2utt
   utils/spk2utt_to_utt2spk.pl < $destdir/spk2utt > $destdir/utt2spk
   do_filtering; # bash function.
-  exit 0;  
+  exit 0;
 elif $perspk; then
   mkdir -p $destdir
   awk '{ n='$numutt'; printf("%s ",$1); skip=1; while(n*(skip+1) <= NF-1) { skip++; }
-         for(x=2; x<=NF && x <= n*skip; x += skip) { printf("%s ", $x); } 
+         for(x=2; x<=NF && x <= n*skip; x += skip) { printf("%s ", $x); }
          printf("\n"); }' <$srcdir/spk2utt >$destdir/spk2utt
   utils/spk2utt_to_utt2spk.pl < $destdir/spk2utt > $destdir/utt2spk
   do_filtering; # bash function.
@@ -162,7 +162,7 @@ else
   if [ $numutt -gt `cat $srcdir/feats.scp | wc -l` ]; then
     echo "subset_data_dir.sh: cannot subset to more utterances than you originally had."
     exit 1;
-  fi 
+  fi
   mkdir -p $destdir || exit 1;
 
   ## scripting note: $shortest evaluates to true or false
@@ -172,7 +172,7 @@ else
     . ./path.sh
     [ ! -f $srcdir/feats.scp ] && echo "$0: you selected --shortest but no feats.scp exist." && exit 1;
     feat-to-len scp:$srcdir/feats.scp ark,t:$destdir/tmp.len || exit 1;
-    sort -n -k2 $destdir/tmp.len | awk '{print $1}' | head -$numutt >$destdir/tmp.uttlist
+    sort -T /gfs/tmp -n -k2 $destdir/tmp.len | awk '{print $1}' | head -$numutt >$destdir/tmp.uttlist
     utils/filter_scp.pl $destdir/tmp.uttlist $srcdir/utt2spk >$destdir/utt2spk
     rm $destdir/tmp.uttlist $destdir/tmp.len
   else
