@@ -6,6 +6,16 @@
 # 3500, add --self-repair-scale 0.00001, and reduce --jesus-forward-output-dim
 # from 1800 to 1700.
 
+# Difference is tiny.
+#local/chain/compare_wer.sh 5k 5w
+#System                       5k        5w
+#WER on train_dev(tg)      16.46     16.56
+#WER on train_dev(fg)      15.17     15.30
+#WER on eval2000(tg)        18.1      18.1
+#WER on eval2000(fg)        16.5      16.4
+#Final train prob      -0.105502 -0.106549
+#Final valid prob       -0.12337 -0.120079
+
 # _5k is as _5j (omitting iVectors), and adding a statistics-extraction layer
 # in the middle, like 5e->5g, to see whether it recovers some of the improvement
 # of using the iVectors.

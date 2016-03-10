@@ -228,6 +228,7 @@ if [ -f $data/feats.scp ]; then
   fi
 fi
 
+
 if [ -f $data/cmvn.scp ]; then
   check_sorted_and_uniq $data/cmvn.scp
   cat $data/cmvn.scp | awk '{print $1}' > $tmpdir/speakers.cmvn
@@ -293,5 +294,20 @@ for f in vad.scp utt2lang utt2uniq; do
     fi
   fi
 done
+
+
+if [ -f $data/utt2dur ]; then
+  check_sorted_and_uniq $data/utt2dur
+  cat $data/utt2dur | awk '{print $1}' > $tmpdir/utts.utt2dur
+  if ! cmp -s $tmpdir/utts{,.utt2dur}; then
+    echo "$0: Error: in $data, utterance-ids extracted from utt2spk and utt2dur file"
+    echo "$0: differ, partial diff is:"
+    partial_diff $tmpdir/utts{,.feats}
+    exit 1;
+  fi
+  cat $data/utt2dur | \
+    awk '{ if (NF != 2 || !($2 > 0)) { print "Bad line : " $0; exit(1) }}' || exit 1
+fi
+
 
 echo "$0: Successfully validated data-directory $data"
