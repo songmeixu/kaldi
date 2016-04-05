@@ -156,11 +156,6 @@ void AmDiagGmm::Read(std::istream &in_stream, bool binary) {
   for (int32 i = 0; i < num_pdfs; i++) {
     densities_.push_back(new DiagGmm());
     densities_.back()->Read(in_stream, binary);
-    if (densities_.back()->Dim() != dim) {
-      KALDI_LOG << "pdf_id = " << i
-                << "dim: " << densities_.back()->Dim()
-                << " != "  << dim;
-    }
     KALDI_ASSERT(densities_.back()->Dim() == dim);
   }
 }
