@@ -153,7 +153,8 @@ void Fbank::ComputeInternal(const VectorBase<BaseFloat> &wave,
     mel_banks.Compute(power_spectrum, &mel_energies);
     if (opts_.use_log_fbank) {
       // avoid log of zero (which should be prevented anyway by dithering).
-      mel_energies.ApplyFloor(std::numeric_limits<BaseFloat>::min());
+      mel_energies.ApplyFloor(1.0);
+      // mel_energies.ApplyFloor(std::numeric_limits<BaseFloat>::min());
       mel_energies.ApplyLog();  // take the log.
     }
 
