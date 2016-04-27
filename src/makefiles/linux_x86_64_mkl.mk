@@ -27,7 +27,7 @@ CXXFLAGS = -m64 -msse -msse2 -pthread -Wall -I.. \
       -DHAVE_MKL -I$(MKLROOT)/include \
       -I$(FSTROOT)/include \
       $(EXTRA_CXXFLAGS) \
-      -g # -O0 -DKALDI_PARANOID
+      -O3 # -O0 -DKALDI_PARANOID
 
 ifeq ($(KALDI_FLAVOR), dynamic)
 CXXFLAGS += -fPIC
