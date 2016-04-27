@@ -90,6 +90,11 @@ if [ -z "$cmvn_opts" ]; then
 fi
 echo $cmvn_opts >$dir/cmvn_opts 2>/dev/null
 
+if [ -z "$delta_order" ]; then
+  delta_order=`cat $alidir/delta_order 2>/dev/null`
+fi
+echo $delta_order >$dir/delta_order 2>/dev/null
+
 ## Set up features.  Note: these are different from the normal features
 ## because we have one rspecifier that has the features for the entire
 ## training set, not separate ones for each batch.
@@ -107,14 +112,9 @@ N=$[$num_feats/$nj]
 
 case $feat_type in
   raw)
-    delta_opts=""
-    feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
-    if [ ! -z "$delta_order" ]; then
-      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
-      echo $delta_order >$dir/delta_order
-    fi
-#   feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- | add-deltas $delta_opts ark:- ark:- |"
+    feats="ark,s,cs:utils/subset_scp.pl --quiet $N $sdata/JOB/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
     echo $cmvn_opts >$dir/cmvn_opts
+    echo $delta_order >$dir/delta_order
    ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`

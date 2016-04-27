@@ -335,17 +335,17 @@ sleep 2
 echo Done
 
 if $cleanup; then
-  echo Cleaning up data
-  if $remove_egs && [[ $egs_dir =~ $dir/egs* ]]; then
-    steps/nnet2/remove_egs.sh $egs_dir
-  fi
+  # echo Cleaning up data
+  # if $remove_egs && [[ $egs_dir =~ $dir/egs* ]]; then
+  #   steps/nnet2/remove_egs.sh $egs_dir
+  # fi
 
-  echo Removing most of the models
-  for x in `seq 0 $num_iters`; do
-    if [ $[$x%100] -ne 0 ] && [ $x -ne $num_iters ] && [ -f $dir/$x.mdl ]; then
-       # delete all but every 100th model; don't delete the ones which combine to form the final model.
-      rm $dir/$x.mdl
-    fi
-  done
+  # echo Removing most of the models
+  # for x in `seq 0 $num_iters`; do
+  #   if [ $[$x%100] -ne 0 ] && [ $x -ne $num_iters ] && [ -f $dir/$x.mdl ]; then
+  #      # delete all but every 100th model; don't delete the ones which combine to form the final model.
+  #     rm $dir/$x.mdl
+  #   fi
+  # done
 fi
 

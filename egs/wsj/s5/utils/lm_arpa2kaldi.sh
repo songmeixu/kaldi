@@ -23,7 +23,7 @@ if [ -f path.sh ]; then . path.sh; fi
 
 ## compile G.fst from sri format arpa
 lmfile=$1
-workdir=data/lang
+workdir=$2
 [ -z "$lmfile" ] && echo "you must input a LM file name" && exit 1;
 test ! -f $lmfile && echo "no such LM file" && exit 1;
 

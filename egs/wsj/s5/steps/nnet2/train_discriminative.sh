@@ -132,6 +132,8 @@ remove () { for x in $*; do [ -L $x ] && rm $(readlink -f $x); rm $x; done }
 splice_opts=`cat $alidir/splice_opts 2>/dev/null`
 silphonelist=`cat $lang/phones/silence.csl` || exit 1;
 cmvn_opts=`cat $alidir/cmvn_opts 2>/dev/null`
+delta_order=`cat $alidir/delta_order 2>/dev/null`
+cp $alidir/delta_order $dir 2>/dev/null
 cp $alidir/splice_opts $dir 2>/dev/null
 cp $alidir/cmvn_opts $dir 2>/dev/null
 cp $alidir/tree $dir
@@ -153,10 +155,8 @@ echo "$0: feature type is $feat_type"
 
 case $feat_type in
   raw)
-    feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
-    if [ ! -z "$delta_order" ]; then
-      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
-    fi
+    feats="ark,s,cs:add-deltas --delta-order=$delta_order scp:$sdata/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
+
     ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
@@ -329,11 +329,17 @@ if [ $stage -le -4 ] && [ -z "$degs_dir" ]; then
   # variable of the discrminative example, no longer being constant), so
   # now we do the nnet-combine-egs-discriminative operation on the fly during
   # training.
-  for n in `seq 0 $[$iters_per_epoch-1]`; do
+  for n in `seq 0 0`; do
     $cmd $io_opts JOB=1:$num_jobs_nnet $dir/log/shuffle.$n.JOB.log \
       nnet-shuffle-egs-discriminative "--srand=\$[JOB+($num_jobs_nnet*$n)]" \
       ark:$dir/degs/degs_tmp.JOB.$n.ark ark:$dir/degs/degs.JOB.$n.ark || exit 1;
     remove $dir/degs/degs_tmp.*.$n.ark
+  done
+  for n in `seq 1 $num_jobs_nnet`; do
+    $cmd $io_opts JOB=1:$[$iters_per_epoch-1] $dir/log/shuffle.JOB.$n.log \
+      nnet-shuffle-egs-discriminative "--srand=\$[$n+($num_jobs_nnet*JOB)]" \
+      ark:$dir/degs/degs_tmp.$n.JOB.ark ark:$dir/degs/degs.$n.JOB.ark || exit 1;
+    remove $dir/degs/degs_tmp.$n.*.ark
   done
 fi
 
