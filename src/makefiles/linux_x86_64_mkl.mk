@@ -55,8 +55,8 @@ MKL_DYN_MUL = -L$(MKLLIB) -lmkl_solver_lp64 -Wl,--start-group -lmkl_intel_lp64 \
 
 LDFLAGS = -rdynamic -L$(FSTROOT)/lib -Wl,-R$(FSTROOT)/lib
 LDLIBS =  $(EXTRA_LDLIBS) -lfst -ldl $(MKLFLAGS) -lm -lpthread
-CC = g++
-CXX = g++
+CC = icpc
+CXX = icpc
 AR = ar
 AS = as
 RANLIB = ranlib

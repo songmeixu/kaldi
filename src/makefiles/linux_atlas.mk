@@ -30,8 +30,8 @@ endif
 
 LDFLAGS = -rdynamic $(OPENFSTLDFLAGS)
 LDLIBS = $(EXTRA_LDLIBS) $(OPENFSTLIBS) $(ATLASLIBS) -lm -lpthread -ldl
-CC = g++
-CXX = g++
+CC = icpc
+CXX = icpc
 AR = ar
 AS = as
 RANLIB = ranlib
