@@ -28,6 +28,8 @@ online_ivector_dir=
 num_utts_subset=3000
 num_archives_priors=10
 
+delta_order=      # delta feature order
+
 # End configuration section.
 
 
@@ -108,8 +110,10 @@ fi
 splice_opts=`cat $alidir/splice_opts 2>/dev/null`
 silphonelist=`cat $lang/phones/silence.csl` || exit 1;
 cmvn_opts=`cat $alidir/cmvn_opts 2>/dev/null`
+delta_order=`cat $alidir/delta_order 2>/dev/null`
 cp $alidir/splice_opts $dir 2>/dev/null
 cp $alidir/cmvn_opts $dir 2>/dev/null
+cp $alidir/delta_order $dir 2>/dev/null
 cp $alidir/tree $dir
 cp $lang/phones/silence.csl $dir/info/
 cp $src_model $dir/final.mdl || exit 1
@@ -137,8 +141,8 @@ fi
 echo "$0: feature type is $feat_type"
 
 case $feat_type in
-  raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
-    priors_feats="ark,s,cs:utils/filter_scp.pl $dir/priors_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
+  raw) feats="ark,s,cs:add-deltas --delta-order=$delta_order scp:$sdata/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
+    priors_feats="ark,s,cs:utils/filter_scp.pl $dir/priors_uttlist $data/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
    ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`

@@ -514,7 +514,7 @@ if (! $sync) { # We're not submitting with -sync y, so we
     }
   }
   my $all_syncfiles = join(" ", @syncfiles);
-  system("rm $all_syncfiles 2>/dev/null");
+  unlink $all_syncfiles;
 }
 
 # OK, at this point we are synced; we know the job is done.

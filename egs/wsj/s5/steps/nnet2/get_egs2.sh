@@ -135,16 +135,19 @@ fi
 echo "$0: feature type is $feat_type"
 
 case $feat_type in
-  raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
-    valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
-    train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
+  # raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
+  #   valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
+  #   train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
+  raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
+    valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
+    train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
     echo $cmvn_opts >$dir/cmvn_opts # caution: the top-level nnet training script should copy this to its own dir now.
-    if [ ! -z "$delta_order" ]; then
-      feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
-      valid_feats="$valid_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
-      train_subset_feats="$train_subset_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
-      echo $delta_order >$dir/../delta_order
-    fi
+    # if [ ! -z "$delta_order" ]; then
+    #   feats="$feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+    #   valid_feats="$valid_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+    #   train_subset_feats="$train_subset_feats add-deltas --delta-order=$delta_order ark:- ark:- |"
+    #   echo $delta_order >$dir/../delta_order
+    # fi
    ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
@@ -304,6 +307,7 @@ if [ $stage -le 3 ]; then
       nnet-copy-egs ark:- $egs_list || exit 1;
   fi
 fi
+
 if [ $stage -le 4 ]; then
   echo "$0: recombining and shuffling order of archives on disk"
   # combine all the "egs_orig.JOB.*.scp" (over the $nj splits of the data) and
