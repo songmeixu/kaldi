@@ -96,7 +96,6 @@ fi
 data=$1
 dir=$2
 
-
 for f in $data/feats.scp; do
   [ ! -f $f ] && echo "$0: no such file $f" && exit 1;
 done
@@ -119,9 +118,9 @@ echo
 echo "# PREPARING FEATURES"
 if [ "$copy_feats" == "true" ]; then
   # re-save the features to local disk into /tmp/,
+  trap "echo \"# Removing features tmpdir $tmpdir @ $(hostname)\"; ls $tmpdir; rm -r $tmpdir" INT QUIT TERM EXIT
   tmpdir=$(mktemp -d $copy_feats_tmproot)
   copy-feats scp:$data/feats.scp ark,scp:$tmpdir/train.ark,$dir/train_sorted.scp || exit 1
-  trap "echo \"# Removing features tmpdir $tmpdir @ $(hostname)\"; ls $tmpdir; rm -r $tmpdir" EXIT
 else
   # or copy the list,
   cp $data/feats.scp $dir/train_sorted.scp

@@ -25,6 +25,7 @@
 #include "hmm/posterior.h"
 #include "nnet3/nnet-example.h"
 #include "nnet3/nnet-chain-example.h"
+#include "nnet3/nnet-example-utils.h"
 
 namespace kaldi {
 namespace nnet3 {
@@ -95,8 +96,11 @@ static bool ProcessFile(const fst::StdVectorFst &normalization_fst,
       frames_overlap_subsampled = frames_overlap_per_eg / frame_subsampling_factor,
       frames_shift_subsampled = frames_per_eg_subsampled - frames_overlap_subsampled;
 
-  if (num_feature_frames_subsampled < frames_per_eg_subsampled)
+  if (num_feature_frames_subsampled < frames_per_eg_subsampled) {
+    KALDI_WARN << "Length of features for utterance " << utt_id
+               << " is less than than the frames_per_eg (after sub-sampling).";
     return false;
+  }
 
   // we don't do any padding, as it would be a bit tricky to pad the 'chain' supervision.
   // Instead we select ranges of frames that fully fit within the file;  these
@@ -206,35 +210,6 @@ static bool ProcessFile(const fst::StdVectorFst &normalization_fst,
   }
   return true;
 }
-
-void RoundUpNumFrames(int32 frame_subsampling_factor,
-                      int32 *num_frames,
-                      int32 *num_frames_overlap) {
-  if (*num_frames % frame_subsampling_factor != 0) {
-    int32 new_num_frames = frame_subsampling_factor *
-        (*num_frames / frame_subsampling_factor + 1);
-    KALDI_LOG << "Rounding up --num-frames=" << (*num_frames)
-              << " to a multiple of --frame-subsampling-factor="
-              << frame_subsampling_factor
-              << ", now --num-frames=" << new_num_frames;
-    *num_frames = new_num_frames;
-  }
-  if (*num_frames_overlap % frame_subsampling_factor != 0) {
-    int32 new_num_frames_overlap = frame_subsampling_factor *
-        (*num_frames_overlap / frame_subsampling_factor + 1);
-    KALDI_LOG << "Rounding up --num-frames-overlap=" << (*num_frames_overlap)
-              << " to a multiple of --frame-subsampling-factor="
-              << frame_subsampling_factor
-              << ", now --num-frames-overlap=" << new_num_frames_overlap;
-    *num_frames_overlap = new_num_frames_overlap;
-  }
-  if (*num_frames_overlap < 0 || *num_frames_overlap >= *num_frames) {
-    KALDI_ERR << "--num-frames-overlap=" << (*num_frames_overlap) << " < "
-              << "--num-frames=" << (*num_frames);
-  }
-
-}
-
 
 } // namespace nnet2
 } // namespace kaldi
