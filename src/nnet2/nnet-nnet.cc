@@ -722,6 +722,22 @@ void Nnet::LimitRankOfLastLayer(int32 dim) {
   KALDI_ERR << "No affine component found in neural net.";
 }
 
+void Nnet::LimitRankOfEachLayer(const std::vector<int32> &dimensions) {
+  KALDI_ASSERT(dimensions.Dim() == NumUpdatableComponents());
+  for (int32 i = components_.size() - 1, int d = dimensions.Dim() - 1; i >= 0; i--, d--) {
+    AffineComponent *a = NULL, *b = NULL,
+        *c = dynamic_cast<AffineComponent*>(components_[i]);
+    if (c != NULL) {
+      c->LimitRank(dimensions[d], &a, &b);
+      delete c;
+      components_[i] = a;
+      components_.insert(components_.begin() + i + 1, b);
+      this->SetIndexes();
+      this->Check();
+    }
+  }
+}
+
 void Nnet::SetIndexes() {
   for (size_t i = 0; i < components_.size(); i++)
     components_[i]->SetIndex(i);
