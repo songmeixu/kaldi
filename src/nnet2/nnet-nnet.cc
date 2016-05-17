@@ -723,11 +723,11 @@ void Nnet::LimitRankOfLastLayer(int32 dim) {
 }
 
 void Nnet::LimitRankOfEachLayer(const std::vector<int32> &dimensions) {
-  KALDI_ASSERT(dimensions.Dim() == NumUpdatableComponents());
-  for (int32 i = components_.size() - 1, int d = dimensions.Dim() - 1; i >= 0; i--, d--) {
+  KALDI_ASSERT(dimensions.size() <= NumUpdatableComponents());
+  for (int32 i = components_.size() - 1, d = dimensions.size() - 1; i >= 0 && d >= 0; i--, d--) {
     AffineComponent *a = NULL, *b = NULL,
         *c = dynamic_cast<AffineComponent*>(components_[i]);
-    if (c != NULL) {
+    if (c != NULL && dimensions[d] > 0) {
       c->LimitRank(dimensions[d], &a, &b);
       delete c;
       components_[i] = a;
