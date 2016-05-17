@@ -1345,6 +1345,26 @@ void AffineComponent::LimitRank(int32 d,
   (*b)->linear_params_ = U;
 }
 
+void AffineComponent::LimitRankEigen(int32 d,
+                               AffineComponent **a, AffineComponent **b) const {
+  Matrix<BaseFloat> M (linear_params_);
+  M.Transpose();
+  int32 rows = M.NumRows(), cols = M.NumCols();
+  Matrix<BaseFloat> U(rows, d), sVt(d, cols);
+  M.EigenSVDShrink(&U, &sVt);
+
+  *a = dynamic_cast<AffineComponent*>(this->Copy());
+  *b = dynamic_cast<AffineComponent*>(this->Copy());
+
+  U.Transpose();
+  (*a)->bias_params_.Resize(d, kSetZero);
+  (*a)->linear_params_ = U;
+
+  sVt.Transpose();
+  (*b)->bias_params_ = this->bias_params_;
+  (*b)->linear_params_ = sVt;
+}
+
 Component *AffineComponent::CollapseWithNext(
     const AffineComponent &next_component) const {
   AffineComponent *ans = dynamic_cast<AffineComponent*>(this->Copy());

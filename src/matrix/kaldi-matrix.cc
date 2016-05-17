@@ -26,6 +26,7 @@
 #include "matrix/jama-eig.h"
 #include "matrix/compressed-matrix.h"
 #include "matrix/sparse-matrix.h"
+#include "Eigen/Dense"
 
 namespace kaldi {
 
@@ -1637,6 +1638,34 @@ void MatrixBase<Real>::DestructiveSvd(VectorBase<Real> *s, MatrixBase<Real> *U, 
   }
 #endif
   if (prescale != 1.0) s->Scale(1.0/prescale);
+}
+
+template<typename Real>
+void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt) {
+  using namespace Eigen;
+
+  int32 d = U->NumCols();
+
+  // to eigen matrix
+  Real* data_buf = (Real*)calloc(NumRows() * NumCols(), sizeof(Real));
+  for (int32 r = 0; r < NumRows(); ++r) {
+    memcpy(data_buf + r * NumRows(), RowData(r), NumCols());
+  }
+  MatrixXf A = Map<MatrixXf>(data_buf, NumRows(), NumCols());
+  JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
+  MatrixXf u = svd.matrixU().leftCols(d);
+  MatrixXf v_t = svd.matrixV().transpose().topRows(d);
+  MatrixXf s = svd.singularValues().segment(0, d).asDiagonal();
+  MatrixXf n = s * v_t;
+
+  // to kaldi matrix
+  for (int32 r = 0; r < U->NumRows(); ++r) {
+    memcpy(U->RowData(r), u.data() + r * U->NumCols(), U->NumCols());
+  }
+  for (int32 r = 0; r < sVt->NumRows(); ++r) {
+    memcpy(sVt->RowData(r), n.data() + r * sVt->NumCols(), sVt->NumCols());
+  }
+  delete data_buf;
 }
 
 template<typename Real>

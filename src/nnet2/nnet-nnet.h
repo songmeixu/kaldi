@@ -171,6 +171,8 @@ class Nnet {
 
   void LimitRankOfEachLayer(const std::vector<int32> &dimensions);
 
+  void LimitRankOfEachLayerByEigen(const std::vector<int32> &dimensions);
+
   /// This version of AddNnet adds to *this, alpha times *other, and then scales
   /// *other by beta.  The reason why we make this a separate function is for
   /// multithreading reasons (otherwise you could do AddNnet(alpha, *iter) and then

@@ -912,6 +912,9 @@ class AffineComponent: public UpdatableComponent {
   virtual void LimitRank(int32 dimension,
                          AffineComponent **a, AffineComponent **b) const;
 
+  virtual void LimitRankEigen(int32 dimension,
+                         AffineComponent **a, AffineComponent **b) const;
+
   /// This function is implemented in widen-nnet.cc
   void Widen(int32 new_dimension,
              BaseFloat param_stddev,
