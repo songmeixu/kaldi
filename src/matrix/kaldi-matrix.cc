@@ -1651,7 +1651,7 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   for (int32 r = 0; r < NumRows(); ++r) {
     memcpy(data_buf + r * NumRows(), RowData(r), NumCols());
   }
-  MatrixXf A = Map<MatrixXf>(data_buf, NumRows(), NumCols());
+  MatrixXf A = Map<MatrixXf>((float *)data_buf, NumRows(), NumCols());
   JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
   MatrixXf u = svd.matrixU().leftCols(d);
   MatrixXf v_t = svd.matrixV().transpose().topRows(d);
