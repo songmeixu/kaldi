@@ -1660,10 +1660,14 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
 
   // to kaldi matrix
   for (int32 r = 0; r < U->NumRows(); ++r) {
-    memcpy(U->RowData(r), u.data() + r * U->NumCols(), U->NumCols());
+    for (int32 c = 0; c < U->NumCols(); ++c) {
+      (*U)(r,c) = u(r,c);
+    }
   }
   for (int32 r = 0; r < sVt->NumRows(); ++r) {
-    memcpy(sVt->RowData(r), n.data() + r * sVt->NumCols(), sVt->NumCols());
+    for (int32 c = 0; c < sVt->NumCols(); ++c) {
+      (*sVt)(r,c) = n(r,c);
+    }
   }
   delete data_buf;
 }

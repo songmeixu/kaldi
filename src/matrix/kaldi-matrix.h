@@ -390,7 +390,7 @@ class MatrixBase {
   void DestructiveSvd(VectorBase<Real> *s, MatrixBase<Real> *U,
                       MatrixBase<Real> *Vt);  // Destroys calling matrix.
 
-  void EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt)
+  void EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt);
 
   /// Compute SVD (*this) = U diag(s) Vt.   Note that the V in the call is already
   /// transposed; the normal formulation is U diag(s) V^T.
