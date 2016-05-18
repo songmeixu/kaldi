@@ -1651,8 +1651,10 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   // to eigen matrix
   Real* data_buf = (Real *) calloc(num_rows_ * num_cols_, sizeof(Real));
   for (int32 r = 0; r < num_rows_; ++r) {
-    memcpy(data_buf + r * num_rows_, RowData(r), num_cols_);
+    memcpy(data_buf + r * num_cols_, RowData(r), num_cols_);
   }
+
+  // eigen jacobi svd
   MatrixXf A = Map<MatrixXf>((float *) data_buf, num_cols_, num_rows_);
   JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
   MatrixXf u = svd.matrixU().leftCols(d);
@@ -1661,8 +1663,8 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   MatrixXf n = s * v_t;
 
   int32 rc_min = std::min(num_rows_, num_cols_);
-  BaseFloat old_svd_sum = svd.singularValues().sum();
-  BaseFloat new_svd_sum = svd.singularValues().sum();
+  BaseFloat old_svd_sum = svd.singularValues().segment(0, rc_min).sum();
+  BaseFloat new_svd_sum = svd.singularValues().segment(0, d).sum();
   KALDI_LOG << "Reduced rank from "
       << rc_min <<  " to " << d << ", SVD sum reduced from "
       << old_svd_sum << " to " << new_svd_sum;
