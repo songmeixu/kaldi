@@ -27,8 +27,6 @@
 #include "matrix/compressed-matrix.h"
 #include "matrix/sparse-matrix.h"
 #include "Eigen/Dense"
-#include <iostream>
-#include <fstream>
 
 namespace kaldi {
 
@@ -1668,13 +1666,6 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   KALDI_LOG << "Reduced rank from "
       << rc_min <<  " to " << d << ", SVD sum reduced from "
       << old_svd_sum << " to " << new_svd_sum;
-
-  std::ofstream fout("eigen.txt");
-  fout << A << std::endl;
-  fout << u << std::endl;
-  fout << s << std::endl;
-  fout << n << std::endl;
-  fout.close();
 
   // to kaldi matrix
   for (int32 r = 0; r < U->NumRows(); ++r) {
