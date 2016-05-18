@@ -1661,8 +1661,8 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   MatrixXf n = s * v_t;
 
   int32 rc_min = std::min(num_rows_, num_cols_);
-  BaseFloat old_svd_sum = svd.singularValues().segment(0, rc_min).asDiagonal().trace();
-  BaseFloat new_svd_sum = svd.singularValues().segment(0, d).asDiagonal().trace();
+  BaseFloat old_svd_sum = svd.singularValues().sum();
+  BaseFloat new_svd_sum = svd.singularValues().sum();
   KALDI_LOG << "Reduced rank from "
       << rc_min <<  " to " << d << ", SVD sum reduced from "
       << old_svd_sum << " to " << new_svd_sum;
