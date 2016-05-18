@@ -1651,7 +1651,7 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   // to eigen matrix
   Real* data_buf = (Real *) calloc(num_rows_ * num_cols_, sizeof(Real));
   for (int32 r = 0; r < num_rows_; ++r) {
-    memcpy(data_buf + r * num_cols_, RowData(r), num_cols_);
+    memcpy(data_buf + r * num_cols_, RowData(r), num_cols_ * sizeof(Real));
   }
 
   // eigen jacobi svd
