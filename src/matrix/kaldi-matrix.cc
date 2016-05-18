@@ -27,6 +27,8 @@
 #include "matrix/compressed-matrix.h"
 #include "matrix/sparse-matrix.h"
 #include "Eigen/Dense"
+#include <iostream>
+#include <fstream>
 
 namespace kaldi {
 
@@ -1647,16 +1649,30 @@ void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt
   int32 d = U->NumCols();
 
   // to eigen matrix
-  Real* data_buf = (Real*)calloc(NumRows() * NumCols(), sizeof(Real));
-  for (int32 r = 0; r < NumRows(); ++r) {
-    memcpy(data_buf + r * NumRows(), RowData(r), NumCols());
+  Real* data_buf = (Real *) calloc(num_rows_ * num_cols_, sizeof(Real));
+  for (int32 r = 0; r < num_rows_; ++r) {
+    memcpy(data_buf + r * num_rows_, RowData(r), num_cols_);
   }
-  MatrixXf A = Map<MatrixXf>((float *)data_buf, NumRows(), NumCols());
+  MatrixXf A = Map<MatrixXf>((float *) data_buf, num_cols_, num_rows_);
   JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
   MatrixXf u = svd.matrixU().leftCols(d);
   MatrixXf v_t = svd.matrixV().transpose().topRows(d);
   MatrixXf s = svd.singularValues().segment(0, d).asDiagonal();
   MatrixXf n = s * v_t;
+
+  int32 rc_min = std::min(num_rows_, num_cols_);
+  BaseFloat old_svd_sum = svd.singularValues().segment(0, rc_min).asDiagonal().trace();
+  BaseFloat new_svd_sum = svd.singularValues().segment(0, d).asDiagonal().trace();
+  KALDI_LOG << "Reduced rank from "
+      << rc_min <<  " to " << d << ", SVD sum reduced from "
+      << old_svd_sum << " to " << new_svd_sum;
+
+  std::ofstream fout("eigen.txt");
+  fout << A << std::endl;
+  fout << u << std::endl;
+  fout << s << std::endl;
+  fout << n << std::endl;
+  fout.close();
 
   // to kaldi matrix
   for (int32 r = 0; r < U->NumRows(); ++r) {
