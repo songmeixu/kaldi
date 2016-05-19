@@ -1908,7 +1908,18 @@ Component* AffineComponentPreconditionedOnline::Copy() const {
   return ans;
 }
 
-
+AffineComponentPreconditionedOnline::AffineComponentPreconditionedOnline(const AffineComponentPreconditionedOnline &component):
+    AffineComponent(component),
+    rank_in_(component.rank_in_),
+    rank_out_(component.rank_out_),
+    update_period_(component.update_period_),
+    num_samples_history_(component.num_samples_history_),
+    alpha_(component.alpha_),
+    preconditioner_in_(component.preconditioner_in_),
+    preconditioner_out_(component.preconditioner_out_),
+    max_change_per_sample_(component.max_change_per_sample_) {
+  SetPreconditionerConfigs();
+}
 
 BaseFloat AffineComponentPreconditionedOnline::GetScalingFactor(
     const CuVectorBase<BaseFloat> &in_products,
@@ -2195,6 +2206,32 @@ std::string AffineComponentLRScalePreconditionedOnline::Info() const {
       << ", weight-LR-scale=" << w_lr_scale_
       << ", bias-LR_scale=" << b_lr_scale_;
   return stream.str();
+}
+
+Component* AffineComponentLRScalePreconditionedOnline::Copy() const {
+  AffineComponentLRScalePreconditionedOnline *ans = new AffineComponentLRScalePreconditionedOnline();
+  ans->learning_rate_ = learning_rate_;
+  ans->rank_in_ = rank_in_;
+  ans->rank_out_ = rank_out_;
+  ans->update_period_ = update_period_;
+  ans->num_samples_history_ = num_samples_history_;
+  ans->alpha_ = alpha_;
+  ans->linear_params_ = linear_params_;
+  ans->bias_params_ = bias_params_;
+  ans->preconditioner_in_ = preconditioner_in_;
+  ans->preconditioner_out_ = preconditioner_out_;
+  ans->max_change_per_sample_ = max_change_per_sample_;
+  ans->is_gradient_ = is_gradient_;
+  ans->w_lr_scale_ = w_lr_scale_;
+  ans->b_lr_scale_ = b_lr_scale_;
+  ans->SetPreconditionerConfigs();
+  return ans;
+}
+
+AffineComponentLRScalePreconditionedOnline::AffineComponentLRScalePreconditionedOnline(const AffineComponentPreconditionedOnline &component):
+    AffineComponentPreconditionedOnline(component) {
+  w_lr_scale_ = 1.0;
+  b_lr_scale_ = 1.0;
 }
 
 void AffineComponentLRScalePreconditionedOnline::Update(

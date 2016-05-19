@@ -1034,9 +1034,9 @@ class AffineComponentPreconditionedOnline: public AffineComponent {
   virtual Component* Copy() const;
   AffineComponentPreconditionedOnline(): max_change_per_sample_(0.0) { }
 
- private:
-  KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentPreconditionedOnline);
+  explicit AffineComponentPreconditionedOnline(const AffineComponentPreconditionedOnline &other);
 
+ private:
   friend class AffineComponentLRScalePreconditionedOnline;
 
   // Configs for preconditioner.  The input side tends to be better conditioned ->
@@ -1091,15 +1091,23 @@ class AffineComponentLRScalePreconditionedOnline: public AffineComponentPrecondi
     return "AffineComponentLRScalePreconditionedOnline";
   }
 
+  AffineComponentLRScalePreconditionedOnline()
+
   AffineComponentLRScalePreconditionedOnline(const AffineComponent &orig,
-                                      int32 rank_in, int32 rank_out,
-                                      int32 update_period,
-                                      BaseFloat eta, BaseFloat alpha): AffineComponentPreconditionedOnline (orig,
-                                                                                                            rank_in,
-                                                                                                            rank_out,
-                                                                                                            update_period,
-                                                                                                            eta, alpha),
-                                                                       w_lr_scale_(1.0), b_lr_scale_(1.0) { }
+                                             int32 rank_in, int32 rank_out,
+                                             int32 update_period,
+                                             BaseFloat eta, BaseFloat alpha,
+                                             BaseFloat w_lr_scale, BaseFloat b_lr_scale):
+      AffineComponentPreconditionedOnline (orig,
+                                           rank_in,
+                                           rank_out,
+                                           update_period,
+                                           eta, alpha),
+      w_lr_scale_(w_lr_scale), b_lr_scale_(b_lr_scale) { }
+
+  AffineComponentLRScalePreconditionedOnline(): w_lr_scale_(1.0), b_lr_scale_(1.0) { }
+
+  explicit AffineComponentLRScalePreconditionedOnline(const AffineComponentPreconditionedOnline &other);
 
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
@@ -1119,7 +1127,7 @@ class AffineComponentLRScalePreconditionedOnline: public AffineComponentPrecondi
 
   virtual void InitFromString(std::string args);
   virtual std::string Info() const;
-  AffineComponentLRScalePreconditionedOnline(): w_lr_scale_(1.0), b_lr_scale_(1.0) { }
+  virtual Component* Copy() const;
 
   void SetWeightLRScale(BaseFloat lr) {
     w_lr_scale_ = lr;
@@ -1138,8 +1146,6 @@ class AffineComponentLRScalePreconditionedOnline: public AffineComponentPrecondi
   }
 
  private:
-  KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentLRScalePreconditionedOnline);
-
   BaseFloat w_lr_scale_;
   BaseFloat b_lr_scale_;
 
