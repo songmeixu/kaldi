@@ -748,7 +748,6 @@ void Nnet::LimitRankOfEachLayerByEigen(const std::vector<int32> &dimensions) {
     if (c != NULL && dimensions[d] > 0) {
       c->LimitRankEigen(dimensions[d], &a, &b);
       delete c;
-      a->SetBiasLRScale(0.0);
       components_[i] = a;
       components_.insert(components_.begin() + i + 1, b);
       this->SetIndexes();
