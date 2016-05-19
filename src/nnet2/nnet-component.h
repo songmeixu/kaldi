@@ -1091,8 +1091,6 @@ class AffineComponentLRScalePreconditionedOnline: public AffineComponentPrecondi
     return "AffineComponentLRScalePreconditionedOnline";
   }
 
-  AffineComponentLRScalePreconditionedOnline()
-
   AffineComponentLRScalePreconditionedOnline(const AffineComponent &orig,
                                              int32 rank_in, int32 rank_out,
                                              int32 update_period,
@@ -1107,7 +1105,7 @@ class AffineComponentLRScalePreconditionedOnline: public AffineComponentPrecondi
 
   AffineComponentLRScalePreconditionedOnline(): w_lr_scale_(1.0), b_lr_scale_(1.0) { }
 
-  explicit AffineComponentLRScalePreconditionedOnline(const AffineComponentPreconditionedOnline &other);
+  explicit AffineComponentLRScalePreconditionedOnline(const AffineComponentPreconditionedOnline &component);
 
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
