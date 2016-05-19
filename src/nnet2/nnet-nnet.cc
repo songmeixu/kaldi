@@ -746,8 +746,10 @@ void Nnet::LimitRankOfEachLayerByEigen(const std::vector<int32> &dimensions) {
     AffineComponent *b = NULL,
         *c = dynamic_cast<AffineComponent*>(components_[i]);
     if (c != NULL && dimensions[d] > 0) {
-      c->LimitRankEigen(dimensions[d], &a, &b);
+      c->LimitRankEigen(dimensions[d], &dynamic_cast<AffineComponent*>(a), &b);
       delete c;
+      a->SetBiasLRScale(0.0);
+      a->SetWeightLRScale(1.0);
       components_[i] = a;
       components_.insert(components_.begin() + i + 1, b);
       this->SetIndexes();

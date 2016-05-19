@@ -1346,19 +1346,18 @@ void AffineComponent::LimitRank(int32 d,
 }
 
 void AffineComponent::LimitRankEigen(int32 d,
-                                     AffineComponentLRScalePreconditionedOnline **a, AffineComponent **b) const {
+                                     AffineComponent **a, AffineComponent **b) const {
   Matrix<BaseFloat> M(linear_params_);
   int32 rows = M.NumRows(), cols = M.NumCols();
   Matrix<BaseFloat> U(cols, d), sVt(d, rows);
   M.EigenSVDShrink(&U, &sVt);
 
-  *a = dynamic_cast<AffineComponentLRScalePreconditionedOnline*>(this->Copy());
+  *a = dynamic_cast<AffineComponent*>(this->Copy());
   *b = dynamic_cast<AffineComponent*>(this->Copy());
 
   U.Transpose();
   (*a)->bias_params_.Resize(d, kSetZero);
   (*a)->linear_params_ = U;
-  (*a)->SetBiasLRScale(0.0);
 
   sVt.Transpose();
   (*b)->bias_params_ = this->bias_params_;
