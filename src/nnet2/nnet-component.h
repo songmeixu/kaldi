@@ -1035,6 +1035,7 @@ class AffineComponentPreconditionedOnline: public AffineComponent {
  private:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentPreconditionedOnline);
 
+  friend class AffineComponentLRScalePreconditionedOnline;
 
   // Configs for preconditioner.  The input side tends to be better conditioned ->
   // smaller rank needed, so make them separately configurable.
@@ -1074,6 +1075,71 @@ class AffineComponentPreconditionedOnline: public AffineComponent {
   // Sets the configs rank, alpha and eta in the preconditioner objects,
   // from the class variables.
   void SetPreconditionerConfigs();
+
+  virtual void Update(
+      const CuMatrixBase<BaseFloat> &in_value,
+      const CuMatrixBase<BaseFloat> &out_deriv);
+};
+
+// support seperately define learn rate scales of linear_params_ and bias_,
+// could be used to fix linear_params_ or bias_ by set corresponding scale to 0
+class AffineComponentLRScalePreconditionedOnline: public AffineComponentPreconditionedOnline {
+ public:
+  virtual std::string Type() const {
+    return "AffineComponentLRScalePreconditionedOnline";
+  }
+
+  AffineComponentLRScalePreconditionedOnline(const AffineComponent &orig,
+                                      int32 rank_in, int32 rank_out,
+                                      int32 update_period,
+                                      BaseFloat eta, BaseFloat alpha): AffineComponentPreconditionedOnline (orig,
+                                                                                                            rank_in,
+                                                                                                            rank_out,
+                                                                                                            update_period,
+                                                                                                            eta, alpha),
+                                                                       w_lr_scale_(1.0), b_lr_scale_(1.0) { }
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+  void Init(BaseFloat learning_rate,
+            int32 input_dim, int32 output_dim,
+            BaseFloat param_stddev, BaseFloat bias_stddev,
+            int32 rank_in, int32 rank_out, int32 update_period,
+            BaseFloat num_samples_history, BaseFloat alpha,
+            BaseFloat max_change_per_sample,
+            BaseFloat w_lr_scale, BaseFloat b_lr_scale);
+  void Init(BaseFloat learning_rate, int32 rank_in,
+            int32 rank_out, int32 update_period,
+            BaseFloat num_samples_history,
+            BaseFloat alpha, BaseFloat max_change_per_sample,
+            std::string matrix_filename,
+            BaseFloat w_lr_scale, BaseFloat b_lr_scale);
+
+  virtual void InitFromString(std::string args);
+  virtual std::string Info() const;
+  AffineComponentLRScalePreconditionedOnline(): w_lr_scale_(1.0), b_lr_scale_(1.0) { }
+
+  void SetWeightLRScale(BaseFloat lr) {
+    w_lr_scale_ = lr;
+  }
+
+  void SetBiasLRScale(BaseFloat lr) {
+    b_lr_scale_ = lr;
+  }
+
+  BaseFloat GetWeightLRScale() {
+    return w_lr_scale_;
+  }
+
+  BaseFloat GetBiasLRScale() {
+    return b_lr_scale_;
+  }
+
+ private:
+  KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentLRScalePreconditionedOnline);
+
+  BaseFloat w_lr_scale_;
+  BaseFloat b_lr_scale_;
 
   virtual void Update(
       const CuMatrixBase<BaseFloat> &in_value,

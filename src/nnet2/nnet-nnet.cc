@@ -742,11 +742,13 @@ void Nnet::LimitRankOfEachLayer(const std::vector<int32> &dimensions) {
 void Nnet::LimitRankOfEachLayerByEigen(const std::vector<int32> &dimensions) {
   KALDI_ASSERT(dimensions.size() <= NumUpdatableComponents());
   for (int32 i = components_.size() - 1, d = dimensions.size() - 1; i >= 0 && d >= 0; i--) {
-    AffineComponent *a = NULL, *b = NULL,
+    AffineComponentLRScalePreconditionedOnline *a = NULL;
+    AffineComponent *b = NULL,
         *c = dynamic_cast<AffineComponent*>(components_[i]);
     if (c != NULL && dimensions[d] > 0) {
       c->LimitRankEigen(dimensions[d], &a, &b);
       delete c;
+      a->SetBiasLRScale(0.0);
       components_[i] = a;
       components_.insert(components_.begin() + i + 1, b);
       this->SetIndexes();
