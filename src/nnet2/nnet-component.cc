@@ -2206,7 +2206,7 @@ std::string AffineComponentLRScalePreconditionedOnline::Info() const {
       << ", alpha=" << alpha_
       << ", max-change-per-sample=" << max_change_per_sample_
       << ", weight-LR-scale=" << w_lr_scale_
-      << ", bias-LR_scale=" << b_lr_scale_;
+      << ", bias-LR-scale=" << b_lr_scale_;
   return stream.str();
 }
 
