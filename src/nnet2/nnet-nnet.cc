@@ -773,6 +773,8 @@ void Nnet::Collapse(bool match_updatableness) {
       FixedAffineComponent
           *f1 = dynamic_cast<FixedAffineComponent*>(components_[i]),
           *f2 = dynamic_cast<FixedAffineComponent*>(components_[i + 1]);
+      FixedScaleComponent
+          *fs2 = dynamic_cast<FixedScaleComponent*>(components_[i + 1]);
       Component *c = NULL;
       if (a1 != NULL && a2 != NULL) {
         c = a1->CollapseWithNext(*a2);
@@ -780,6 +782,8 @@ void Nnet::Collapse(bool match_updatableness) {
         c = a1->CollapseWithNext(*f2);
       } else if (f1 != NULL && a2 != NULL && !match_updatableness) {
         c = a2->CollapseWithPrevious(*f1);
+      } else if (a1 != NULL && fs2 != NULL && !match_updatableness) {
+        c = a1->CollapseWithNext(*fs2);
       }
       if (c != NULL) {
         delete components_[i];
