@@ -78,6 +78,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new AffineComponentPreconditioned();
   } else if (component_type == "AffineComponentPreconditionedOnline") {
     ans = new AffineComponentPreconditionedOnline();
+  } else if (component_type == "AffineComponentLRScalePreconditionedOnline") {
+    ans = new AffineComponentLRScalePreconditionedOnline();
   } else if (component_type == "SumGroupComponent") {
     ans = new SumGroupComponent();
   } else if (component_type == "BlockAffineComponent") {
