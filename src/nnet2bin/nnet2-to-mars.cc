@@ -125,6 +125,10 @@ int main (int argc, const char *argv[]) {
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentLRScalePreconditionedOnline") {
       kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &> (component);
+      if (mars_net.m_nLayer == 0) {
+        mars_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
+        ++mars_net.m_nLayer;
+      }
       mars_net.is_svd = true;
       AddToParams(mars_net, acpo, false);
       mars_net.m_svdDim.push_back(acpo.LinearParams().NumRows());
