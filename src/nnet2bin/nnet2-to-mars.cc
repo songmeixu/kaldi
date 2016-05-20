@@ -25,10 +25,12 @@ class MarsNet {
   string head;
   vector<int> m_LayerDim;
   vector<BaseFloat> params_;
+  bool is_svd;
+  vector<int> m_svdDim;
 
   MarsNet() : m_nLayer(0), m_nTotalParamNum(0) ,head("#MUSE_NETWORK VERSION 1.0") {}
 
-  void Write(std::ostream &os, bool binary) const {
+  void Write(std::ostream &os, bool binary = true) const {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
@@ -41,6 +43,9 @@ class MarsNet {
       os << m_nTotalParamNum << endl;
       os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
       os.write(reinterpret_cast<const char*>(m_LayerDim.data()), sizeof(int) * m_LayerDim.size());
+      if (is_svd) {
+        os.write(reinterpret_cast<const char*>(m_svdDim.data()), sizeof(int) * m_svdDim.size());
+      }
       os.write(reinterpret_cast<const char*>(params_.data()), sizeof(BaseFloat) * params_.size());
     } else {
     }
@@ -49,7 +54,7 @@ class MarsNet {
   }
 };
 
-bool AddToParams(MarsNet &mars_net, AffineComponent &ac) {
+bool AddToParams(MarsNet &mars_net, AffineComponent &ac, bool bias = true) {
   CuMatrix<BaseFloat> weight = ac.LinearParams();
 //  weight.Transpose();
   for (int r = 0; r < weight.NumRows(); ++r) {
@@ -57,8 +62,10 @@ bool AddToParams(MarsNet &mars_net, AffineComponent &ac) {
       mars_net.params_.push_back((BaseFloat) weight(r,c));
     }
   }
-  for (int d = 0; d < ac.BiasParams().Dim(); ++d) {
-    mars_net.params_.push_back(ac.BiasParams()(d));
+  if (bias) {
+    for (int d = 0; d < ac.BiasParams().Dim(); ++d) {
+      mars_net.params_.push_back(ac.BiasParams()(d));
+    }
   }
   return true;
 }
@@ -106,6 +113,7 @@ int main (int argc, const char *argv[]) {
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
+      mars_net.is_svd = false;
       AddToParams(mars_net, acpo);
       if (mars_net.m_nLayer == 0) {
         mars_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
@@ -115,6 +123,12 @@ int main (int argc, const char *argv[]) {
       ++mars_net.m_nLayer;
       mars_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
       ++layer_id;
+    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentLRScalePreconditionedOnline") {
+      kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &> (component);
+      mars_net.is_svd = true;
+      AddToParams(mars_net, acpo, false);
+      mars_net.m_svdDim.push_back(acpo.LinearParams().NumRows());
+      mars_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
     }
   }
   Output ko(nnet_wxfilename, binary_write);
@@ -125,15 +139,11 @@ int main (int argc, const char *argv[]) {
     ofstream out(prior_wxfilename.c_str(), ios::out | ios::binary);
     Vector<BaseFloat> priors;
     priors = am_nnet.Priors();
-//    priors.ApplyLog();
-//    priors.Scale(1 / kaldi::Log(10.0));
     for (int i = 0; i < priors.Dim(); ++i) {
-//       out.Stream().write(reinterpret_cast<const char*>(&priors(i)), sizeof(BaseFloat));
       out.write((char *)&priors(i), sizeof(BaseFloat));
-      cout << priors(i) << endl;
+//      cout << priors(i) << endl;
     }
     out.close();
-//     out.Stream().write(reinterpret_cast<const char*>(am_nnet.Priors().Data()), sizeof(BaseFloat) * am_nnet.Priors().Dim());
   }
 
   return 0;
