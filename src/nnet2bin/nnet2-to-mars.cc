@@ -28,7 +28,7 @@ class MarsNet {
   bool is_svd;
   vector<int> m_svdDim;
 
-  MarsNet() : m_nLayer(0), m_nTotalParamNum(0) ,head("#MUSE_NETWORK VERSION 1.0") {}
+  MarsNet() : m_nLayer(0), m_nTotalParamNum(0) ,head("#MUSE_NETWORK VERSION 1.0"), is_svd(false) {}
 
   void Write(std::ostream &os, bool binary = true) const {
     if (!os.good()) {
@@ -113,7 +113,6 @@ int main (int argc, const char *argv[]) {
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
-      mars_net.is_svd = false;
       AddToParams(mars_net, acpo);
       if (mars_net.m_nLayer == 0) {
         mars_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
