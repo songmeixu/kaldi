@@ -129,6 +129,8 @@ class Nnet {
   /// Excise any components of type DropoutComponent or AdditiveNoiseComponent
   void RemoveDropout();
 
+  void RemoveSplice();
+
   /// Calls SetDropoutScale for all the dropout nodes.
   void SetDropoutScale(BaseFloat scale);
   

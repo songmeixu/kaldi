@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
     int32 truncate = -1;
     bool binary_write = true;
     bool remove_dropout = false;
+    bool remove_splice = false;
     BaseFloat dropout_scale = -1.0;
     bool remove_preconditioning = false;
     bool collapse = false;
@@ -89,6 +90,7 @@ int main(int argc, char *argv[]) {
                 "and FixedAffineComponents to compactify model");
     po.Register("match-updatableness", &match_updatableness, "Only relevant if "
                 "collapse=true; set this to false to collapse mixed types.");
+    po.Register("remove-splice", &remove_splice, "Remove splice component for zeus decoder.");
 
     po.Read(argc, argv);
     
@@ -186,6 +188,8 @@ int main(int argc, char *argv[]) {
     if (remove_preconditioning) am_nnet.GetNnet().RemovePreconditioning();
 
     if (collapse) am_nnet.GetNnet().Collapse(match_updatableness);
+
+    if (remove_splice) am_nnet.GetNnet().RemoveSplice();
     
     if (stats_from != "") {
       // Copy the stats associated with the layers descending from

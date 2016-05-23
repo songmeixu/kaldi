@@ -513,6 +513,24 @@ void Nnet::RemoveDropout() {
   Check();
 }
 
+void Nnet::RemoveSplice() {
+  std::vector<Component*> components;
+  int32 removed = 0;
+  for (size_t i = 0; i < components_.size(); i++) {
+    if (dynamic_cast<SpliceComponent*>(components_[i]) != NULL) {
+      delete components_[i];
+      removed++;
+    } else {
+      components.push_back(components_[i]);
+    }
+  }
+  components_ = components;
+  if (removed > 0)
+    KALDI_LOG << "Removed " << removed << " dropout components.";
+  SetIndexes();
+  Check();
+}
+
 void Nnet::SetDropoutScale(BaseFloat scale) {
   size_t n_set = 0;
   for (size_t i = 0; i < components_.size(); i++) {
