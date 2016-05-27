@@ -66,7 +66,7 @@ NnetComputer::NnetComputer(const Nnet &nnet,
                            bool pad,
                            Nnet *nnet_to_update):
     nnet_(nnet), nnet_to_update_(nnet_to_update) {
-  int32 dim = input_feats.NumCols() / ( nnet_.LeftContext() + nnet_.RightContext() + 1);
+  int32 dim = input_feats.NumCols();
   if (dim != nnet.InputDim()) {
     KALDI_ERR << "Feature dimension is " << dim << " but network expects "
               << nnet.InputDim();
@@ -79,15 +79,21 @@ NnetComputer::NnetComputer(const Nnet &nnet,
   int32 num_rows = left_context + input_feats.NumRows() + right_context;
   nnet.ComputeChunkInfo(num_rows, 1, &chunk_info_);
 
-  forward_data_[1].Resize(input_feats.NumRows(), input_feats.NumCols());
-  forward_data_[1].CopyFromMat(input_feats);
+  CuMatrix<BaseFloat> &input(forward_data_[0]);
+  input.Resize(num_rows, dim);
+  input.Range(left_context, input_feats.NumRows(),
+              0, dim).CopyFromMat(input_feats);
+  for (int32 i = 0; i < left_context; i++)
+    input.Row(i).CopyFromVec(input_feats.Row(0));
+  int32 last_row = input_feats.NumRows() - 1;
+  for (int32 i = 0; i < right_context; i++)
+    input.Row(num_rows - i - 1).CopyFromVec(input_feats.Row(last_row));
 }
 
 
 /// This is the forward part of the computation.
 void NnetComputer::Propagate() {
-  forward_data_[0].Resize(0, 0);
-  for (int32 c = 1; c < nnet_.NumComponents(); c++) {
+  for (int32 c = 0; c < nnet_.NumComponents(); c++) {
     const Component &component = nnet_.GetComponent(c);
     CuMatrix<BaseFloat> &input = forward_data_[c],
                      &output = forward_data_[c+1];
