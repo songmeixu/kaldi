@@ -531,6 +531,25 @@ void Nnet::RemoveSplice() {
   Check();
 }
 
+void Nnet::ToFixedPoint() {
+  int32 convert = 0;
+  int32 ac_cnt = 0;
+  for (size_t i = 0; i < components_.size(); i++) {
+    AffineComponent *ac = dynamic_cast<AffineComponent*>(components_[i]);
+    if (ac != NULL) {
+      if (ac_cnt++ == 0) continue;
+      AffineComponentFixedPoint *acf = new AffineComponentFixedPoint(ac->LinearParams(), ac->BiasParams());
+      delete components_[i];
+      components_[i] = acf;
+      convert++;
+    }
+  }
+  if (convert > 0)
+    KALDI_LOG << "Convert " << convert << " AffineComponent.";
+  SetIndexes();
+  Check();
+}
+
 void Nnet::SetDropoutScale(BaseFloat scale) {
   size_t n_set = 0;
   for (size_t i = 0; i < components_.size(); i++) {

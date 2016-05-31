@@ -74,6 +74,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new ScaleComponent();
   } else if (component_type == "AffineComponent") {
     ans = new AffineComponent();
+  } else if (component_type == "AffineComponentFixedPoint") {
+    ans = new AffineComponentFixedPoint();
   } else if (component_type == "AffineComponentPreconditioned") {
     ans = new AffineComponentPreconditioned();
   } else if (component_type == "AffineComponentPreconditionedOnline") {
@@ -1412,8 +1414,6 @@ Component *AffineComponent::CollapseWithNext(
   return ans;
 }
 
-
-
 Component *AffineComponent::CollapseWithPrevious(
     const FixedAffineComponent &prev_component) const {
   // If at least one was non-updatable, make the whole non-updatable.
@@ -1429,6 +1429,85 @@ Component *AffineComponent::CollapseWithPrevious(
   ans->bias_params_.AddMatVec(1.0, this->linear_params_, kNoTrans,
                               prev_component.bias_params_, 1.0);
   return ans;
+}
+
+AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloat> &linear_params,
+                                                     const CuVectorBase<BaseFloat> &bias_params) {
+  KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
+      bias_params.Dim() != 0);
+  magnitude_ = linear_params.Mat().LargestAbsElem();
+  linear_params_fp_.Resize(linear_params.NumRows(), linear_params.NumCols());
+  linear_quantize<BaseFloat, FPWeight16>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
+  linear_quantize<BaseFloat, FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_ * mq_mag_);
+
+  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
+  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
+  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
+  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
+}
+
+std::string AffineComponentFixedPoint::Info() const {
+  std::stringstream stream;
+  BaseFloat linear_params_size = static_cast<BaseFloat>(linear_params_fp_.NumRows())
+      * static_cast<BaseFloat>(linear_params_fp_.NumCols());
+  stream << Type() << ", input-dim=" << InputDim()
+      << ", output-dim=" << OutputDim()
+      << ", MQ=" << mq_mag_
+      << ", Mag=" << magnitude_;
+  return stream.str();
+}
+
+void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
+                                         const ChunkInfo &out_info,
+                                         CuMatrixBase<BaseFloat> &in,
+                                         CuMatrixBase<BaseFloat> *out) {
+  in_info.CheckSize(in);
+  out_info.CheckSize(*out);
+  KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
+  in_fp_.Resize(in.NumRows(), in.NumCols());
+  out_fp_.Resize(out->NumRows(), out->NumCols());
+
+  dq_mag_ = in.Mat().LargestAbsElem();
+  linear_quantize(in.Mat(), in_fp_, dq_mag_, mq_mag_);
+
+  matrix_times(linear_params_fp_, in_fp_, out_fp_);
+  linear_quantize(out_fp_, out_fp_, 1.0, dq_mag_); // de-quantization
+  matrix_plus_vector(out_fp_, bias_params_fp_, out_fp_);
+  out->CopyFromMat(out_fp_);
+  out->Scale(magnitude_ / mq_mag_ / mq_mag_); // de-quantization
+}
+
+void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">"; // e.g. "<AffineComponent>"
+  ostr_end << "</" << Type() << ">"; // e.g. "</AffineComponent>"
+  // might not see the "<AffineComponent>" part because
+  // of how ReadNew() works.
+  ExpectToken(is, binary, "<LinearParams>");
+  linear_params_fp_.Read(is, binary);
+  ExpectToken(is, binary, "<BiasParams>");
+  bias_params_fp_.Read(is, binary);
+  ExpectToken(is, binary, "<MQ>");
+  ReadBasicType(is, binary, &mq_mag_);
+  ExpectToken(is, binary, "<Mag>");
+  ReadBasicType(is, binary, &magnitude_);
+  ExpectToken(is, binary, ostr_end.str());
+}
+
+void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">"; // e.g. "<AffineComponent>"
+  ostr_end << "</" << Type() << ">"; // e.g. "</AffineComponent>"
+  WriteToken(os, binary, ostr_beg.str());
+  WriteToken(os, binary, "<LinearParams>");
+  linear_params_fp_.Write(os, binary);
+  WriteToken(os, binary, "<BiasParams>");
+  bias_params_fp_.Write(os, binary);
+  WriteToken(os, binary, "<MQ>");
+  WriteBasicType(os, binary, mq_mag_);
+  WriteToken(os, binary, "<Mag>");
+  WriteBasicType(os, binary, magnitude_);
+  WriteToken(os, binary, ostr_end.str());
 }
 
 void AffineComponentPreconditioned::Read(std::istream &is, bool binary) {

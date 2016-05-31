@@ -1193,6 +1193,134 @@ bad:
             << pos_at_start<<", currently "<<is.tellg();
 }
 
+template<>
+void Vector<int>::Read(std::istream & is,  bool binary, bool add) {
+  if (add) {
+    Vector<int> tmp(this->Dim());
+    tmp.Read(is, binary, false);  // read without adding.
+    if (this->Dim() == 0) this->Resize(tmp.Dim());
+    if (this->Dim() != tmp.Dim()) {
+      KALDI_ERR << "Vector<Real>::Read, adding but dimensions mismatch "
+          << this->Dim() << " vs. " << tmp.Dim();
+    }
+    this->AddVec(1.0, tmp);
+    return;
+  } // now assume add == false.
+
+  std::ostringstream specific_error;
+  MatrixIndexT pos_at_start = is.tellg();
+
+  if (binary) {
+    int peekval = Peek(is, binary);
+    const char *my_token =  "IV";
+    std::string token;
+    ReadToken(is, binary, &token);
+    if (token != my_token) {
+      specific_error << ": Expected token " << my_token << ", got " << token;
+      goto bad;
+    }
+    int32 size;
+    ReadBasicType(is, binary, &size);  // throws on error.
+    if ((MatrixIndexT)size != this->Dim())  this->Resize(size);
+    if (size > 0)
+      is.read(reinterpret_cast<char*>(this->data_), sizeof(int)*size);
+    if (is.fail()) {
+      specific_error << "Error reading vector data (binary mode); truncated "
+          "stream? (size = " << size << ")";
+      goto bad;
+    }
+    return;
+  } else {  // Text mode reading; format is " [ 1.1 2.0 3.4 ]\n"
+    std::string s;
+    is >> s;
+    // if ((s.compare("DV") == 0) || (s.compare("FV") == 0)) {  // Back compatibility.
+    //  is >> s;  // get dimension
+    //  is >> s;  // get "["
+    // }
+    if (is.fail()) { specific_error << "EOF while trying to read vector."; goto bad; }
+    if (s.compare("[]") == 0) { Resize(0); return; } // tolerate this variant.
+    if (s.compare("[")) { specific_error << "Expected \"[\" but got " << s; goto bad; }
+    std::vector<int> data;
+    while (1) {
+      int i = is.peek();
+      if (i == '-' || (i >= '0' && i <= '9')) {  // common cases first.
+        int r;
+        is >> r;
+        if (is.fail()) { specific_error << "Failed to read number."; goto bad; }
+        if (! std::isspace(is.peek()) && is.peek() != ']') {
+          specific_error << "Expected whitespace after number."; goto bad;
+        }
+        data.push_back(r);
+        // But don't eat whitespace... we want to check that it's not newlines
+        // which would be valid only for a matrix.
+      } else if (i == ' ' || i == '\t') {
+        is.get();
+      } else if (i == ']') {
+        is.get();  // eat the ']'
+        this->Resize(data.size());
+        for (size_t j = 0; j < data.size(); j++)
+          this->data_[j] = data[j];
+        i = is.peek();
+        if (static_cast<char>(i) == '\r') {
+          is.get();
+          is.get();  // get \r\n (must eat what we wrote)
+        } else if (static_cast<char>(i) == '\n') { is.get(); } // get \n (must eat what we wrote)
+        if (is.fail()) {
+          KALDI_WARN << "After end of vector data, read error.";
+          // we got the data we needed, so just warn for this error.
+        }
+        return;  // success.
+      } else if (i == -1) {
+        specific_error << "EOF while reading vector data.";
+        goto bad;
+      } else if (i == '\n' || i == '\r') {
+        specific_error << "Newline found while reading vector (maybe it's a matrix?)";
+        goto bad;
+      } else {
+        is >> s;  // read string.
+        if (!KALDI_STRCASECMP(s.c_str(), "inf") ||
+            !KALDI_STRCASECMP(s.c_str(), "infinity")) {
+          data.push_back(std::numeric_limits<int>::infinity());
+          KALDI_WARN << "Reading infinite value into vector.";
+        } else if (!KALDI_STRCASECMP(s.c_str(), "nan")) {
+          data.push_back(std::numeric_limits<int>::quiet_NaN());
+          KALDI_WARN << "Reading NaN value into vector.";
+        } else {
+          specific_error << "Expecting numeric vector data, got " << s;
+          goto  bad;
+        }
+      }
+    }
+  }
+  // we never reach this line (the while loop returns directly).
+  bad:
+  KALDI_ERR << "Failed to read vector from stream.  " << specific_error.str()
+      << " File position at start is "
+      << pos_at_start<<", currently "<<is.tellg();
+}
+
+template<>
+void VectorBase<int>::Write(std::ostream & os, bool binary) const {
+  if (!os.good()) {
+    KALDI_ERR << "Failed to write vector to stream: stream not good";
+  }
+  if (binary) {
+    std::string my_token = "IV";
+    WriteToken(os, binary, my_token);
+
+    int32 size = Dim();  // make the size 32-bit on disk.
+    KALDI_ASSERT(Dim() == (MatrixIndexT) size);
+    WriteBasicType(os, binary, size);
+    os.write(reinterpret_cast<const char*>(Data()), sizeof(int) * size);
+  } else {
+    os << " [ ";
+    for (MatrixIndexT i = 0; i < Dim(); i++)
+      os << (*this)(i) << " ";
+    os << "]\n";
+  }
+  if (!os.good())
+    KALDI_ERR << "Failed to write vector to stream";
+}
 
 template<typename Real>
 void VectorBase<Real>::Write(std::ostream & os, bool binary) const {

@@ -1244,6 +1244,48 @@ void MatrixBase<Real>::Write(std::ostream &os, bool binary) const {
   }
 }
 
+template<>
+void MatrixBase<short>::Write(std::ostream &os, bool binary) const {
+  if (!os.good()) {
+    KALDI_ERR << "Failed to write matrix to stream: stream not good";
+  }
+  if (binary) {  // Use separate binary and text formats,
+    // since in binary mode we need to know if it's float or double.
+    std::string my_token = "SM";
+
+    WriteToken(os, binary, my_token);
+    {
+      int32 rows = this->num_rows_;  // make the size 32-bit on disk.
+      int32 cols = this->num_cols_;
+      KALDI_ASSERT(this->num_rows_ == (MatrixIndexT) rows);
+      KALDI_ASSERT(this->num_cols_ == (MatrixIndexT) cols);
+      WriteBasicType(os, binary, rows);
+      WriteBasicType(os, binary, cols);
+    }
+    if (Stride() == NumCols())
+      os.write(reinterpret_cast<const char*> (Data()), sizeof(short)
+          * static_cast<size_t>(num_rows_) * static_cast<size_t>(num_cols_));
+    else
+      for (MatrixIndexT i = 0; i < num_rows_; i++)
+        os.write(reinterpret_cast<const char*> (RowData(i)), sizeof(short)
+            * num_cols_);
+    if (!os.good()) {
+      KALDI_ERR << "Failed to write matrix to stream";
+    }
+  } else {  // text mode.
+    if (num_cols_ == 0) {
+      os << " [ ]\n";
+    } else {
+      os << " [";
+      for (MatrixIndexT i = 0; i < num_rows_; i++) {
+        os << "\n  ";
+        for (MatrixIndexT j = 0; j < num_cols_; j++)
+          os << (*this)(i, j) << " ";
+      }
+      os << "]\n";
+    }
+  }
+}
 
 template<typename Real>
 void MatrixBase<Real>::Read(std::istream & is, bool binary, bool add) {
@@ -1436,6 +1478,164 @@ bad:
   KALDI_ERR << "Failed to read matrix from stream.  " << specific_error.str()
             << " File position at start is "
             << pos_at_start << ", currently " << is.tellg();
+}
+
+
+template<>
+void Matrix<short>::Read(std::istream & is, bool binary, bool add) {
+  if (add) {
+    Matrix<short> tmp;
+    tmp.Read(is, binary, false);  // read without adding.
+    if (this->num_rows_ == 0) this->Resize(tmp.num_rows_, tmp.num_cols_);
+    else {
+      if (this->num_rows_ != tmp.num_rows_ || this->num_cols_ != tmp.num_cols_) {
+        if (tmp.num_rows_ == 0) return;  // do nothing in this case.
+        else KALDI_ERR << "Matrix::Read, size mismatch "
+              << this->num_rows_ <<  ", " << this->num_cols_
+              << " vs. " << tmp.num_rows_ << ", " << tmp.num_cols_;
+      }
+    }
+    this->AddMat(1.0, tmp);
+    return;
+  }
+
+  // now assume add == false.
+  MatrixIndexT pos_at_start = is.tellg();
+  std::ostringstream specific_error;
+
+  if (binary) {  // Read in binary mode.
+    int peekval = Peek(is, binary);
+    if (peekval == 'C') {
+      // This code enable us to read CompressedMatrix as a regular matrix.
+      CompressedMatrix compressed_mat;
+      compressed_mat.Read(is, binary); // at this point, add == false.
+      this->Resize(compressed_mat.NumRows(), compressed_mat.NumCols());
+      compressed_mat.CopyToMat(this);
+      return;
+    }
+    const char *my_token =  "SM";
+    std::string token;
+    ReadToken(is, binary, &token);
+    if (token != my_token) {
+      specific_error << ": Expected token " << my_token << ", got " << token;
+      goto bad;
+    }
+    int32 rows, cols;
+    ReadBasicType(is, binary, &rows);  // throws on error.
+    ReadBasicType(is, binary, &cols);  // throws on error.
+    if ((MatrixIndexT)rows != this->num_rows_ || (MatrixIndexT)cols != this->num_cols_) {
+      this->Resize(rows, cols);
+    }
+    if (this->Stride() == this->NumCols() && rows*cols!=0) {
+      is.read(reinterpret_cast<char*>(this->Data()),
+              sizeof(short)*rows*cols);
+      if (is.fail()) goto bad;
+    } else {
+      for (MatrixIndexT i = 0; i < (MatrixIndexT)rows; i++) {
+        is.read(reinterpret_cast<char*>(this->RowData(i)), sizeof(short)*cols);
+        if (is.fail()) goto bad;
+      }
+    }
+    if (is.eof()) return;
+    if (is.fail()) goto bad;
+    return;
+  } else {  // Text mode.
+    std::string str;
+    is >> str; // get a token
+    if (is.fail()) { specific_error << ": Expected \"[\", got EOF"; goto bad; }
+    // if ((str.compare("DM") == 0) || (str.compare("FM") == 0)) {  // Back compatibility.
+    // is >> str;  // get #rows
+    //  is >> str;  // get #cols
+    //  is >> str;  // get "["
+    // }
+    if (str == "[]") { Resize(0, 0); return; } // Be tolerant of variants.
+    else if (str != "[") {
+      specific_error << ": Expected \"[\", got \"" << str << '"';
+      goto bad;
+    }
+    // At this point, we have read "[".
+    std::vector<std::vector<short>* > data;
+    std::vector<short> *cur_row = new std::vector<short>;
+    while (1) {
+      int i = is.peek();
+      if (i == -1) { specific_error << "Got EOF while reading matrix data"; goto cleanup; }
+      else if (static_cast<char>(i) == ']') {  // Finished reading matrix.
+        is.get();  // eat the "]".
+        i = is.peek();
+        if (static_cast<char>(i) == '\r') {
+          is.get();
+          is.get();  // get \r\n (must eat what we wrote)
+        } else if (static_cast<char>(i) == '\n') { is.get(); } // get \n (must eat what we wrote)
+        if (is.fail()) {
+          KALDI_WARN << "After end of matrix data, read error.";
+          // we got the data we needed, so just warn for this error.
+        }
+        // Now process the data.
+        if (!cur_row->empty()) data.push_back(cur_row);
+        else delete(cur_row);
+        if (data.empty()) { this->Resize(0, 0); return; }
+        else {
+          int32 num_rows = data.size(), num_cols = data[0]->size();
+          this->Resize(num_rows, num_cols);
+          for (int32 i = 0; i < num_rows; i++) {
+            if (static_cast<int32>(data[i]->size()) != num_cols) {
+              specific_error << "Matrix has inconsistent #cols: " << num_cols
+                  << " vs." << data[i]->size() << " (processing row"
+                  << i;
+              goto cleanup;
+            }
+            for (int32 j = 0; j < num_cols; j++)
+              (*this)(i, j) = (*(data[i]))[j];
+            delete data[i];
+          }
+        }
+        return;
+      } else if (static_cast<char>(i) == '\n' || static_cast<char>(i) == ';') {
+        // End of matrix row.
+        is.get();
+        if (cur_row->size() != 0) {
+          data.push_back(cur_row);
+          cur_row = new std::vector<short>;
+          cur_row->reserve(data.back()->size());
+        }
+      } else if ( (i >= '0' && i <= '9') || i == '-' ) {  // A number...
+        short r;
+        is >> r;
+        if (is.fail()) {
+          specific_error << "Stream failure/EOF while reading matrix data.";
+          goto cleanup;
+        }
+        cur_row->push_back(r);
+      } else if (isspace(i)) {
+        is.get();  // eat the space and do nothing.
+      } else {  // NaN or inf or error.
+        std::string str;
+        is >> str;
+        if (!KALDI_STRCASECMP(str.c_str(), "inf") ||
+            !KALDI_STRCASECMP(str.c_str(), "infinity")) {
+          cur_row->push_back(std::numeric_limits<short>::infinity());
+          KALDI_WARN << "Reading infinite value into matrix.";
+        } else if (!KALDI_STRCASECMP(str.c_str(), "nan")) {
+          cur_row->push_back(std::numeric_limits<short>::quiet_NaN());
+          KALDI_WARN << "Reading NaN value into matrix.";
+        } else {
+          specific_error << "Expecting numeric matrix data, got " << str;
+          goto cleanup;
+        }
+      }
+    }
+    // Note, we never leave the while () loop before this
+    // line (we return from it.)
+    cleanup: // We only reach here in case of error in the while loop above.
+    delete cur_row;
+    for (size_t i = 0; i < data.size(); i++)
+      delete data[i];
+    // and then go on to "bad" below, where we print error.
+  }
+  bad:
+  KALDI_ERR << "Failed to read matrix from stream.  " << specific_error.str()
+      << " File position at start is "
+      << pos_at_start << ", currently " << is.tellg();
 }
 
 

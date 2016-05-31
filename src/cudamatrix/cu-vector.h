@@ -193,7 +193,6 @@ class CuVectorBase {
   void ReplaceValue(Real orig, Real changed);
   
   void MulElements(const CuVectorBase<Real> &v);
- protected:
 
   // The following two functions should only be called if we did not compile
   // with CUDA or could not get a CUDA card; in that case the contents are
@@ -201,10 +200,13 @@ class CuVectorBase {
   inline const VectorBase<Real> &Vec() const {
     return *(reinterpret_cast<const VectorBase<Real>* >(this));
   }
+
   inline VectorBase<Real> &Vec() {
     return *(reinterpret_cast<VectorBase<Real>* >(this));
   }
-  
+
+ protected:
+
   /// Default constructor: make it protected so the user cannot
   /// instantiate this class.
   CuVectorBase<Real>(): data_(NULL), dim_(0) { }

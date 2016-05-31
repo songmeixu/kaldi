@@ -131,6 +131,8 @@ class Nnet {
 
   void RemoveSplice();
 
+  void ToFixedPoint();
+
   /// Calls SetDropoutScale for all the dropout nodes.
   void SetDropoutScale(BaseFloat scale);
   
