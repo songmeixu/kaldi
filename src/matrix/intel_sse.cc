@@ -15,12 +15,12 @@ void apply_sigmoid(float *start_a, float *result, const int &cnt) {
 void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt,
                              const float &mag) {
 
-  INT * end = start_a + cnt;
+  int * end = start_a + cnt;
   while(start_a < end) {
     if(*start_a > 0)
       *result++ = round(std::numeric_limits<FPAct>::max() / (1 + exp(-1.0 * (* start_a++*mag))));
     else {
-      FLOAT ex = exp(*start_a++ *mag);
+      float ex = exp(*start_a++ *mag);
       *result++ = round(std::numeric_limits<FPAct>::max() * ex / (ex + 1.0));
     }
   }
