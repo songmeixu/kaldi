@@ -1451,9 +1451,9 @@ std::string AffineComponentFixedPoint::Info() const {
 }
 
 void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
-                                         const ChunkInfo &out_info,
-                                         CuMatrixBase<BaseFloat> &in,
-                                         CuMatrixBase<BaseFloat> *out) const {
+                                          const ChunkInfo &out_info,
+                                          CuMatrixBase<BaseFloat> &in,
+                                          CuMatrixBase<BaseFloat> *out) {
   in_info.CheckSize(in);
   out_info.CheckSize(*out);
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
@@ -1479,10 +1479,10 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   ExpectToken(is, binary, "<LinearParams>");
   Matrix<BaseFloat> temp;
   temp.Read(is, binary);
-  KaldiMatrix2CommonMatrix(dynamic_cast<MatrixBase &>(temp), linear_params_fp_);
+  KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
   ExpectToken(is, binary, "<BiasParams>");
   temp.Read(is, binary);
-  KaldiMatrix2CommonMatrix(dynamic_cast<MatrixBase &>(temp), bias_params_fp_);
+  KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
   ExpectToken(is, binary, "<Mag>");
@@ -1497,11 +1497,11 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   WriteToken(os, binary, ostr_beg.str());
   WriteToken(os, binary, "<LinearParams>");
   Matrix<BaseFloat> temp(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
-  CommonMatrix2KaldiMatrix(linear_params_fp_, dynamic_cast<MatrixBase &>(temp));
+  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<BiasParams>");
   temp.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
-  CommonMatrix2KaldiMatrix(linear_params_fp_, dynamic_cast<MatrixBase &>(temp));
+  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);

@@ -55,7 +55,7 @@ T matrix_abs_max(Matrix<T> &mat) {
 }
 
 template<typename From, typename To>
-void CommonMatrix2KaldiMatrix(const Matrix<From> &from, kaldi::MatrixBase<To> &to) {
+void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
     const From *fs = from.RowData(row);
     const From *fe = from.RowData(row) + from.NumCols();
@@ -72,10 +72,27 @@ void CommonMatrix2KaldiMatrix(const Matrix<From> &from, kaldi::MatrixBase<To> &t
 };
 
 template<typename From, typename To>
-void KaldiMatrix2CommonMatrix(const kaldi::MatrixBase<From> &from, Matrix<To> &to) {
+void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::Matrix<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
     const From *fs = from.RowData(row);
     const From *fe = from.RowData(row) + from.NumCols();
+    To *ts = to.RowData(row);
+    while (fs < fe) {
+      ts[0] = (To) fs[0];
+      ts[1] = (To) fs[1];
+      ts[2] = (To) fs[2];
+      ts[3] = (To) fs[3];
+      fs += 4;
+      ts += 4;
+    }
+  }
+};
+
+template<typename From, typename To>
+void KaldiMatrix2CommonMatrix(kaldi::Matrix<From> &from, Matrix<To> &to) {
+  for (int row = 0; row < from.NumRows(); row++) {
+    From *fs = from.RowData(row);
+    From *fe = from.RowData(row) + from.NumCols();
     To *ts = to.RowData(row);
     while (fs < fe) {
       ts[0] = (To) fs[0];
@@ -96,6 +113,26 @@ void linear_quantize(Matrix<From> &from, Matrix<To> &to,
   for (int row = 0; row < from.NumRows(); row++) {
     From *fs = from.RowData(row);
     From *fe = from.RowData(row) + from.NumCols();
+    To *ts = to.RowData(row);
+    while (fs < fe) {
+      ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
+      ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
+      ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
+      ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
+      fs += 4;
+      ts += 4;
+    }
+  }
+}
+
+template<typename From, typename To>
+void linear_quantize(const kaldi::Matrix<From> &from, Matrix<To> &to,
+                     float magnitude_a = (std::numeric_limits<From>::max)(),
+                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+  to.Resize(from.NumRows(), from.NumCols());
+  for (int row = 0; row < from.NumRows(); row++) {
+    const From *fs = from.RowData(row);
+    const From *fe = from.RowData(row) + from.NumCols();
     To *ts = to.RowData(row);
     while (fs < fe) {
       ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);

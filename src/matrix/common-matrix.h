@@ -59,10 +59,6 @@ struct Matrix {
     return _data + (idx * _rcols);
   }
 
-  const T *RowData(const int &idx) const {
-    return _data + (idx * _rcols);
-  }
-
   void Resize(const int &rows, const int &cols) {
     if (_rows == rows && _cols == cols)
       return;

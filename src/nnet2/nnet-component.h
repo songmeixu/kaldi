@@ -198,7 +198,7 @@ class Component {
   virtual void Propagate(const ChunkInfo &in_info,
                          const ChunkInfo &out_info,
                          const CuMatrixBase<BaseFloat> &in,
-                         CuMatrixBase<BaseFloat> *out) const = 0;
+                         CuMatrixBase<BaseFloat> *out) = 0;
 
   /// A non-virtual propagate function that first resizes output if necessary.
   void Propagate(const ChunkInfo &in_info,
@@ -960,7 +960,7 @@ class AffineComponentFixedPoint: public Component {
   virtual void Propagate(const ChunkInfo &in_info,
                          const ChunkInfo &out_info,
                          CuMatrixBase<BaseFloat> &in,
-                         CuMatrixBase<BaseFloat> *out) const;
+                         CuMatrixBase<BaseFloat> *out);
 
   virtual void Backprop(const ChunkInfo &in_info,
                         const ChunkInfo &out_info,
