@@ -55,10 +55,10 @@ T matrix_abs_max(Matrix<T> &mat) {
 }
 
 template<typename From, typename To>
-void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
+void CommonMatrix2KaldiMatrix(const Matrix<From> &from, kaldi::MatrixBase<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
-    From *fs = from.RowData(row);
-    From *fe = from.RowData(row) + from.NumCols();
+    const From *fs = from.RowData(row);
+    const From *fe = from.RowData(row) + from.NumCols();
     To *ts = to.RowData(row);
     while (fs < fe) {
       ts[0] = (To) fs[0];
@@ -72,10 +72,10 @@ void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
 };
 
 template<typename From, typename To>
-void KaldiMatrix2CommonMatrix(kaldi::MatrixBase<From> &from, Matrix<To> &to) {
+void KaldiMatrix2CommonMatrix(const kaldi::MatrixBase<From> &from, Matrix<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
-    From *fs = from.RowData(row);
-    From *fe = from.RowData(row) + from.NumCols();
+    const From *fs = from.RowData(row);
+    const From *fe = from.RowData(row) + from.NumCols();
     To *ts = to.RowData(row);
     while (fs < fe) {
       ts[0] = (To) fs[0];

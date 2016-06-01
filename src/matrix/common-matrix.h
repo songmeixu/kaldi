@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <malloc>
+#include <malloc.h>
 
 #define USE_POSIX_MEM_ALLOC
 #define pad_zero_bits 128
@@ -56,6 +56,10 @@ struct Matrix {
   }
 
   T *RowData(const int &idx) {
+    return _data + (idx * _rcols);
+  }
+
+  const T *RowData(const int &idx) const {
     return _data + (idx * _rcols);
   }
 

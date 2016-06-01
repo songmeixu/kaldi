@@ -955,12 +955,25 @@ class AffineComponentFixedPoint: public Component {
 
   virtual std::string Info() const;
 
-  AffineComponentFixedPoint(): { } // use Init to really initialize.
+  AffineComponentFixedPoint() { } // use Init to really initialize.
   virtual std::string Type() const { return "AffineComponentFixedPoint"; }
   virtual void Propagate(const ChunkInfo &in_info,
                          const ChunkInfo &out_info,
                          CuMatrixBase<BaseFloat> &in,
-                         CuMatrixBase<BaseFloat> *out);
+                         CuMatrixBase<BaseFloat> *out) const;
+
+  virtual void Backprop(const ChunkInfo &in_info,
+                        const ChunkInfo &out_info,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &out_value,
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update, // may be identical to "this".
+                        CuMatrix<BaseFloat> *in_deriv) const {}
+
+  virtual int32 InputDim() const { return linear_params_fp_.NumCols(); }
+  virtual int32 OutputDim() const { return linear_params_fp_.NumRows(); }
+
+  virtual void InitFromString(std::string args) {}
 
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
@@ -1587,7 +1600,7 @@ class FixedAffineComponent: public Component {
                         CuMatrix<BaseFloat> *in_deriv) const;
   virtual bool BackpropNeedsInput() const { return false; }
   virtual bool BackpropNeedsOutput() const { return false; }
-  virtual Component* Copy() const;
+  virtual Component* Copy() const {}
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
 

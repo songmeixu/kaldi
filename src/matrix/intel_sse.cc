@@ -2,57 +2,27 @@
 
 void apply_sigmoid(float *start_a, float *result, const int &cnt) {
   float *end = start_a + cnt;
-  __m128 *pstart = (__m128 *) start_a;
-  __m128 *pend = (__m128 *) end;
-  __m128 *pres = (__m128 *) result;
-
-  __m128 one = _mm_set_ps1(1.0);
-  while (pstart < pend) {
-    __m128 expres = exp(*pstart);
-    __m128 exp_one = _mm_add_ps(one, expres);
-    *pres = _mm_div_ps(expres, exp_one);
-    pstart++;
-    pres++;
+  while (start_a < end) {
+    if (*start_a > 0)
+      *result++ = 1.0 / (1 + exp(-1.0 * (*start_a++)));
+    else {
+      float ex = exp(*start_a++);
+      *result++ = ex / (ex + 1.0);
+    }
   }
 }
 
 void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt,
                              const float &mag) {
-  int *end = start_a + cnt;
-  __m128i *pstart = (__m128i *) start_a;
-  __m128i *pend = (__m128i *) end;
 
-  //__m128 * pres = ( __m128* ) result;
-
-  const __m128 one = _mm_set_ps1(1.0);
-  __m128 fbuf;
-  const __m128 multiplier = _mm_set_ps1(mag);
-  const __m128i tmp = _mm_set_epi32(std::numeric_limits<FPAct>::max(),
-                                    std::numeric_limits<FPAct>::max(),
-                                    std::numeric_limits<FPAct>::max(),
-                                    std::numeric_limits<FPAct>::max());
-  const __m128 limits = _mm_cvtepi32_ps(tmp);
-
-  union u {
-    __m128 m;
-    float f[4];
-  } x;
-  while (pstart < pend) {
-    fbuf = _mm_cvtepi32_ps(*pstart);
-    fbuf = _mm_mul_ps(multiplier, fbuf);
-    __m128 expres = exp(fbuf);
-    __m128 exp_one = _mm_add_ps(one, expres);
-    fbuf = _mm_div_ps(expres, exp_one);
-
-    x.m = _mm_mul_ps(fbuf, limits);
-
-    result[0] = round(x.f[0]);
-    result[1] = round(x.f[1]);
-    result[2] = round(x.f[2]);
-    result[3] = round(x.f[3]);
-    result += 4;
-
-    pstart++;
+  INT * end = start_a + cnt;
+  while(start_a < end) {
+    if(*start_a > 0)
+      *result++ = round(std::numeric_limits<FPAct>::max() / (1 + exp(-1.0 * (* start_a++*mag))));
+    else {
+      FLOAT ex = exp(*start_a++ *mag);
+      *result++ = round(std::numeric_limits<FPAct>::max() * ex / (ex + 1.0));
+    }
   }
 }
 
