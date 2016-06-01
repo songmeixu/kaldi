@@ -973,6 +973,8 @@ class AffineComponentFixedPoint: public Component {
   virtual int32 InputDim() const { return linear_params_fp_.NumCols(); }
   virtual int32 OutputDim() const { return linear_params_fp_.NumRows(); }
 
+  virtual Component* Copy() const {}
+
   virtual void InitFromString(std::string args) {}
 
   virtual void Read(std::istream &is, bool binary);
@@ -1600,7 +1602,7 @@ class FixedAffineComponent: public Component {
                         CuMatrix<BaseFloat> *in_deriv) const;
   virtual bool BackpropNeedsInput() const { return false; }
   virtual bool BackpropNeedsOutput() const { return false; }
-  virtual Component* Copy() const {}
+  virtual Component* Copy() const;
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
 
