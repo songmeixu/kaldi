@@ -17,8 +17,9 @@
 #include <immintrin.h>  // for 256-bit calculation
 
 #include "matrix/kaldi-matrix.h"
+#include "matrix/common-matrix.h"
 
-using namespace kaldi;
+using namespace common;
 
 inline double round(double d) {
   return floor(d + 0.5);
@@ -43,7 +44,7 @@ T row_abs_max(T *start, const int cnt) {
 }
 
 template<typename T>
-T matrix_abs_max(MatrixBase<T> &mat) {
+T matrix_abs_max(Matrix<T> &mat) {
   T max = 0;
   for (int i = 0; i < mat.NumRows(); i++) {
     T tmp = row_abs_max<T>(mat.RowData(i), mat.NumCols());
@@ -54,9 +55,64 @@ T matrix_abs_max(MatrixBase<T> &mat) {
 }
 
 template<typename From, typename To>
-void linear_quantize(const MatrixBase<From> &from, MatrixBase<To> &to,
-                     BaseFloat magnitude_a = (std::numeric_limits<From>::max)(),
-                     BaseFloat magnitude_b = (std::numeric_limits<To>::max)()) {
+void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
+  for (int row = 0; row < from.NumRows(); row++) {
+    From *fs = from.RowData(row);
+    From *fe = from.RowData(row) + from.NumCols();
+    To *ts = to.RowData(row);
+    while (fs < fe) {
+      ts[0] = (To) fs[0];
+      ts[1] = (To) fs[1];
+      ts[2] = (To) fs[2];
+      ts[3] = (To) fs[3];
+      fs += 4;
+      ts += 4;
+    }
+  }
+};
+
+template<typename From, typename To>
+void KaldiMatrix2CommonMatrix(kaldi::MatrixBase<From> &from, Matrix<To> &to) {
+  for (int row = 0; row < from.NumRows(); row++) {
+    From *fs = from.RowData(row);
+    From *fe = from.RowData(row) + from.NumCols();
+    To *ts = to.RowData(row);
+    while (fs < fe) {
+      ts[0] = (To) fs[0];
+      ts[1] = (To) fs[1];
+      ts[2] = (To) fs[2];
+      ts[3] = (To) fs[3];
+      fs += 4;
+      ts += 4;
+    }
+  }
+};
+
+template<typename From, typename To>
+void linear_quantize(Matrix<From> &from, Matrix<To> &to,
+                     float magnitude_a = (std::numeric_limits<From>::max)(),
+                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+  to.Resize(from.NumRows(), from.NumCols());
+  for (int row = 0; row < from.NumRows(); row++) {
+    From *fs = from.RowData(row);
+    From *fe = from.RowData(row) + from.NumCols();
+    To *ts = to.RowData(row);
+    while (fs < fe) {
+      ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
+      ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
+      ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
+      ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
+      fs += 4;
+      ts += 4;
+    }
+  }
+}
+
+template<typename From, typename To>
+void linear_quantize(const kaldi::MatrixBase<From> &from, Matrix<To> &to,
+                     float magnitude_a = (std::numeric_limits<From>::max)(),
+                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+  to.Resize(from.NumRows(), from.NumCols());
   for (int row = 0; row < from.NumRows(); row++) {
     const From *fs = from.RowData(row);
     const From *fe = from.RowData(row) + from.NumCols();
@@ -73,9 +129,10 @@ void linear_quantize(const MatrixBase<From> &from, MatrixBase<To> &to,
 }
 
 template<typename From, typename To>
-void linear_quantize(const VectorBase<From> &from, VectorBase<To> &to,
-                     BaseFloat magnitude_a = (std::numeric_limits<From>::max)(),
-                     BaseFloat magnitude_b = (std::numeric_limits<To>::max)()) {
+void linear_quantize(const kaldi::VectorBase<From> &from, Matrix<To> &to,
+                     float magnitude_a = (std::numeric_limits<From>::max)(),
+                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+  to.Resize(1, from.Dim());
   const From *fs = from.Data();
   const From *fe = from.Data() + from.Dim();
   To *ts = to.Data();
@@ -93,8 +150,11 @@ template<typename A, typename B, typename D>
 inline void vector_product(const A *start_a, const B *start_b, D &result, const int &cnt);
 
 template<>
-inline void vector_product<BaseFloat>(const BaseFloat *start_a, const BaseFloat *start_b, BaseFloat &result, const int &cnt) {
-  const BaseFloat *end = (start_a + cnt);
+inline void vector_product<float>(const float *start_a,
+                                  const float *start_b,
+                                  float &result,
+                                  const int &cnt) {
+  const float *end = (start_a + cnt);
   __m128 *as = (__m128 *) (start_a);
   __m128 *bs = (__m128 *) (start_b);
   __m128 m;
@@ -108,7 +168,7 @@ inline void vector_product<BaseFloat>(const BaseFloat *start_a, const BaseFloat 
   }
   union u {
     __m128 m;
-    BaseFloat f[4];
+    float f[4];
   } x;
   c = _mm_hadd_ps(c, c);
   c = _mm_hadd_ps(c, c);
@@ -287,9 +347,9 @@ void matrix_dot_divide(Matrix<T> &start, const T &divider, Matrix<T> &res) {
   }
 }
 
-void matrix_plus_vector(Matrix<BaseFloat> &a, Matrix<BaseFloat> &b, Matrix<BaseFloat> &res);
+void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res);
 
-void matrix_plus_vector(Matrix<int> &a, Vector<int> &b, Matrix<int> &res);
+void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res);
 
 void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const int *calc_pos);
 
@@ -335,14 +395,14 @@ void sum(T *start_a, T &result, const int &cnt) {
 }
 
 template<typename T>
-void apply_scale(T *start_a, const BaseFloat &scale, T *result, const int &cnt) {
+void apply_scale(T *start_a, const float &scale, T *result, const int &cnt) {
   T *end = start_a + cnt;
   while (start_a < end)
     *result++ = (*start_a++) * scale;
 }
 
 template<typename T>
-void apply_scale(T *start_a, const BaseFloat &scale, T *result, const int &cnt, const int *calc_pos) {
+void apply_scale(T *start_a, const float &scale, T *result, const int &cnt, const int *calc_pos) {
   T *end = start_a + cnt;
   int idx = 0;
   while (start_a < end) {
@@ -366,11 +426,11 @@ void apply_log(T *start_a, T *result, const int &cnt) {
     *result++ = log(*start_a++);
 }
 
-void apply_sigmoid(BaseFloat *start_a, BaseFloat *result, const int &cnt);
+void apply_sigmoid(float *start_a, float *result, const int &cnt);
 
-void apply_sigmoid_int2float(int *start_a, BaseFloat *result, const int &cnt, const BaseFloat &mag);
+void apply_sigmoid_int2float(int *start_a, float *result, const int &cnt, const float &mag);
 
-void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt, const BaseFloat &mag);
+void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt, const float &mag);
 
 void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPBias> &res);
 
@@ -407,7 +467,7 @@ void apply_log_softmax(T *start_a, T *result, const int &cnt) {
       max = *s;
     s++;
   }
-  BaseFloat sum = 0.0F;
+  float sum = 0.0F;
   s = start_a;
   while (s < start_a + cnt) {
     sum += exp(*s++ = (*s - max));
@@ -420,29 +480,29 @@ void apply_log_softmax(T *start_a, T *result, const int &cnt) {
   }
 }
 
-void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt,
-                                 const BaseFloat &mag);
+void apply_log_softmax_int2float(int *start_a, float *result, const int &cnt,
+                                 const float &mag);
 
-void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt,
-                                 const BaseFloat &mag, const int *calc_pos);
+void apply_log_softmax_int2float(int *start_a, float *result, const int &cnt,
+                                 const float &mag, const int *calc_pos);
 
 /// attention
 /// when calling this, Matrix b should be transposed
 /// the result is also transposed
 template<typename T>
 void matrix_times(Matrix<T> &a, Matrix<T> &b, Matrix<T> &res) {
-  if (a.NumCols() != b.NumCols()) {
+  if (a._cols != b._cols) {
     std::cout << "matrix dim not right" << std::endl;
     return;
   }
-  res.Resize(b.NumRows(), a.NumRows());
+  res.Resize(b._rows, a._rows);
   int a_step = a.Stride(), b_step = b.Stride(), res_step = res.Stride();
   const T *a_start = a.Data(), *b_start = b.Data();
   T *res_start = res.Data();
-  for (int j = 0; j < b.NumRows(); j++) {
+  for (int j = 0; j < b._rows; j++) {
     const T *a_tmp = a_start;
-    for (int i = 0; i < a.NumRows(); i++) {
-      vector_product<T>(a_tmp, b_start, res_start[i], b.NumCols());
+    for (int i = 0; i < a._rows; i++) {
+      vector_product<T>(a_tmp, b_start, res_start[i], b._cols);
       a_tmp += a_step;
     }
     b_start += b_step;
@@ -455,16 +515,16 @@ void transpose(Matrix<T> &from, Matrix<T> &to) {
   to.Resize(from.NumCols(), from.NumRows());
   for (int i = 0; i < from.NumRows(); i++)
     for (int j = 0; j < from.NumCols(); j++)
-      to(j,i) = from(i,j);
+      to.RowData(j)[i] = from.RowData(i)[j];
 }
 
 template<typename T>
 void matrix_feature_times(Matrix<T> &a, T **feature_set, T *res, const int &feature_size, const int &frame) {
-  if (a.NumCols() != frame * feature_size) {
+  if (a._cols != frame * feature_size) {
     std::cout << "matrix dim not right" << std::endl;
     return;
   }
-  for (int i = 0; i < a.NumRows(); i++) {
+  for (int i = 0; i < a._rows; i++) {
     T *m = a.RowData(i);
     res[i] = 0;
     for (int f = 0; f < frame; f++) {
@@ -476,6 +536,6 @@ void matrix_feature_times(Matrix<T> &a, T **feature_set, T *res, const int &feat
   }
 }
 
-void apply_sigmoid(BaseFloat *start_a, BaseFloat *result, const int &cnt);
+void apply_sigmoid(float *start_a, float *result, const int &cnt);
 
 #endif //KALDI_MATMATH_H

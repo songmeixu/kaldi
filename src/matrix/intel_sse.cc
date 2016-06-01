@@ -1,7 +1,7 @@
 #include "intel_sse.h"
 
-void apply_sigmoid(BaseFloat *start_a, BaseFloat *result, const int &cnt) {
-  BaseFloat *end = start_a + cnt;
+void apply_sigmoid(float *start_a, float *result, const int &cnt) {
+  float *end = start_a + cnt;
   __m128 *pstart = (__m128 *) start_a;
   __m128 *pend = (__m128 *) end;
   __m128 *pres = (__m128 *) result;
@@ -17,7 +17,7 @@ void apply_sigmoid(BaseFloat *start_a, BaseFloat *result, const int &cnt) {
 }
 
 void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt,
-                             const BaseFloat &mag) {
+                             const float &mag) {
   int *end = start_a + cnt;
   __m128i *pstart = (__m128i *) start_a;
   __m128i *pend = (__m128i *) end;
@@ -35,7 +35,7 @@ void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt,
 
   union u {
     __m128 m;
-    BaseFloat f[4];
+    float f[4];
   } x;
   while (pstart < pend) {
     fbuf = _mm_cvtepi32_ps(*pstart);
@@ -100,7 +100,7 @@ void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias>
   }
 }
 
-void matrix_plus_vector(Matrix<BaseFloat> &a, Matrix<BaseFloat> &b, Matrix<BaseFloat> &res) {
+void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res) {
   res.Resize(a.NumRows(), a.NumCols());
   for (int row = 0; row < a.NumRows(); row++) {
     __m128 *ia = (__m128 *) a.RowData(row);
@@ -117,7 +117,8 @@ void matrix_plus_vector(Matrix<BaseFloat> &a, Matrix<BaseFloat> &b, Matrix<BaseF
   }
 }
 
-void matrix_plus_vector(Matrix<int> &a, Vector<int> &b, Matrix<int> &res) {
+void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res) {
+  res.Resize(a.NumRows(), a.NumCols());
   for (int row = 0; row < a.NumRows(); row++) {
     __m128i *ia = (__m128i *) a.RowData(row);
     const __m128i *ie = (__m128i *) (a.RowData(row) + a.NumCols());
@@ -131,6 +132,7 @@ void matrix_plus_vector(Matrix<int> &a, Vector<int> &b, Matrix<int> &res) {
       ires++;
     }
   }
+
 }
 
 void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const int *calc_pos) {
@@ -149,6 +151,7 @@ void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const 
     }
   }
 }
+
 
 void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const int *calc_pos, const int nFrameNum) {
   res.Resize(a.NumRows(), a.NumCols());
@@ -179,7 +182,6 @@ void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPB
   }
 }
 
-
 void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              Matrix<FPAct> &act,
                              Matrix<FPBias> &res,
@@ -209,7 +211,6 @@ void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &re
   }
 }
 
-
 void matrix_times(Matrix<FPWeight> &w,
                   Matrix<FPWeight> &act,
                   Matrix<FPBias> &res,
@@ -225,7 +226,7 @@ void matrix_times(Matrix<FPWeight> &w,
   }
 }
 
-// for SVD [5/20/2014 anhaox]
+// for SVD
 void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res, const int *calc_pos) {
   //res.resize( act.rows(), w.rows() ); // do not fresh the _result_fp32, because the result of last calc may still be there
   for (int i = 0; i < w.NumRows(); i++) {
@@ -241,7 +242,7 @@ void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias>
   }
 }
 
-// for SVD [5/20/2014 anhaox]
+// for SVD
 void matrix_times(Matrix<FPWeight16> &w,
                   Matrix<FPWeight16> &act,
                   Matrix<FPBias> &res,
@@ -258,11 +259,11 @@ void matrix_times(Matrix<FPWeight16> &w,
   }
 }
 
-void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt,
-                                 const BaseFloat &mag, const int *calc_pos) {
+void apply_log_softmax_int2float(int *start_a, float *result, const int &cnt,
+                                 const float &mag, const int *calc_pos) {
   int *s = start_a;
-  BaseFloat *res = result;
-  BaseFloat max = std::numeric_limits<BaseFloat>::min();
+  float *res = result;
+  float max = std::numeric_limits<float>::min();
   int idx = 0;
   while (s < start_a + cnt) {
     if (calc_pos[idx++] > 0) {
@@ -273,7 +274,7 @@ void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt
     s++;
     res++;
   }
-  BaseFloat sum = 0.0F;
+  float sum = 0.0F;
   s = start_a;
   res = result;
   idx = 0;
@@ -293,11 +294,12 @@ void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt
     idx++;
   }
 }
-void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt,
-                                 const BaseFloat &mag) {
+
+void apply_log_softmax_int2float(int *start_a, float *result, const int &cnt,
+                                 const float &mag) {
   int *s = start_a;
-  BaseFloat *res = result;
-  BaseFloat max = std::numeric_limits<BaseFloat>::min();
+  float *res = result;
+  float max = std::numeric_limits<float>::min();
   while (s < start_a + cnt) {
     *res = *s * mag;
     if (*res > max)
@@ -305,7 +307,7 @@ void apply_log_softmax_int2float(int *start_a, BaseFloat *result, const int &cnt
     s++;
     res++;
   }
-  BaseFloat sum = 0.0F;
+  float sum = 0.0F;
   s = start_a;
   res = result;
   while (res < result + cnt) {

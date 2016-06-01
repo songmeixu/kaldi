@@ -950,7 +950,8 @@ class AffineComponentFixedPoint: public Component {
  public:
   // The next constructor is used in converting from nnet1.
   AffineComponentFixedPoint(const CuMatrixBase<BaseFloat> &linear_params,
-                            const CuVectorBase<BaseFloat> &bias_params);
+                            const CuVectorBase<BaseFloat> &bias_params,
+                            const int32 mq_mag = 1023);
 
   virtual std::string Info() const;
 
@@ -964,18 +965,15 @@ class AffineComponentFixedPoint: public Component {
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
   // This new function is used when mixing up:
-  const Vector<FPBias> &BiasParamsFP() { return bias_params_fp_; }
-  const Matrix<FPWeight16> &LinearParamsFP() { return linear_params_fp_; }
 
  protected:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
 
-  Matrix<FPWeight16> result_fp16_;
-  Matrix<FPWeight16> in_fp_;
-  Matrix<FPBias> out_fp_;
-  Matrix<FPWeight16> linear_params_fp_;
-  Vector<FPBias> bias_params_fp_;
-  BaseFloat mq_mag_; // magnitude of model quantization: 127 or 1023
+  common::Matrix<FPWeight16> in_fp_;
+  common::Matrix<FPBias> out_fp_;
+  common::Matrix<FPWeight16> linear_params_fp_;
+  common::Matrix<FPBias> bias_params_fp_;
+  int32 mq_mag_; // magnitude of model quantization: 127 or 1023
   BaseFloat dq_mag_;  // magnitude for de-quantization
   BaseFloat magnitude_;
 };

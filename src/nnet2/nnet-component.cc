@@ -1432,24 +1432,17 @@ Component *AffineComponent::CollapseWithPrevious(
 }
 
 AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloat> &linear_params,
-                                                     const CuVectorBase<BaseFloat> &bias_params) {
+                                                     const CuVectorBase<BaseFloat> &bias_params,
+                                                     const int32 mq_mag): mq_mag_(mq_mag) {
   KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
       bias_params.Dim() != 0);
   magnitude_ = linear_params.Mat().LargestAbsElem();
-  linear_params_fp_.Resize(linear_params.NumRows(), linear_params.NumCols());
   linear_quantize<BaseFloat, FPWeight16>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
   linear_quantize<BaseFloat, FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_ * mq_mag_);
-
-  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
-  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
-  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
-  in_fp_.Resize(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
 }
 
 std::string AffineComponentFixedPoint::Info() const {
   std::stringstream stream;
-  BaseFloat linear_params_size = static_cast<BaseFloat>(linear_params_fp_.NumRows())
-      * static_cast<BaseFloat>(linear_params_fp_.NumCols());
   stream << Type() << ", input-dim=" << InputDim()
       << ", output-dim=" << OutputDim()
       << ", MQ=" << mq_mag_
@@ -1468,12 +1461,12 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   out_fp_.Resize(out->NumRows(), out->NumCols());
 
   dq_mag_ = in.Mat().LargestAbsElem();
-  linear_quantize(in.Mat(), in_fp_, dq_mag_, mq_mag_);
-
-  matrix_times(linear_params_fp_, in_fp_, out_fp_);
+  Matrix<BaseFloat> in_trans(in, kTrans);
+  linear_quantize(in_trans, in_fp_, dq_mag_, mq_mag_);
+  matrix_times(in_fp_, linear_params_fp_, out_fp_);
   linear_quantize(out_fp_, out_fp_, 1.0, dq_mag_); // de-quantization
   matrix_plus_vector(out_fp_, bias_params_fp_, out_fp_);
-  out->CopyFromMat(out_fp_);
+  CommonMatrix2KaldiMatrix(out_fp_, out->Mat());
   out->Scale(magnitude_ / mq_mag_ / mq_mag_); // de-quantization
 }
 
@@ -1484,9 +1477,12 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   // might not see the "<AffineComponent>" part because
   // of how ReadNew() works.
   ExpectToken(is, binary, "<LinearParams>");
-  linear_params_fp_.Read(is, binary);
+  Matrix<BaseFloat> temp;
+  temp.Read(is, binary);
+  KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
   ExpectToken(is, binary, "<BiasParams>");
-  bias_params_fp_.Read(is, binary);
+  temp.Read(is, binary);
+  KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
   ExpectToken(is, binary, "<Mag>");
@@ -1500,9 +1496,13 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   ostr_end << "</" << Type() << ">"; // e.g. "</AffineComponent>"
   WriteToken(os, binary, ostr_beg.str());
   WriteToken(os, binary, "<LinearParams>");
-  linear_params_fp_.Write(os, binary);
+  Matrix<BaseFloat> temp(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
+  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
+  temp.Write(os, binary);
   WriteToken(os, binary, "<BiasParams>");
-  bias_params_fp_.Write(os, binary);
+  temp.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
+  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
+  temp.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);
   WriteToken(os, binary, "<Mag>");
