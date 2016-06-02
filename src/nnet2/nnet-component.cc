@@ -1480,7 +1480,7 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   ostr_end << "</" << Type() << ">"; // e.g. "</AffineComponent>"
   // might not see the "<AffineComponent>" part because
   // of how ReadNew() works.
-  ExpectToken(is, binary, "<LinearParams>");
+  ExpectOneOrTwoTokens(is, binary, ostr_beg.str(), "<LinearParams>");
   Matrix<BaseFloat> temp;
   temp.Read(is, binary);
   FixedPoint::KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
