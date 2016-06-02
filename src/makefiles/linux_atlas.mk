@@ -12,6 +12,9 @@ ifndef ATLASLIBS
 $(error ATLASLIBS not defined.)
 endif
 
+ifndef EigenROOT
+$(error EigenROOT not defined.)
+endif
 
 DOUBLE_PRECISION = 0
 CXXFLAGS = -msse -msse2 -Wall -I.. \
@@ -21,6 +24,7 @@ CXXFLAGS = -msse -msse2 -Wall -I.. \
       -DHAVE_EXECINFO_H=1 -rdynamic -DHAVE_CXXABI_H \
       -DHAVE_ATLAS -I$(ATLASINC) \
       -I$(FSTROOT)/include \
+      -I$(EigenROOT) \
       $(EXTRA_CXXFLAGS) \
       -O3 # -O0 -DKALDI_PARANOID
 

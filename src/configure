@@ -61,6 +61,7 @@ fi
 MATHLIB='ATLAS'
 ATLASROOT=`rel2abs ../tools/ATLAS/`
 FSTROOT=`rel2abs ../tools/openfst`
+EigenROOT=`rel2abs ../tools/eigen`
 
 # Avoid using any variables that are set in the shell.
 unset MKLROOT
@@ -828,6 +829,8 @@ echo "KALDILIBDIR := $KALDILIBDIR" >> kaldi.mk
 fi
 echo "CONFIGURE_VERSION := $CONFIGURE_VERSION" >> kaldi.mk
 echo "FSTROOT = $FSTROOT" >> kaldi.mk
+
+echo "EigenROOT = $EigenROOT" >> kaldi.mk
 
 # Check installed OpenFst version and add C++11 flags if OpenFst >= 1.4
 OPENFST_VER="${OPENFST_VER:-`grep 'PACKAGE_VERSION' $FSTROOT/Makefile | sed -e 's:.*= ::'`}"

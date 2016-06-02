@@ -113,3 +113,4 @@ GSYMS
 .DS_Store
 CMakeLists.txt
 *.patch
+tools/eigen
