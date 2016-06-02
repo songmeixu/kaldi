@@ -17,7 +17,7 @@ DOUBLE_PRECISION = 0
 CXXFLAGS = -msse -msse2 -Wall -I.. \
 	   -pthread \
       -DKALDI_DOUBLEPRECISION=$(DOUBLE_PRECISION) \
-      -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self \
+      -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self -Wno-ignored-qualifiers \
       -DHAVE_EXECINFO_H=1 -rdynamic -DHAVE_CXXABI_H \
       -DHAVE_ATLAS -I$(ATLASINC) \
       -I$(FSTROOT)/include \
