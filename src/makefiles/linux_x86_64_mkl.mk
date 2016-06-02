@@ -22,7 +22,7 @@ MKLLIB ?= $(MKLROOT)/lib/em64t
 DOUBLE_PRECISION = 0
 CXXFLAGS = -m64 -msse -msse2 -pthread -Wall -I.. \
       -DKALDI_DOUBLEPRECISION=$(DOUBLE_PRECISION) \
-      -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self -Wno-ignored-qualifiers \
+      -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self \
       -DHAVE_EXECINFO_H=1 -rdynamic -DHAVE_CXXABI_H \
       -DHAVE_MKL -I$(MKLROOT)/include \
       -I$(FSTROOT)/include \
