@@ -958,26 +958,7 @@ class AffineComponentFixedPoint: public Component {
   AffineComponentFixedPoint() { } // use Init to really initialize.
   virtual std::string Type() const { return "AffineComponentFixedPoint"; }
 
-  void Propagate(const ChunkInfo &in_info,
-                 const ChunkInfo &out_info,
-                 const CuMatrix<BaseFloat> &in,
-                 CuMatrix<BaseFloat> *out) {
-    if (out->NumRows() != out_info.NumRows() ||
-        out->NumCols() != out_info.NumCols()) {
-      out->Resize(out_info.NumRows(), out_info.NumCols());
-    }
-
-    in_info.CheckSize(in);
-    out_info.CheckSize(*out);
-    KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
-    in_fp_.Resize(in.NumRows(), in.NumCols());
-    out_fp_.Resize(out->NumRows(), out->NumCols());
-
-    dq_mag_ = in.Mat().LargestAbsElem();
-
-    // Cast to CuMatrixBase to use the virtual version of propagate function.
-    Propagate(in_info, out_info, in, static_cast<CuMatrixBase<BaseFloat>*>(out));
-  }
+  using Component::Propagate; // to avoid name hiding
 
   virtual void Propagate(const ChunkInfo &in_info,
                          const ChunkInfo &out_info,
@@ -1006,12 +987,9 @@ class AffineComponentFixedPoint: public Component {
  protected:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
 
-  common::Matrix<FPWeight16> in_fp_;
-  common::Matrix<FPBias> out_fp_;
   common::Matrix<FPWeight16> linear_params_fp_;
   common::Matrix<FPBias> bias_params_fp_;
   int32 mq_mag_; // magnitude of model quantization: 127 or 1023
-  BaseFloat dq_mag_;  // magnitude for de-quantization
   BaseFloat magnitude_;
 };
 
