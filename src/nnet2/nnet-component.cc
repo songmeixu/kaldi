@@ -1483,9 +1483,11 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   ExpectOneOrTwoTokens(is, binary, ostr_beg.str(), "<LinearParams>");
   Matrix<BaseFloat> temp;
   temp.Read(is, binary);
+  linear_params_fp_.Resize(temp.NumRows(), temp.NumCols());
   FixedPoint::KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
   ExpectToken(is, binary, "<BiasParams>");
   temp.Read(is, binary);
+  bias_params_fp_.Resize(temp.NumRows(), temp.NumCols());
   FixedPoint::KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
