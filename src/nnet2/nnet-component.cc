@@ -1505,7 +1505,7 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   temp.Write(os, binary);
   WriteToken(os, binary, "<BiasParams>");
   temp.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
-  FixedPoint::CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
+  FixedPoint::CommonMatrix2KaldiMatrix(bias_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);
