@@ -81,8 +81,13 @@ NnetComputer::NnetComputer(const Nnet &nnet,
 
   CuMatrix<BaseFloat> &input(forward_data_[0]);
   input.Resize(num_rows, dim);
-  input.Range(left_context, input_feats.NumRows(),
-              0, dim).CopyFromMat(input_feats);
+
+  if (left_context || right_context) {
+    input.Range(left_context, input_feats.NumRows(),
+                0, dim).CopyFromMat(input_feats);
+  } else {
+    input.CopyFromMat(input_feats);
+  }
   for (int32 i = 0; i < left_context; i++)
     input.Row(i).CopyFromVec(input_feats.Row(0));
   int32 last_row = input_feats.NumRows() - 1;

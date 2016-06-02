@@ -513,8 +513,10 @@ if (! $sync) { # We're not submitting with -sync y, so we
       }
     }
   }
-  my $all_syncfiles = join(" ", @syncfiles);
-  unlink $all_syncfiles;
+  while (@syncfiles) {
+    my $syncfile =  pop @syncfiles;
+    unlink $syncfile;
+  }
 }
 
 # OK, at this point we are synced; we know the job is done.
