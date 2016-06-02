@@ -17,7 +17,7 @@ $(error EigenROOT not defined.)
 endif
 
 DOUBLE_PRECISION = 0
-CXXFLAGS = -msse -msse2 -Wall -I.. \
+CXXFLAGS = -msse -msse2 -msse3 -mssse3 -msse4 -Wall -I.. \
 	   -pthread \
       -DKALDI_DOUBLEPRECISION=$(DOUBLE_PRECISION) \
       -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self \

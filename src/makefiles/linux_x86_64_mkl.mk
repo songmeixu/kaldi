@@ -24,7 +24,7 @@ endif
 MKLLIB ?= $(MKLROOT)/lib/em64t
 
 DOUBLE_PRECISION = 0
-CXXFLAGS = -m64 -msse -msse2 -pthread -Wall -I.. \
+CXXFLAGS = -m64 -msse -msse2 -msse3 -mssse3 -msse4 -pthread -Wall -I.. \
       -DKALDI_DOUBLEPRECISION=$(DOUBLE_PRECISION) \
       -Wno-sign-compare -Wno-unused-local-typedefs -Winit-self \
       -DHAVE_EXECINFO_H=1 -rdynamic -DHAVE_CXXABI_H \
