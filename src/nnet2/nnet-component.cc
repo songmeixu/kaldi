@@ -1437,8 +1437,8 @@ AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloa
   KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
       bias_params.Dim() != 0);
   magnitude_ = linear_params.Mat().LargestAbsElem();
-  linear_quantize<BaseFloat, FPWeight16>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
-  linear_quantize<BaseFloat, FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_ * mq_mag_);
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight16>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_ * mq_mag_);
 }
 
 std::string AffineComponentFixedPoint::Info() const {
