@@ -1458,19 +1458,19 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   out_info.CheckSize(*out);
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
 
-  common::Matrix<FPWeight16> in_fp_;
-  common::Matrix<FPBias> out_fp_;
+  FixedPoint::Matrix<FixedPoint::FPWeight16> in_fp_;
+  FixedPoint::Matrix<FixedPoint::FPBias> out_fp_;
   BaseFloat dq_mag_;  // magnitude for de-quantization
   in_fp_.Resize(in.NumRows(), in.NumCols());
   out_fp_.Resize(out->NumRows(), out->NumCols());
   dq_mag_ = in.Mat().LargestAbsElem();
 
   Matrix<BaseFloat> in_trans(in, kTrans);
-  linear_quantize(in_trans, in_fp_, dq_mag_, mq_mag_);
-  matrix_times(in_fp_, linear_params_fp_, out_fp_);
-  linear_quantize(out_fp_, out_fp_, 1.0, dq_mag_); // de-quantization
-  matrix_plus_vector(out_fp_, bias_params_fp_, out_fp_);
-  CommonMatrix2KaldiMatrix(out_fp_, out->Mat());
+  FixedPoint::linear_quantize(in_trans, in_fp_, dq_mag_, mq_mag_);
+  FixedPoint::matrix_times(in_fp_, linear_params_fp_, out_fp_);
+  FixedPoint::linear_quantize(out_fp_, out_fp_, 1.0, dq_mag_); // de-quantization
+  FixedPoint::matrix_plus_vector(out_fp_, bias_params_fp_, out_fp_);
+  FixedPoint::CommonMatrix2KaldiMatrix(out_fp_, out->Mat());
   out->Scale(magnitude_ / mq_mag_ / mq_mag_); // de-quantization
 }
 
@@ -1483,10 +1483,10 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   ExpectToken(is, binary, "<LinearParams>");
   Matrix<BaseFloat> temp;
   temp.Read(is, binary);
-  KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
+  FixedPoint::KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
   ExpectToken(is, binary, "<BiasParams>");
   temp.Read(is, binary);
-  KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
+  FixedPoint::KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
   ExpectToken(is, binary, "<Mag>");
@@ -1501,11 +1501,11 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   WriteToken(os, binary, ostr_beg.str());
   WriteToken(os, binary, "<LinearParams>");
   Matrix<BaseFloat> temp(linear_params_fp_.NumRows(), linear_params_fp_.NumCols());
-  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
+  FixedPoint::CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<BiasParams>");
   temp.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
-  CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
+  FixedPoint::CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);

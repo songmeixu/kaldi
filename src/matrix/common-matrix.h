@@ -10,7 +10,7 @@
 #define pad_zero_bits 128
 //#define DNN_CALC_BLOCK 2
 
-namespace common {
+namespace FixedPoint {
 
 template<typename T>
 struct Matrix {

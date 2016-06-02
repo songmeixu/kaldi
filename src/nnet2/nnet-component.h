@@ -987,8 +987,8 @@ class AffineComponentFixedPoint: public Component {
  protected:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
 
-  common::Matrix<FPWeight16> linear_params_fp_;
-  common::Matrix<FPBias> bias_params_fp_;
+  FixedPoint::Matrix<FixedPoint::FPWeight16> linear_params_fp_;
+  FixedPoint::Matrix<FixedPoint::FPBias> bias_params_fp_;
   int32 mq_mag_; // magnitude of model quantization: 127 or 1023
   BaseFloat magnitude_;
 };

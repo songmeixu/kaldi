@@ -19,7 +19,7 @@
 #include "matrix/kaldi-matrix.h"
 #include "matrix/common-matrix.h"
 
-using namespace common;
+namespace FixedPoint {
 
 inline double round(double d) {
   return floor(d + 0.5);
@@ -574,5 +574,7 @@ void matrix_feature_times(Matrix<T> &a, T **feature_set, T *res, const int &feat
 }
 
 void apply_sigmoid(float *start_a, float *result, const int &cnt);
+
+}
 
 #endif //KALDI_MATMATH_H
