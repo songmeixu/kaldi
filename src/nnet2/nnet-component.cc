@@ -1452,12 +1452,12 @@ std::string AffineComponentFixedPoint::Info() const {
 
 void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
                                           const ChunkInfo &out_info,
-                                          CuMatrixBase<BaseFloat> &in,
+                                          const CuMatrixBase<BaseFloat> &in,
                                           CuMatrixBase<BaseFloat> *out) const {
   in_info.CheckSize(in);
   out_info.CheckSize(*out);
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
-  
+
   common::Matrix<FPWeight16> in_fp_;
   common::Matrix<FPBias> out_fp_;
   BaseFloat dq_mag_;  // magnitude for de-quantization

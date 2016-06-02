@@ -57,12 +57,12 @@ void matrix_times(Matrix<FPWeight> &w,
 }
 
 // for SVD [5/20/2014 anhaox]
-void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res) {
+void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPBias> &res) {
   res.Resize(act.NumRows(), w.NumRows());
   for (int i = 0; i < w.NumRows(); i++) {
     FPWeight16 *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
-      FPWeight16 *pact = act.RowData(j);
+      const FPWeight16 *pact = act.RowData(j);
       FPBias *pres = res.RowData(j);
       vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
       //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
@@ -87,7 +87,7 @@ void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res) 
   }
 }
 
-void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res) {
+void matrix_plus_vector(Matrix<int> &a, const Matrix<int> &b, Matrix<int> &res) {
   res.Resize(a.NumRows(), a.NumCols());
   for (int row = 0; row < a.NumRows(); row++) {
     __m128i *ia = (__m128i *) a.RowData(row);

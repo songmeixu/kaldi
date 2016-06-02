@@ -37,15 +37,19 @@ struct Matrix {
   T *Data() {
     return _data;
   }
+
   const T *Data() const {
     return _data;
   }
+
   const int NumRows() const {
     return _rows;
   }
+
   const int NumCols() const {
     return _cols;
   }
+
   const int Stride() const {
     return _rcols;
   }
@@ -56,6 +60,10 @@ struct Matrix {
   }
 
   T *RowData(const int &idx) {
+    return _data + (idx * _rcols);
+  }
+
+  const T *RowData(const int &idx) const {
     return _data + (idx * _rcols);
   }
 

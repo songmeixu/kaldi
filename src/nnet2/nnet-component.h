@@ -962,7 +962,7 @@ class AffineComponentFixedPoint: public Component {
 
   virtual void Propagate(const ChunkInfo &in_info,
                          const ChunkInfo &out_info,
-                         CuMatrixBase<BaseFloat> &in,
+                         const CuMatrixBase<BaseFloat> &in,
                          CuMatrixBase<BaseFloat> *out) const;
 
   virtual void Backprop(const ChunkInfo &in_info,

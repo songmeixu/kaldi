@@ -55,7 +55,7 @@ T matrix_abs_max(Matrix<T> &mat) {
 }
 
 template<typename From, typename To>
-void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
+void CommonMatrix2KaldiMatrix(const Matrix<From> &from, kaldi::MatrixBase<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
     const From *fs = from.RowData(row);
     const From *fe = from.RowData(row) + from.NumCols();
@@ -72,7 +72,7 @@ void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::MatrixBase<To> &to) {
 };
 
 template<typename From, typename To>
-void CommonMatrix2KaldiMatrix(Matrix<From> &from, kaldi::Matrix<To> &to) {
+void CommonMatrix2KaldiMatrix(const Matrix<From> &from, kaldi::Matrix<To> &to) {
   for (int row = 0; row < from.NumRows(); row++) {
     const From *fs = from.RowData(row);
     const From *fe = from.RowData(row) + from.NumCols();
@@ -386,7 +386,7 @@ void matrix_dot_divide(Matrix<T> &start, const T &divider, Matrix<T> &res) {
 
 void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res);
 
-void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res);
+void matrix_plus_vector(Matrix<int> &a, const Matrix<int> &b, Matrix<int> &res);
 
 void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const int *calc_pos);
 
@@ -487,7 +487,7 @@ void matrix_times
     (Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &res, const int *calc_pos, const int nFrameNum);
 
 // for SVD [5/20/2014 anhaox]
-void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res);
+void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPBias> &res);
 
 void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res, const int *calc_pos);
 
