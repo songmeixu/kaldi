@@ -1453,14 +1453,7 @@ std::string AffineComponentFixedPoint::Info() const {
 void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
                                           const ChunkInfo &out_info,
                                           CuMatrixBase<BaseFloat> &in,
-                                          CuMatrixBase<BaseFloat> *out) {
-  in_info.CheckSize(in);
-  out_info.CheckSize(*out);
-  KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
-  in_fp_.Resize(in.NumRows(), in.NumCols());
-  out_fp_.Resize(out->NumRows(), out->NumCols());
-
-  dq_mag_ = in.Mat().LargestAbsElem();
+                                          CuMatrixBase<BaseFloat> *out) const {
   Matrix<BaseFloat> in_trans(in, kTrans);
   linear_quantize(in_trans, in_fp_, dq_mag_, mq_mag_);
   matrix_times(in_fp_, linear_params_fp_, out_fp_);
