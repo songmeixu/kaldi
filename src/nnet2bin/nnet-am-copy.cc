@@ -42,6 +42,8 @@ int main(int argc, char *argv[]) {
         " nnet-am-copy --binary=false 1.mdl text.mdl\n";
 
     int32 truncate = -1;
+    int32 from_id = 0; // to-fixed-point
+    int32 mq_mag = 1023; // to-fixed-point
     bool binary_write = true;
     bool remove_dropout = false;
     bool remove_splice = false;
@@ -95,6 +97,8 @@ int main(int argc, char *argv[]) {
     po.Register("to-fixed-point", &to_fixed_point, "convert AffineComponentPreconditioned to "
                 "AffineComponentFixedPoint, using int OP with intel sse, instead of float OP with intel mkl, "
                 "to improving decoding speed.");
+    po.Register("from-id", &from_id, "must with to-fixed-point = true, convert from this component.");
+    po.Register("mq-mag", &mq_mag, "must with to-fixed-point = true, fixed-point at this magnitude.");
 
     po.Read(argc, argv);
     
@@ -195,7 +199,7 @@ int main(int argc, char *argv[]) {
 
     if (remove_splice) am_nnet.GetNnet().RemoveSplice();
 
-    if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint();
+    if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint(from_id, mq_mag);
     
     if (stats_from != "") {
       // Copy the stats associated with the layers descending from

@@ -531,14 +531,13 @@ void Nnet::RemoveSplice() {
   Check();
 }
 
-void Nnet::ToFixedPoint() {
+void Nnet::ToFixedPoint(int32 from_id, int32 mq_mag) {
   int32 convert = 0;
-  int32 ac_cnt = 0;
   for (size_t i = 0; i < components_.size(); i++) {
     AffineComponent *ac = dynamic_cast<AffineComponent*>(components_[i]);
     if (ac != NULL) {
-      if (ac_cnt++ == 0) continue;
-      AffineComponentFixedPoint *acf = new AffineComponentFixedPoint(ac->LinearParams(), ac->BiasParams());
+      if (i < from_id) continue;
+      AffineComponentFixedPoint *acf = new AffineComponentFixedPoint(ac->LinearParams(), ac->BiasParams(), mq_mag);
       delete components_[i];
       components_[i] = acf;
       convert++;
