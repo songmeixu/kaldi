@@ -13,13 +13,15 @@
 namespace FixedPoint {
 
 template<typename T>
-struct Matrix {
+class Matrix {
+ private:
   T *_data;
 
   int _cols;
   int _rows;
   int _rcols;
   int _rrows;
+ public:
 
   Matrix() : _data(0), _cols(0), _rows(0), _rcols(0), _rrows(0) { }
   Matrix(Matrix &b) : _cols(b._cols), _rows(b._rows), _rrows(b._rrows), _rcols(b._rcols) {
