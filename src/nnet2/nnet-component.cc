@@ -1458,19 +1458,19 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   out_info.CheckSize(*out);
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
 
-  FixedPoint::Matrix<FixedPoint::FPWeight16> in_fp_;
-  FixedPoint::Matrix<FixedPoint::FPBias> out_fp_;
+  FixedPoint::Matrix<FixedPoint::FPWeight16> in_fp;
+  FixedPoint::Matrix<FixedPoint::FPBias> out_fp;
   BaseFloat dq_mag_;  // magnitude for de-quantization
-  in_fp_.Resize(in.NumRows(), in.NumCols());
-  out_fp_.Resize(out->NumRows(), out->NumCols());
+  in_fp.Resize(in.NumRows(), in.NumCols());
   dq_mag_ = in.Mat().LargestAbsElem();
 
-  Matrix<BaseFloat> in_trans(in, kTrans);
-  FixedPoint::linear_quantize(in_trans, in_fp_, dq_mag_, mq_mag_);
-  FixedPoint::matrix_times(in_fp_, linear_params_fp_, out_fp_);
-  FixedPoint::linear_quantize(out_fp_, out_fp_, 1.0, dq_mag_); // de-quantization
-  FixedPoint::matrix_plus_vector(out_fp_, bias_params_fp_, out_fp_);
-  FixedPoint::CommonMatrix2KaldiMatrix(out_fp_, out->Mat());
+  FixedPoint::linear_quantize(in.Mat(), in_fp, dq_mag_, mq_mag_);
+  FixedPoint::matrix_times(in_fp, linear_params_fp_, out_fp);
+  FixedPoint::linear_quantize(out_fp, out_fp, 1.0, dq_mag_); // de-quantization
+  FixedPoint::Matrix<FixedPoint::FPBias> out_fp_T;
+  FixedPoint::transpose(out_fp, out_fp_T);
+  FixedPoint::matrix_plus_vector(out_fp_T, bias_params_fp_, out_fp_T);
+  FixedPoint::CommonMatrix2KaldiMatrix(out_fp_T, out->Mat());
   out->Scale(magnitude_ / mq_mag_ / mq_mag_); // de-quantization
 }
 
