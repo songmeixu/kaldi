@@ -110,8 +110,8 @@ void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<F
     for (int j = 0; j < act.NumRows(); j++) {
       const FPWeight16 *pact = act.RowData(j);
       FPBias *pres = res.RowData(j);
-//      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
-      dotprod_sse(pw, pact, pres+i, w.NumCols());
+      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
+//      dotprod_sse(pw, pact, pres+i, w.NumCols()); // slow than vector_product
       //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
     }
   }
