@@ -112,5 +112,4 @@ GSYMS
 .idea
 .DS_Store
 CMakeLists.txt
-*.patch
 tools/eigen
