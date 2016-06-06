@@ -7,7 +7,10 @@
 
 #include <limits>
 #include <cmath>
+#include <algorithm>
 #include <fstream>
+#include <iostream>
+#include <sys/time.h>
 
 #include <xmmintrin.h>
 #include <mmintrin.h>

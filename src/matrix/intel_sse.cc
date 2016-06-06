@@ -2,6 +2,50 @@
 
 namespace FixedPoint {
 
+inline void macadd(const __m128i &vld, const short *v2, __m128i &sum4) {
+  const __m128i vv = _mm_loadu_si128((__m128i *) v2);
+  sum4 = _mm_add_epi32(sum4, _mm_madd_epi16(vld, vv));
+}
+
+void dotprod_sse(const short *v1, const short *v2, int *result, const size_t len) {
+  __m128i sum4 = _mm_set1_epi16(0), vld;
+  size_t k0 = 0;
+
+  for (k0 = 0; k0 + 64 <= len; k0 += 64, v2 += 64) {
+    vld = _mm_loadu_si128((__m128i *) &v1[k0]);
+    macadd(vld, v2, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 8]);
+    macadd(vld, v2 + 8, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 16]);
+    macadd(vld, v2 + 16, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 24]);
+    macadd(vld, v2 + 24, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 32]);
+    macadd(vld, v2 + 32, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 40]);
+    macadd(vld, v2 + 40, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 48]);
+    macadd(vld, v2 + 48, sum4);
+    vld = _mm_loadu_si128((__m128i *) &v1[k0 + 56]);
+    macadd(vld, v2 + 56, sum4);
+  }
+
+  for (; k0 + 8 <= len; k0 += 8, v2 += 8) {
+    vld = _mm_loadu_si128((__m128i *) &v1[k0]);
+    macadd(vld, v2, sum4);
+  }
+
+  for (; k0 < len; k0++, v2++) {
+    *result += v1[k0] * (*v2);
+  }
+
+
+  __attribute__((aligned(16))) int sums[4];
+
+  _mm_store_si128((__m128i *) &sums[0], sum4);
+  *result += sums[0] + sums[1] + sums[2] + sums[3];
+}
+
 void apply_sigmoid(float *start_a, float *result, const int &cnt) {
   float *end = start_a + cnt;
   while (start_a < end) {
@@ -66,7 +110,8 @@ void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<F
     for (int j = 0; j < act.NumRows(); j++) {
       const FPWeight16 *pact = act.RowData(j);
       FPBias *pres = res.RowData(j);
-      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
+//      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
+      dotprod_sse(pw, pact, pres+i, w.NumCols());
       //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
     }
   }
