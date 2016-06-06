@@ -54,13 +54,13 @@ if [ "$ns" == 1 ]; then
 fi
 
 
-tmpdir=$(mktemp -d /gfs/tmp/kaldi.XXXX);
+tmpdir=$(mktemp -d /glfs/tmp/kaldi.XXXX);
 trap 'rm -rf "$tmpdir"' EXIT HUP INT PIPE TERM
 
 export LC_ALL=C
 
 function check_sorted_and_uniq {
-  ! awk '{print $1}' $1 | sort -T /gfs/tmp | uniq | cmp -s - <(awk '{print $1}' $1) && \
+  ! awk '{print $1}' $1 | sort -T /glfs/tmp | uniq | cmp -s - <(awk '{print $1}' $1) && \
     echo "$0: file $1 is not in sorted order or has duplicates" && exit 1;
 }
 
