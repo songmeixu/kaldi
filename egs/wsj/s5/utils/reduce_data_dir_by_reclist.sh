@@ -27,7 +27,7 @@ function do_filtering {
 	[ -f $srcdir/cmvn.scp ] && utils/filter_scp.pl $destdir/spk2utt <$srcdir/cmvn.scp >$destdir/cmvn.scp
 	if [ -f $srcdir/segments ]; then
 		utils/filter_scp.pl $destdir/utt2spk <$srcdir/segments >$destdir/segments
-		awk '{print $2;}' $destdir/segments | sort -T /gfs/tmp | uniq > $destdir/reco # recordings.
+		awk '{print $2;}' $destdir/segments | sort -T /glfs/tmp | uniq > $destdir/reco # recordings.
 # The next line would override the command above for wav.scp, which would be incorrect.
 		[ -f $srcdir/wav.scp ] && utils/filter_scp.pl $destdir/reco <$srcdir/wav.scp >$destdir/wav.scp
 		[ -f $srcdir/reco2file_and_channel ] && \

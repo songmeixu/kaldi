@@ -75,7 +75,7 @@ function partial_diff {
 
 check_sorted_and_uniq $data/utt2spk
 
-! cat $data/utt2spk | sort -T /gfs/tmp -k2 | cmp -s - $data/utt2spk && \
+! cat $data/utt2spk | sort -T /glfs/tmp -k2 | cmp -s - $data/utt2spk && \
    echo "$0: utt2spk is not in sorted order when sorted first on speaker-id " && \
    echo "(fix this by making speaker-ids prefixes of utt-ids)" && exit 1;
 
@@ -141,7 +141,7 @@ if [ -f $data/wav.scp ]; then
         echo "$0: Lengths are $segments_len vs $num_utts";
     fi
 
-    cat $data/segments | awk '{print $2}' | sort -T /gfs/tmp | uniq > $tmpdir/recordings
+    cat $data/segments | awk '{print $2}' | sort -T /glfs/tmp | uniq > $tmpdir/recordings
     awk '{print $1}' $data/wav.scp > $tmpdir/recordings.wav
     if ! cmp -s $tmpdir/recordings{,.wav}; then
       echo "$0: Error: in $data, recording-ids extracted from segments and wav.scp"
