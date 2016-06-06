@@ -116,3 +116,4 @@ src/CMakeLists.txt
 src/nnet2bin/.DS_Store
 CMakeLists.txt
 .DS_Store
+tools/eigen
