@@ -133,6 +133,8 @@ class Nnet {
 
   void ToFixedPoint(int32 from_id = 0, int32 mq_mag = 1023);
 
+  void ToLRScale(const std::vector<int32> &component_ids, BaseFloat bias_scale, BaseFloat weight_scale);
+
   /// Calls SetDropoutScale for all the dropout nodes.
   void SetDropoutScale(BaseFloat scale);
   

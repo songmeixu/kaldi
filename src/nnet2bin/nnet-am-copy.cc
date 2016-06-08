@@ -52,12 +52,16 @@ int main(int argc, char *argv[]) {
     bool remove_preconditioning = false;
     bool collapse = false;
     bool match_updatableness = true;
+    bool to_learnrate_scale = false;
     BaseFloat learning_rate_factor = 1.0, learning_rate = -1;
+    BaseFloat bias_scale = 1.0, weight_scale = 1.0;
     std::string learning_rate_scales_str = " ";
     std::string learning_rates = "";
     std::string scales = "";
     std::string stats_from;
-    
+    std::string component_id;
+    std::vector<int32> component_ids;
+
     ParseOptions po(usage);
     po.Register("binary", &binary_write, "Write output in binary mode");
     po.Register("learning-rate-factor", &learning_rate_factor,
@@ -99,12 +103,27 @@ int main(int argc, char *argv[]) {
                 "to improving decoding speed.");
     po.Register("from-id", &from_id, "must with to-fixed-point = true, convert from this component.");
     po.Register("mq-mag", &mq_mag, "must with to-fixed-point = true, fixed-point at this magnitude.");
+    po.Register("to-learnrate-scale", &to_learnrate_scale, "convert AffineComponentPreconditioned to "
+                "AffineComponentLRScalePreconditionedOnline.");
+    po.Register("bias-scale", &bias_scale, "must with to-learnrate-scale = true, "
+                "for AffineComponentLRScalePreconditionedOnline");
+    po.Register("weight-scale", &weight_scale, "must with to-learnrate-scale = true, "
+                "for AffineComponentLRScalePreconditionedOnline");
+    po.Register("component_id", &component_id, "must with to-learnrate-scale = true, "
+                "Components to convert: comma-separated list of integers, e.g. 0,2,4");
 
     po.Read(argc, argv);
     
     if (po.NumArgs() != 2) {
       po.PrintUsage();
       exit(1);
+    }
+
+    if (!component_id.empty()) {
+      if (!SplitStringToIntegers(component_id, ",", false, &component_ids)) {
+        KALDI_ERR << "Bad --skip-dims option (should be colon-separated list of "
+            << "integers)";
+      }
     }
 
     std::string nnet_rxfilename = po.GetArg(1),
@@ -200,6 +219,8 @@ int main(int argc, char *argv[]) {
     if (remove_splice) am_nnet.GetNnet().RemoveSplice();
 
     if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint(from_id, mq_mag);
+
+    if (to_learnrate_scale) am_nnet.GetNnet().ToLRScale(component_ids, bias_scale, weight_scale);
     
     if (stats_from != "") {
       // Copy the stats associated with the layers descending from

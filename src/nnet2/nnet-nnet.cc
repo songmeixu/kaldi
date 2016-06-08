@@ -549,6 +549,30 @@ void Nnet::ToFixedPoint(int32 from_id, int32 mq_mag) {
   Check();
 }
 
+void Nnet::ToLRScale(const std::vector<int32> &component_ids, BaseFloat bias_scale, BaseFloat weight_scale) {
+  int32 convert = 0;
+  for (size_t i = 0; i < component_ids.size(); i++) {
+    size_t c = component_ids[i];
+    KALDI_ASSERT(c < NumComponents());
+    AffineComponentPreconditionedOnline *ac = dynamic_cast<AffineComponentPreconditionedOnline *>(components_[c]);
+    if (ac != NULL) {
+      AffineComponentLRScalePreconditionedOnline *a_lr = new AffineComponentLRScalePreconditionedOnline(*ac);
+      a_lr->SetBiasLRScale(bias_scale);
+      a_lr->SetWeightLRScale(weight_scale);
+      delete components_[c];
+      components_[c] = a_lr;
+      convert++;
+    } else {
+      KALDI_ERR << "Component " << i << " is not AffineComponentPreconditionedOnline, "
+          "so cannot be converted to AffineComponentLRScalePreconditionedOnline";
+    }
+  }
+  if (convert > 0)
+    KALDI_LOG << "Convert " << convert << " AffineComponent.";
+  SetIndexes();
+  Check();
+}
+
 void Nnet::SetDropoutScale(BaseFloat scale) {
   size_t n_set = 0;
   for (size_t i = 0; i < components_.size(); i++) {
