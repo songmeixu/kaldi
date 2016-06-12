@@ -66,13 +66,27 @@ fi
 extra_files=$(echo "$extra_files"|sed -e "s/utt2uniq//g")
 
 for file in utt2spk utt2lang utt2dur feats.scp text cmvn.scp segments reco2file_and_channel wav.scp spk2gender $extra_files; do
-  if [ -f $first_src/$file ]; then
+  exists_somewhere=false
+  absent_somewhere=false
+  for d in $*; do
+    if [ -f $d/$file ]; then
+      exists_somewhere=true
+    else
+      absent_somewhere=true
+      fi
+  done
+
+  if ! $absent_somewhere; then
     set -o pipefail
     ( for f in $*; do cat $f/$file; done ) | sort -k1 > $dest/$file || exit 1;
     set +o pipefail
     echo "$0: combined $file"
   else
-    echo "$0 [info]: not combining $file as it does not exist"
+    if ! $exists_somewhere; then
+      echo "$0 [info]: not combining $file as it does not exist"
+    else
+      echo "$0 [info]: **not combining $file as it does not exist everywhere**"
+    fi
   fi
 done
 
