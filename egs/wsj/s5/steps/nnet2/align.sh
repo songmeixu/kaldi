@@ -127,4 +127,6 @@ $cmd JOB=1:$nj $dir/log/align.JOB.log \
   nnet-align-compiled $scale_opts --use-gpu=$use_gpu --beam=$beam --retry-beam=$retry_beam \
     $srcdir/${iter}.mdl ark:- "$feats" "ark:|gzip -c >$dir/ali.JOB.gz" || exit 1;
 
+steps/diagnostic/analyze_alignments.sh --cmd "$cmd" $lang $dir
+
 echo "$0: done aligning data."
