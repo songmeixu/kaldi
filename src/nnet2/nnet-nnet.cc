@@ -526,7 +526,7 @@ void Nnet::RemoveSplice() {
   }
   components_ = components;
   if (removed > 0)
-    KALDI_LOG << "Removed " << removed << " dropout components.";
+    KALDI_LOG << "Removed " << removed << " splice components.";
   SetIndexes();
   Check();
 }
