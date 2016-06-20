@@ -222,7 +222,8 @@ if $share_silence_phones; then
   cat $srcdir/silence_phones.txt | awk '{printf("%s ", $0); } END{printf("\n");}' | cat - $srcdir/nonsilence_phones.txt | \
     utils/apply_map.pl $tmpdir/phone_map.txt > $dir/phones/sets.txt
   cat $dir/phones/sets.txt | \
-    awk '{if(NR==1) print "not-shared", "not-split", $0; else print "shared", "split", $0;}' > $dir/phones/roots.txt
+    awk '{if(NR==1) print "not-shared", "not-split", $0; else print "not-shared", "split", $0;}' > $dir/phones/roots.txt
+#    awk '{if(NR==1) print "not-shared", "not-split", $0; else print "shared", "split", $0;}' > $dir/phones/roots.txt
 else
   # different silence phones will have different GMMs.  [note: here, all "shared split" means
   # is that we may have one GMM for all the states, or we can split on states.  because they're
