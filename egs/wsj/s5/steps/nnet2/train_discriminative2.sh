@@ -105,7 +105,7 @@ done
 mkdir -p $dir/log || exit 1;
 
 # copy some things
-for f in splice_opts cmvn_opts tree final.mat; do
+for f in splice_opts cmvn_opts tree final.mat delta_order; do
   if [ -f $degs_dir/$f ]; then
     cp $degs_dir/$f $dir/ || exit 1;
   fi

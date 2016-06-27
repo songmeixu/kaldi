@@ -156,7 +156,6 @@ echo "$0: feature type is $feat_type"
 case $feat_type in
   raw)
     feats="ark,s,cs:add-deltas --delta-order=$delta_order scp:$sdata/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts $data/cmvn.stats.delta.global ark:- ark:- |"
-
     ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`

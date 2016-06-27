@@ -582,6 +582,79 @@ class NormalizeComponent: public NonlinearComponent {
   // in float (hence, an even power of two).
 };
 
+class BatchNormComponent: public UpdatableComponent {
+ public:
+  explicit BatchNormComponent(const BatchNormComponent &other);
+  BatchNormComponent() { }
+
+  virtual int32 InputDim() const { return a.Dim(); }
+  virtual int32 OutputDim() const { return a.Dim(); }
+
+  void Init(BaseFloat learning_rate, int32 dim);
+
+  // The following functions are used for collapsing multiple layers
+  // together.  They return a pointer to a new Component equivalent to
+  // the sequence of two components.  We haven't implemented this for
+  // FixedLinearComponent yet.
+//  Component *CollapseWithPrevious(const FixedAffineComponent &prev) const;
+
+  virtual std::string Info() const;
+  virtual void InitFromString(std::string args);
+
+  virtual std::string Type() const { return "BatchNormComponent"; }
+  virtual Component* Copy() const { return new BatchNormComponent(*this); }
+  virtual bool BackpropNeedsInput() const { return true; }
+  virtual bool BackpropNeedsOutput() const { return false; }
+  using Component::Propagate; // to avoid name hiding
+  virtual void Propagate(const ChunkInfo &in_info,
+                         const ChunkInfo &out_info,
+                         const CuMatrixBase<BaseFloat> &in,
+                         CuMatrixBase<BaseFloat> *out) const;
+  virtual void Backprop(const ChunkInfo &in_info,
+                        const ChunkInfo &out_info,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &out_value,
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update_in, // may be identical to "this".
+                        CuMatrix<BaseFloat> *in_deriv) const;
+
+  virtual void Scale(BaseFloat scale) {}
+  virtual void Add(BaseFloat alpha, const UpdatableComponent &other) {}
+  virtual void SetZero(bool treat_as_gradient) {}
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+
+  virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
+  virtual Component* Copy() const;
+
+  void CalcFromTot();
+
+  virtual int32 GetParameterDim() const;
+
+ protected:
+  virtual void Update(const CuMatrixBase<BaseFloat> &in_value,
+                      const CuMatrixBase<BaseFloat> &out_deriv,
+                      CuMatrix<BaseFloat> *in_deriv);
+
+ private:
+  BatchNormComponent &operator = (const BatchNormComponent &other); // Disallow.
+
+  static const BaseFloat kNormFloor;
+  static const BaseFloat epsion;
+
+  int32 tot_cnt;
+  CuVector<double> tot_mean;
+  CuVector<double> tot_var;
+
+  CuVector<BaseFloat> gamma;
+  CuVector<BaseFloat> beta;
+  CuVector<BaseFloat> a;
+  CuVector<BaseFloat> b;
+  // about 0.7e-20.  We need a value that's exactly representable in
+  // float and whose inverse square root is also exactly representable
+  // in float (hence, an even power of two).
+};
 
 class SigmoidComponent: public NonlinearComponent {
  public:
