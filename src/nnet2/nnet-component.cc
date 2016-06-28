@@ -787,6 +787,8 @@ int32 BatchNormComponent::GetParameterDim() const {
 
 const BaseFloat BatchNormComponent::kNormFloor = pow(2.0, -66);
 
+const BaseFloat BatchNormComponent::epsion = pow(2.0, -32);
+
 // y = a * x + b
 // a & b are calc in BP as:
 // a = gamma / sqrt(var + epsion)

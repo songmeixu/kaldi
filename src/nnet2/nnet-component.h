@@ -602,7 +602,7 @@ class BatchNormComponent: public UpdatableComponent {
   virtual void InitFromString(std::string args);
 
   virtual std::string Type() const { return "BatchNormComponent"; }
-  virtual Component* Copy() const { return new BatchNormComponent(*this); }
+  virtual Component* Copy() const;
   virtual bool BackpropNeedsInput() const { return true; }
   virtual bool BackpropNeedsOutput() const { return false; }
   using Component::Propagate; // to avoid name hiding
@@ -618,15 +618,16 @@ class BatchNormComponent: public UpdatableComponent {
                         Component *to_update_in, // may be identical to "this".
                         CuMatrix<BaseFloat> *in_deriv) const;
 
-  virtual void Scale(BaseFloat scale) {}
-  virtual void Add(BaseFloat alpha, const UpdatableComponent &other) {}
+  virtual void PerturbParams(BaseFloat stddev) {}
+
+  virtual void Scale(BaseFloat scale);
+  virtual void Add(BaseFloat alpha, const UpdatableComponent &other);
   virtual void SetZero(bool treat_as_gradient) {}
 
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
 
   virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
-  virtual Component* Copy() const;
 
   void CalcFromTot();
 
