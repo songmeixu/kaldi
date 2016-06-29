@@ -590,8 +590,6 @@ class BatchNormComponent: public UpdatableComponent {
   virtual int32 InputDim() const { return a.Dim(); }
   virtual int32 OutputDim() const { return a.Dim(); }
 
-  void Init(BaseFloat learning_rate, int32 dim);
-
   // The following functions are used for collapsing multiple layers
   // together.  They return a pointer to a new Component equivalent to
   // the sequence of two components.  We haven't implemented this for
@@ -599,6 +597,7 @@ class BatchNormComponent: public UpdatableComponent {
 //  Component *CollapseWithPrevious(const FixedAffineComponent &prev) const;
 
   virtual std::string Info() const;
+  void Init(BaseFloat learning_rate, int32 dim);
   virtual void InitFromString(std::string args);
 
   virtual std::string Type() const { return "BatchNormComponent"; }

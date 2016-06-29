@@ -66,6 +66,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new NormalizeComponent();
   } else if (component_type == "SoftHingeComponent") {
     ans = new SoftHingeComponent();
+  } else if (component_type == "BatchNormComponent") {
+    ans = new BatchNormComponent();
   } else if (component_type == "PnormComponent") {
     ans = new PnormComponent();
   } else if (component_type == "MaxoutComponent") {
