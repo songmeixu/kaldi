@@ -651,6 +651,7 @@ void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   gamma.Set(1.0);
   beta.Resize(dim);
   a.Resize(dim);
+  a.Set(1.0);
   b.Resize(dim);
   tot_mean.Resize(dim);
   tot_var.Resize(dim);
@@ -720,13 +721,13 @@ void BatchNormComponent::Write(std::ostream &os, bool binary) const {
   WriteToken(os, binary, "<beta>");
   beta.Write(os, binary);
   WriteToken(os, binary, "<a>");
-  gamma.Write(os, binary);
+  a.Write(os, binary);
   WriteToken(os, binary, "<b>");
-  beta.Write(os, binary);
+  b.Write(os, binary);
   WriteToken(os, binary, "<tot_mean>");
-  gamma.Write(os, binary);
+  tot_mean.Write(os, binary);
   WriteToken(os, binary, "<tot_var>");
-  beta.Write(os, binary);
+  tot_var.Write(os, binary);
   WriteToken(os, binary, "<tot_cnt>");
   WriteBasicType(os, binary, tot_cnt);
   WriteToken(os, binary, ostr_end.str());
@@ -825,66 +826,78 @@ void BatchNormComponent::Backprop(const ChunkInfo &,  // in_info,
 void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
                                 const CuMatrixBase<BaseFloat> &out_deriv,
                                 CuMatrix<BaseFloat> *in_deriv) {
-  CuMatrix<BaseFloat> in_value_T(in_value, kTrans);
-  CuMatrix<BaseFloat> out_deriv_T(out_deriv, kTrans);
-  in_deriv->Transpose();
-
-  CuMatrix<BaseFloat> l_x(out_deriv_T);
-  l_x.MulRowsVec(gamma);
-
-  // calc mean & var
-  CuVector<BaseFloat> mean(in_value_T.NumRows());
-  CuVector<BaseFloat> std_dev_inv(in_value_T.NumRows());
-  for (int32 r = 0; r < in_value_T.NumRows(); ++r) {
-    CuVector<BaseFloat> row(in_value_T.Row(r));
-    CuVector<BaseFloat> row2(in_value_T.Row(r));
-    mean(r) = row.Sum() / in_value_T.NumCols();
-    row.ApplyPow(2);
-    BaseFloat var = row.Sum() / in_value_T.NumCols() - mean(r) * mean(r);
-    std_dev_inv(r) = 1 / sqrt(var + epsion);
-    row2.Add(-1.0 * mean(r));
-    row2.Scale(std_dev_inv(r));
-    CuVector<BaseFloat> l_gamma(out_deriv_T.Row(r));
-    l_gamma.MulElements(row2);
-
-    tot_mean(r) += mean(r);
-    tot_var(r) += var;
-
-    gamma(r) += learning_rate_ * l_gamma.Sum();
-    beta(r) += learning_rate_ * out_deriv_T.Row(r).Sum();
-
-    a(r) = gamma(r) * std_dev_inv(r);
-    b(r) = beta(r) - a(r) * mean(r);
+  // mean
+  CuVector<BaseFloat> mean(in_value.NumCols());
+  for (int32 r = 0; r < in_value.NumRows(); ++r) {
+    mean.AddVec(1.0, in_value.Row(r));
   }
-  ++tot_cnt;
+  mean.Scale(1.0 / in_value.NumRows());
+  tot_mean.AddVec(1.0, mean);
+  // var
+  CuVector<BaseFloat> var(in_value.NumCols());
+  var.AddDiagMat2(1.0 / in_value.NumRows(), in_value, kTrans, 0.0);
+  tot_var.AddVec(1.0, var);
+  CuVector<BaseFloat> mean2(mean);
+  mean2.ApplyPow(2);
+  var.AddVec(-1.0, mean2);
+  var.ApplyFloor(kNormFloor);
+  var.ApplyPow(-0.5);
+  var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
 
-  CuVector<BaseFloat> l_mean(std_dev_inv);
-  CuMatrix<BaseFloat> l_mean_M(l_x);
-  l_mean_M.MulRowsVec(l_mean);
+  // x_new
+  CuMatrix<BaseFloat> x_new(in_value);
+  x_new.AddVecToRows(-1.0, mean);
+  x_new.MulColsVec(var);
 
-  CuVector<BaseFloat> l_var(std_dev_inv);
-  CuMatrix<BaseFloat> x(in_value_T);
-  x.AddVecToCols(-1.0, mean);
-  l_var.ApplyPow(3);
+  // l_x_new
+  CuMatrix<BaseFloat> l_x_new(out_deriv);
+  l_x_new.MulColsVec(gamma);
+
+  // l_mean
+  CuVector<BaseFloat> l_mean(in_value.NumCols());
+  CuMatrix<BaseFloat> l_mean_M(l_x_new);
+  l_mean_M.MulColsVec(var);
+  for (int32 r = 0; r < in_value.NumRows(); ++r) {
+    l_mean.AddVec(-1.0, l_mean_M.Row(r));
+  }
+
+  // l_var
+  CuVector<BaseFloat> l_var(var);
+  l_var.ApplyPow(3.0);
   l_var.Scale(-0.5);
-  x.MulRowsVec(l_var);
-  CuMatrix<BaseFloat> l_var_M(l_x);
+  CuMatrix<BaseFloat> l_var_M(l_x_new);
+  CuMatrix<BaseFloat> x(in_value);
+  x.AddVecToRows(-1.0, mean);
+  x.MulColsVec(l_var);
   l_var_M.MulElements(x);
-
-  for (int32 r = 0; r < in_value_T.NumRows(); ++r) {
-    l_var(r) = l_var_M.Row(r).Sum();
-    l_mean(r) = -1.0 * l_mean_M.Row(r).Sum();
+  l_var.SetZero();
+  for (int32 r = 0; r < in_value.NumRows(); ++r) {
+    l_var.AddVec(1.0, l_var_M.Row(r));
   }
 
-  in_deriv->CopyFromMat(l_x);
-  in_deriv->MulRowsVec(std_dev_inv);
-  x.CopyFromMat(in_value_T);
-  x.AddVecToCols(-1.0, mean);
-  x.MulRowsVec(l_var);
-  l_mean.Scale(1/in_value_T.NumCols());
-  in_deriv->AddMat(2/in_value_T.NumCols(), x);
-  in_deriv->AddVecToCols(1.0, l_mean);
-  in_deriv->Transpose();
+  // l_x
+  in_deriv->CopyFromMat(l_x_new);
+  in_deriv->MulColsVec(var);
+  x.CopyFromMat(in_value);
+  x.AddVecToRows(-1.0, mean);
+  x.MulColsVec(l_var);
+  in_deriv->AddMat(2.0 / in_value.NumRows(), x);
+  in_deriv->AddVecToRows(1.0 / in_value.NumRows(), l_mean);
+
+  // beta
+  CuVector<BaseFloat> l_beta(out_deriv.NumCols());
+  for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
+    l_beta.AddVec(1.0, out_deriv.Row(r));
+  }
+  beta.AddVec(learning_rate_, l_beta);
+  // gamma
+  CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
+  CuMatrix<BaseFloat> l_gamma_M(out_deriv);
+  l_gamma_M.MulElements(x_new);
+  for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
+    l_gamma.AddVec(1.0, l_gamma_M.Row(r));
+  }
+  gamma.AddVec(learning_rate_, l_gamma);
 }
 
 void SigmoidComponent::Propagate(const ChunkInfo &in_info,
