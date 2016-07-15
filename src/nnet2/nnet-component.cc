@@ -898,6 +898,10 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
     l_gamma.AddVec(1.0, l_gamma_M.Row(r));
   }
   gamma.AddVec(learning_rate_, l_gamma);
+
+  a.AddVecVec(1.0, gamma, var, 0.0);
+  b.AddVecVec(-1.0, a, mean, 0.0);
+  b.AddVec(1.0, beta);
 }
 
 void SigmoidComponent::Propagate(const ChunkInfo &in_info,
