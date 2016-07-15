@@ -836,10 +836,10 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   // var
   CuVector<BaseFloat> var(in_value.NumCols());
   var.AddDiagMat2(1.0 / in_value.NumRows(), in_value, kTrans, 0.0);
-  tot_var.AddVec(1.0, var);
   CuVector<BaseFloat> mean2(mean);
   mean2.ApplyPow(2);
   var.AddVec(-1.0, mean2);
+  tot_var.AddVec(1.0, var);
   var.ApplyFloor(kNormFloor);
   var.ApplyPow(-0.5);
   var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
