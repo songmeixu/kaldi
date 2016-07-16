@@ -583,6 +583,7 @@ class NormalizeComponent: public NonlinearComponent {
 };
 
 class BatchNormComponent: public UpdatableComponent {
+#define OUT_DIST
  public:
   explicit BatchNormComponent(const BatchNormComponent &other);
   BatchNormComponent() { }

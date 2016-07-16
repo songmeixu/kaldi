@@ -803,6 +803,17 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
   out->CopyFromMat(in);
   out->MulColsVec(a);
   out->AddVecToRows(1.0, b);
+#ifdef OUT_DIST
+  CuVector<BaseFloat> out_one(out->NumRows());
+  for (int32 c = 0; c < out->NumCols(); ++c) {
+    out_one.CopyColFromMat(*out, c);
+    BaseFloat *data = out_one.Data();
+    std::sort(data, data + out_one.Dim());
+    KALDI_LOG << out_one(out_one.Dim()*0.15) << " "
+              << out_one(out_one.Dim()*0.5) << " "
+              << out_one(out_one.Dim()*0.85);
+  }
+#endif
 }
 
 void BatchNormComponent::Backprop(const ChunkInfo &,  // in_info,
@@ -849,6 +860,17 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   CuMatrix<BaseFloat> x_new(in_value);
   x_new.AddVecToRows(-1.0, mean);
   x_new.MulColsVec(var);
+//#ifdef OUT_DIST
+//  CuVector<BaseFloat> x_new_one(x_new.NumRows());
+//  for (int32 c = 0; c < x_new.NumCols(); ++c) {
+//    x_new_one.CopyColFromMat(x_new, c);
+//    BaseFloat *data = x_new_one.Data();
+//    std::sort(data, data + x_new_one.Dim());
+//    KALDI_LOG << x_new_one(x_new_one.Dim()*0.15) << " "
+//              << x_new_one(x_new_one.Dim()*0.5) << " "
+//              << x_new_one(x_new_one.Dim()*0.85);
+//  }
+//#endif
 
   // l_x_new
   CuMatrix<BaseFloat> l_x_new(out_deriv);
