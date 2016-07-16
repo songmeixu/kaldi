@@ -890,7 +890,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
     l_beta.AddVec(1.0, out_deriv.Row(r));
   }
-  beta.AddVec(learning_rate_, l_beta);
+  beta.AddVec(0.01*learning_rate_, l_beta);
   // gamma
   CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
   CuMatrix<BaseFloat> l_gamma_M(out_deriv);
@@ -898,7 +898,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
     l_gamma.AddVec(1.0, l_gamma_M.Row(r));
   }
-  gamma.AddVec(learning_rate_, l_gamma);
+  gamma.AddVec(0.01*learning_rate_, l_gamma);
 
   a.AddVecVec(1.0, gamma, var, 0.0);
   b.AddVecVec(-1.0, a, mean, 0.0);
