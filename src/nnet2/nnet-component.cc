@@ -800,9 +800,27 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
                                    const ChunkInfo &out_info,
                                    const CuMatrixBase<BaseFloat> &in,
                                    CuMatrixBase<BaseFloat> *out) const  {
+  // mean
+  CuVector<BaseFloat> mean(in.NumCols());
+  for (int32 r = 0; r < in.NumRows(); ++r) {
+    mean.AddVec(1.0, in.Row(r));
+  }
+  mean.Scale(1.0 / in.NumRows());
+  // var
+  CuVector<BaseFloat> var(in.NumCols());
+  var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
+  CuVector<BaseFloat> mean2(mean);
+  mean2.ApplyPow(2);
+  var.AddVec(-1.0, mean2);
+  var.ApplyFloor(kNormFloor);
+  var.ApplyPow(-0.5);
+  var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
+
   out->CopyFromMat(in);
-  out->MulColsVec(a);
-  out->AddVecToRows(1.0, b);
+  out->AddVecToRows(-1.0, mean);
+  out->MulColsVec(var);
+  out->MulColsVec(gamma);
+  out->AddVecToRows(1.0, beta);
 #ifdef OUT_DIST
   CuVector<BaseFloat> out_one(out->NumRows());
   for (int32 c = 0; c < out->NumCols(); ++c) {
@@ -812,6 +830,13 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     KALDI_LOG << out_one(out_one.Dim()*0.15) << " "
               << out_one(out_one.Dim()*0.5) << " "
               << out_one(out_one.Dim()*0.85);
+    BaseFloat mean_new = out_one.Sum() / out_one.Dim();
+    out_one.Add(-1.0*mean_new);
+    out_one.ApplyPow(2);
+    BaseFloat var_new = out_one.Sum() / out_one.Dim();
+    KALDI_LOG << " ori-mean: " << mean(c) << " new-mean " << mean_new
+              << " ori-var: " << var(c) << " new-var " << var_new;
+              
   }
 #endif
 }
@@ -912,7 +937,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
     l_beta.AddVec(1.0, out_deriv.Row(r));
   }
-//  beta.AddVec(0.0, l_beta);
+  beta.AddVec(1*learning_rate_, l_beta);
   // gamma
   CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
   CuMatrix<BaseFloat> l_gamma_M(out_deriv);
@@ -920,7 +945,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
     l_gamma.AddVec(1.0, l_gamma_M.Row(r));
   }
-//  gamma.AddVec(0.0, l_gamma);
+  gamma.AddVec(1*learning_rate_, l_gamma);
 
   a.AddVecVec(1.0, gamma, var, 0.0);
   b.AddVecVec(-1.0, a, mean, 0.0);
