@@ -710,6 +710,8 @@ void BatchNormComponent::Read(std::istream &is, bool binary) {
   ReadBasicType(is, binary, &tot_cnt);
   ExpectToken(is, binary, "<is_dec>");
   ReadBasicType(is, binary, &is_dec_);
+  mean.Resize(tot_mean.Dim());
+  var.Resize(tot_var.Dim());
   std::string tok;
   ReadToken(is, binary, &tok);
   KALDI_ASSERT(tok == ostr_end.str());
