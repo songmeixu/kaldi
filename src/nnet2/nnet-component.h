@@ -583,10 +583,14 @@ class NormalizeComponent: public NonlinearComponent {
 };
 
 class BatchNormComponent: public UpdatableComponent {
-#define OUT_DIST
+//#define OUT_DIST
  public:
   explicit BatchNormComponent(const BatchNormComponent &other);
-  BatchNormComponent() { }
+  BatchNormComponent(): is_dec_(false) { }
+
+  void SetDec(bool is_dec) {
+    is_dec_ = is_dec;
+  }
 
   virtual int32 InputDim() const { return a.Dim(); }
   virtual int32 OutputDim() const { return a.Dim(); }
@@ -629,7 +633,7 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
 
-  void CalcFromTot();
+  void CalcFromTotal();
 
   virtual int32 GetParameterDim() const;
 
@@ -641,12 +645,16 @@ class BatchNormComponent: public UpdatableComponent {
  private:
   BatchNormComponent &operator = (const BatchNormComponent &other); // Disallow.
 
+  bool is_dec_;
+
   static const BaseFloat kNormFloor;
   static const BaseFloat epsion;
 
-  int32 tot_cnt;
-  CuVector<double> tot_mean;
-  CuVector<double> tot_var;
+  mutable CuVector<BaseFloat> mean;
+  mutable CuVector<BaseFloat> var;
+  mutable int32 tot_cnt;
+  mutable CuVector<double> tot_mean;
+  mutable CuVector<double> tot_var;
 
   CuVector<BaseFloat> gamma;
   CuVector<BaseFloat> beta;

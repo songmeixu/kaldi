@@ -637,6 +637,7 @@ void NormalizeComponent::Backprop(const ChunkInfo &,  // in_info,
 
 BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
     UpdatableComponent(component),
+    is_dec_(component.is_dec_),
     gamma(component.gamma),
     beta(component.beta),
     a(component.a), b(component.b),
@@ -647,6 +648,9 @@ BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
 void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   KALDI_ASSERT(dim > 0);
   UpdatableComponent::Init(learning_rate);
+  is_dec_ = false;
+  mean.Resize(dim);
+  var.Resize(dim);
   gamma.Resize(dim);
   gamma.Set(1.0);
   beta.Resize(dim);
@@ -704,6 +708,8 @@ void BatchNormComponent::Read(std::istream &is, bool binary) {
   tot_var.Read(is, binary);
   ExpectToken(is, binary, "<tot_cnt>");
   ReadBasicType(is, binary, &tot_cnt);
+  ExpectToken(is, binary, "<is_dec>");
+  ReadBasicType(is, binary, &is_dec_);
   std::string tok;
   ReadToken(is, binary, &tok);
   KALDI_ASSERT(tok == ostr_end.str());
@@ -730,6 +736,8 @@ void BatchNormComponent::Write(std::ostream &os, bool binary) const {
   tot_var.Write(os, binary);
   WriteToken(os, binary, "<tot_cnt>");
   WriteBasicType(os, binary, tot_cnt);
+  WriteToken(os, binary, "<is_dec>");
+  WriteBasicType(os, binary, is_dec_);
   WriteToken(os, binary, ostr_end.str());
 }
 
@@ -749,18 +757,18 @@ Component* BatchNormComponent::Copy() const {
 BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) const {
   const BatchNormComponent *other =
       dynamic_cast<const BatchNormComponent*>(&other_in);
-  return VecVec(a, other->a) + VecVec(b, other->b);
+  return VecVec(gamma, other->gamma) + VecVec(beta, other->beta);
 }
 
-void BatchNormComponent::CalcFromTot() {
-  CuVector<double> mean(tot_mean);
-  CuVector<double> var(tot_var);
+void BatchNormComponent::CalcFromTotal() {
+  mean.CopyFromVec(tot_mean);
+  var.CopyFromVec(tot_var);
   mean.Scale(1.0 / tot_cnt);
-  var.Scale(512 / 511 / tot_cnt);
-  for (int32 r = 0; r < a.Dim(); ++r) {
-    a(r) = gamma(r) / sqrt(var(r) + epsion);
-    b(r) = beta(r) - a(r) * mean(r);
-  }
+  var.Scale(512 * tot_cnt / 511);
+
+  a.AddVecVec(1.0, gamma, var, 0.0);
+  b.AddVecVec(-1.0, a, mean, 0.0);
+  b.AddVec(1.0, beta);
 }
 
 void BatchNormComponent::Scale(BaseFloat scale) {
@@ -779,9 +787,9 @@ void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in
   a.AddVec(alpha, other->a);
   b.AddVec(alpha, other->b);
 
-  tot_mean.AddVec(1.0, other->tot_mean);
-  tot_var.AddVec(1.0, other->tot_var);
-  tot_cnt += other->tot_cnt;
+  tot_mean.AddVec(alpha, other->tot_mean);
+  tot_var.AddVec(alpha, other->tot_var);
+  tot_cnt += alpha * other->tot_cnt;
 }
 
 int32 BatchNormComponent::GetParameterDim() const {
@@ -800,27 +808,32 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
                                    const ChunkInfo &out_info,
                                    const CuMatrixBase<BaseFloat> &in,
                                    CuMatrixBase<BaseFloat> *out) const  {
-  // mean
-  CuVector<BaseFloat> mean(in.NumCols());
-  for (int32 r = 0; r < in.NumRows(); ++r) {
-    mean.AddVec(1.0, in.Row(r));
-  }
-  mean.Scale(1.0 / in.NumRows());
-  // var
-  CuVector<BaseFloat> var(in.NumCols());
-  var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
-  CuVector<BaseFloat> mean2(mean);
-  mean2.ApplyPow(2);
-  var.AddVec(-1.0, mean2);
-  var.ApplyFloor(kNormFloor);
-  var.ApplyPow(-0.5);
-  var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
+  if (!is_dec_) {
+    // mean
+    mean.AddRowSumMat(1.0 / in.NumRows(), in, 0.0);
+    tot_mean.AddVec(1.0, mean);
+    // var
+    var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
+    CuVector<BaseFloat> mean2(mean);
+    mean2.ApplyPow(2);
+    var.AddVec(-1.0, mean2);
+    tot_var.AddVec(1.0, var);
+    var.ApplyFloor(kNormFloor);
+    var.ApplyPow(-0.5);
+    var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
+    ++tot_cnt;
 
-  out->CopyFromMat(in);
-  out->AddVecToRows(-1.0, mean);
-  out->MulColsVec(var);
-  out->MulColsVec(gamma);
-  out->AddVecToRows(1.0, beta);
+    out->CopyFromMat(in);
+    out->AddVecToRows(-1.0, mean);
+    out->MulColsVec(var);
+    out->MulColsVec(gamma);
+    out->AddVecToRows(1.0, beta);
+  } else {
+    out->CopyFromMat(in);
+    out->MulColsVec(a);
+    out->AddVecToRows(1.0, b);
+  }
+
 #ifdef OUT_DIST
   CuVector<BaseFloat> out_one(out->NumRows());
   for (int32 c = 0; c < out->NumCols(); ++c) {
@@ -836,9 +849,9 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     BaseFloat var_new = out_one.Sum() / out_one.Dim();
     KALDI_LOG << " ori-mean: " << mean(c) << " new-mean " << mean_new
               << " ori-var: " << var(c) << " new-var " << var_new;
-              
   }
 #endif
+
 }
 
 void BatchNormComponent::Backprop(const ChunkInfo &,  // in_info,
@@ -862,40 +875,10 @@ void BatchNormComponent::Backprop(const ChunkInfo &,  // in_info,
 void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
                                 const CuMatrixBase<BaseFloat> &out_deriv,
                                 CuMatrix<BaseFloat> *in_deriv) {
-  // mean
-  CuVector<BaseFloat> mean(in_value.NumCols());
-  for (int32 r = 0; r < in_value.NumRows(); ++r) {
-    mean.AddVec(1.0, in_value.Row(r));
-  }
-  mean.Scale(1.0 / in_value.NumRows());
-  tot_mean.AddVec(1.0, mean);
-  // var
-  CuVector<BaseFloat> var(in_value.NumCols());
-  var.AddDiagMat2(1.0 / in_value.NumRows(), in_value, kTrans, 0.0);
-  CuVector<BaseFloat> mean2(mean);
-  mean2.ApplyPow(2);
-  var.AddVec(-1.0, mean2);
-  tot_var.AddVec(1.0, var);
-  var.ApplyFloor(kNormFloor);
-  var.ApplyPow(-0.5);
-  var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
-  ++tot_cnt;
-
   // x_new
   CuMatrix<BaseFloat> x_new(in_value);
   x_new.AddVecToRows(-1.0, mean);
   x_new.MulColsVec(var);
-//#ifdef OUT_DIST
-//  CuVector<BaseFloat> x_new_one(x_new.NumRows());
-//  for (int32 c = 0; c < x_new.NumCols(); ++c) {
-//    x_new_one.CopyColFromMat(x_new, c);
-//    BaseFloat *data = x_new_one.Data();
-//    std::sort(data, data + x_new_one.Dim());
-//    KALDI_LOG << x_new_one(x_new_one.Dim()*0.15) << " "
-//              << x_new_one(x_new_one.Dim()*0.5) << " "
-//              << x_new_one(x_new_one.Dim()*0.85);
-//  }
-//#endif
 
   // l_x_new
   CuMatrix<BaseFloat> l_x_new(out_deriv);
@@ -905,9 +888,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   CuVector<BaseFloat> l_mean(in_value.NumCols());
   CuMatrix<BaseFloat> l_mean_M(l_x_new);
   l_mean_M.MulColsVec(var);
-  for (int32 r = 0; r < in_value.NumRows(); ++r) {
-    l_mean.AddVec(-1.0, l_mean_M.Row(r));
-  }
+  l_mean.AddRowSumMat(-1.0, l_mean_M, 0.0);
 
   // l_var
   CuVector<BaseFloat> l_var(var);
@@ -919,9 +900,7 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   x.MulColsVec(l_var);
   l_var_M.MulElements(x);
   l_var.SetZero();
-  for (int32 r = 0; r < in_value.NumRows(); ++r) {
-    l_var.AddVec(1.0, l_var_M.Row(r));
-  }
+  l_var.AddRowSumMat(1.0, l_var_M, 0.0);
 
   // l_x
   in_deriv->CopyFromMat(l_x_new);
@@ -934,22 +913,14 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
 
   // beta
   CuVector<BaseFloat> l_beta(out_deriv.NumCols());
-  for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
-    l_beta.AddVec(1.0, out_deriv.Row(r));
-  }
-  beta.AddVec(1*learning_rate_, l_beta);
+  l_beta.AddRowSumMat(1.0, out_deriv, 0.0);
+  beta.AddVec(learning_rate_, l_beta);
   // gamma
   CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
   CuMatrix<BaseFloat> l_gamma_M(out_deriv);
   l_gamma_M.MulElements(x_new);
-  for (int32 r = 0; r < out_deriv.NumRows(); ++r) {
-    l_gamma.AddVec(1.0, l_gamma_M.Row(r));
-  }
-  gamma.AddVec(1*learning_rate_, l_gamma);
-
-  a.AddVecVec(1.0, gamma, var, 0.0);
-  b.AddVecVec(-1.0, a, mean, 0.0);
-  b.AddVec(1.0, beta);
+  l_gamma.AddRowSumMat(1.0, l_gamma_M, 0.0);
+  gamma.AddVec(learning_rate_, l_gamma);
 }
 
 void SigmoidComponent::Propagate(const ChunkInfo &in_info,
