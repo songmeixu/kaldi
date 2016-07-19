@@ -770,7 +770,7 @@ void BatchNormComponent::CalcFromTotal() {
   mean.CopyFromVec(tot_mean);
   var.CopyFromVec(tot_var);
   mean.Scale(1.0 / tot_cnt);
-  var.Scale(512 * tot_cnt / 511);
+  var.Scale(512.0 / (511.0 * tot_cnt));
 
   a.AddVecVec(1.0, gamma, var, 0.0);
   b.AddVecVec(-1.0, a, mean, 0.0);
