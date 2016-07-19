@@ -224,7 +224,7 @@ int main(int argc, char *argv[]) {
 
     if (to_learnrate_scale) am_nnet.GetNnet().ToLRScale(component_ids, bias_scale, weight_scale);
 
-    if (batchnorm_dec) am_nnet.GetNnet().SetBatchNorm(bool batchnorm_dec);
+    if (batchnorm_dec) am_nnet.GetNnet().SetBatchNorm(batchnorm_dec);
     
     if (stats_from != "") {
       // Copy the stats associated with the layers descending from
