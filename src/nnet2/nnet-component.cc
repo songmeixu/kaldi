@@ -818,13 +818,21 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
   if (!is_dec_) {
     // mean
     mean.AddRowSumMat(1.0 / in.NumRows(), in, 0.0);
-    tot_mean.AddVec(1.0, mean);
     // var
     var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
     CuVector<BaseFloat> mean2(mean);
     mean2.ApplyPow(2);
     var.AddVec(-1.0, mean2);
+
+    ++tot_cnt;
+    if (tot_cnt > 8) {
+      tot_mean.SetZero();
+      tot_var.SetZero();
+      tot_cnt = 1;
+    }
+    tot_mean.AddVec(1.0, mean);
     tot_var.AddVec(1.0, var);
+
     var.ApplyFloor(kNormFloor);
     var.ApplyPow(-0.5);
     var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);

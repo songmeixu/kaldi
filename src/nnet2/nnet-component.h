@@ -653,7 +653,7 @@ class BatchNormComponent: public UpdatableComponent {
 
   mutable CuVector<BaseFloat> mean;
   mutable CuVector<BaseFloat> var;
-  mutable int32 tot_cnt;
+  mutable BaseFloat tot_cnt;
   mutable CuVector<double> tot_mean;
   mutable CuVector<double> tot_var;
 
