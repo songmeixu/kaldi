@@ -641,6 +641,8 @@ BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
     gamma(component.gamma),
     beta(component.beta),
     a(component.a), b(component.b),
+    mean(component.mean),
+    var(component.var),
     tot_mean(component.tot_mean),
     tot_var(component.tot_var),
     tot_cnt(component.tot_cnt) { }
@@ -649,14 +651,14 @@ void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   KALDI_ASSERT(dim > 0);
   UpdatableComponent::Init(learning_rate);
   is_dec_ = false;
-  mean.Resize(dim);
-  var.Resize(dim);
   gamma.Resize(dim);
   gamma.Set(1.0);
   beta.Resize(dim);
   a.Resize(dim);
   a.Set(1.0);
   b.Resize(dim);
+  mean.Resize(dim);
+  var.Resize(dim);
   tot_mean.Resize(dim);
   tot_var.Resize(dim);
   tot_cnt = 0;
@@ -750,6 +752,8 @@ Component* BatchNormComponent::Copy() const {
   ans->beta = beta;
   ans->a = a;
   ans->b = b;
+  ans->mean = mean;
+  ans->var = var;
   ans->tot_mean = tot_mean;
   ans->tot_var = tot_var;
   ans->tot_cnt = tot_cnt;
@@ -812,11 +816,9 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
                                    CuMatrixBase<BaseFloat> *out) const  {
   if (!is_dec_) {
     // mean
-    mean.Resize(in.NumCols());
     mean.AddRowSumMat(1.0 / in.NumRows(), in, 0.0);
     tot_mean.AddVec(1.0, mean);
     // var
-    var.Resize(in.NumCols());
     var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
     CuVector<BaseFloat> mean2(mean);
     mean2.ApplyPow(2);
