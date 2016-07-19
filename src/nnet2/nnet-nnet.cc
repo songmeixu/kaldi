@@ -573,6 +573,19 @@ void Nnet::ToLRScale(const std::vector<int32> &component_ids, BaseFloat bias_sca
   Check();
 }
 
+void Nnet::SetBatchNorm(bool is_dec) {
+  int32 i = 0;
+  for (int32 j = 0; j < NumComponents(); j++) {
+    BatchNormComponent *bc = dynamic_cast<BatchNormComponent*>(&(GetComponent(j)));
+    if (bc!= NULL) {
+      bc->SetDec(is_dec);
+      i++;
+    }
+  }
+  if (i > 0)
+    KALDI_LOG << "Convert " << i << " BatchNormComponent to dec state.";
+}
+
 void Nnet::SetDropoutScale(BaseFloat scale) {
   size_t n_set = 0;
   for (size_t i = 0; i < components_.size(); i++) {

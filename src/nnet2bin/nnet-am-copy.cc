@@ -53,6 +53,7 @@ int main(int argc, char *argv[]) {
     bool collapse = false;
     bool match_updatableness = true;
     bool to_learnrate_scale = false;
+    bool batchnorm_dec = false;
     BaseFloat learning_rate_factor = 1.0, learning_rate = -1;
     BaseFloat bias_scale = 1.0, weight_scale = 1.0;
     std::string learning_rate_scales_str = " ";
@@ -111,6 +112,7 @@ int main(int argc, char *argv[]) {
                 "for AffineComponentLRScalePreconditionedOnline");
     po.Register("component_id", &component_id, "must with to-learnrate-scale = true, "
                 "Components to convert: comma-separated list of integers, e.g. 0,2,4");
+    po.Register("batchnorm-dec", &batchnorm_dec, "convert BatchNormComponent to dec state");
 
     po.Read(argc, argv);
     
@@ -221,6 +223,8 @@ int main(int argc, char *argv[]) {
     if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint(from_id, mq_mag);
 
     if (to_learnrate_scale) am_nnet.GetNnet().ToLRScale(component_ids, bias_scale, weight_scale);
+
+    if (batchnorm_dec) am_nnet.GetNnet().SetBatchNorm(bool batchnorm_dec);
     
     if (stats_from != "") {
       // Copy the stats associated with the layers descending from

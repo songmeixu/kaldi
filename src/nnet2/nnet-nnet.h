@@ -135,6 +135,8 @@ class Nnet {
 
   void ToLRScale(const std::vector<int32> &component_ids, BaseFloat bias_scale, BaseFloat weight_scale);
 
+  void SetBatchNorm(bool is_dec);
+
   /// Calls SetDropoutScale for all the dropout nodes.
   void SetDropoutScale(BaseFloat scale);
   
