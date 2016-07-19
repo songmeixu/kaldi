@@ -812,9 +812,11 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
                                    CuMatrixBase<BaseFloat> *out) const  {
   if (!is_dec_) {
     // mean
+    mean.Resize(in.NumCols());
     mean.AddRowSumMat(1.0 / in.NumRows(), in, 0.0);
     tot_mean.AddVec(1.0, mean);
     // var
+    var.Resize(in.NumCols());
     var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
     CuVector<BaseFloat> mean2(mean);
     mean2.ApplyPow(2);
