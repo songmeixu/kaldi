@@ -825,11 +825,11 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     var.AddVec(-1.0, mean2);
 
     ++tot_cnt;
-    if (tot_cnt > 1000) {
-      tot_mean.SetZero();
-      tot_var.SetZero();
-      tot_cnt = 1;
-    }
+//    if (tot_cnt > 1000) {
+//      tot_mean.SetZero();
+//      tot_var.SetZero();
+//      tot_cnt = 1;
+//    }
     tot_mean.AddVec(1.0, mean);
     tot_var.AddVec(1.0, var);
 
