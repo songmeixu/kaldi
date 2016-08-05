@@ -659,8 +659,8 @@ class BatchNormComponent: public UpdatableComponent {
 
   CuVector<BaseFloat> gamma;
   CuVector<BaseFloat> beta;
-  CuVector<BaseFloat> a;
-  CuVector<BaseFloat> b;
+  mutable CuVector<BaseFloat> a;
+  mutable CuVector<BaseFloat> b;
   // about 0.7e-20.  We need a value that's exactly representable in
   // float and whose inverse square root is also exactly representable
   // in float (hence, an even power of two).

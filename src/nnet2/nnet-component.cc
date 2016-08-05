@@ -843,6 +843,10 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     out->MulColsVec(var);
     out->MulColsVec(gamma);
     out->AddVecToRows(1.0, beta);
+
+    a.AddVecVec(1.0, gamma, var, 0.0);
+    b.AddVecVec(-1.0, a, mean, 0.0);
+    b.AddVec(1.0, beta);
   } else {
     out->CopyFromMat(in);
     out->MulColsVec(a);
