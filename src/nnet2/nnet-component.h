@@ -593,6 +593,8 @@ class BatchNormComponent: public UpdatableComponent {
     CalcFromTotal();
   }
 
+  void Reset();
+
   virtual int32 InputDim() const { return a.Dim(); }
   virtual int32 OutputDim() const { return a.Dim(); }
 

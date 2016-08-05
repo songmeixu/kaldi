@@ -137,6 +137,8 @@ class Nnet {
 
   void SetBatchNorm(bool is_dec);
 
+  void ResetBatchNorm();
+
   /// Calls SetDropoutScale for all the dropout nodes.
   void SetDropoutScale(BaseFloat scale);
   

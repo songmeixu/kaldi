@@ -778,6 +778,12 @@ void BatchNormComponent::CalcFromTotal() {
   b.AddVec(1.0, beta);
 }
 
+void BatchNormComponent::Reset() {
+  tot_cnt = 0;
+  tot_mean.SetZero();
+  tot_var.SetZero();
+}
+
 void BatchNormComponent::Scale(BaseFloat scale) {
   gamma.Scale(scale);
   beta.Scale(scale);
