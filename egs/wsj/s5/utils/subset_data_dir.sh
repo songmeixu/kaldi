@@ -27,8 +27,9 @@
 
 # If you give the --last option, it will just give you the n last utterances.
 
-# If you give the --spk-list option, it reads the speakers to keep from <speaker-list-file>"
-# (note, in this case there is no <num-utt> positional parameter; see usage message.)
+# If you give the --spk-list or --utt-list option, it reads the
+# speakers/utterances to keep from <speaker-list-file>/<utt-list-file>" (note,
+# in this case there is no <num-utt> positional parameter; see usage message.)
 
 
 shortest=false

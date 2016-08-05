@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Copyright 2013 The Shenzhen Key Laboratory of Intelligent Media and Speech,
-#                PKU-HKUST Shenzhen Hong Kong Institution (Author: Wei Shi)
+# Copyright 2013  The Shenzhen Key Laboratory of Intelligent Media and Speech,
+#                 PKU-HKUST Shenzhen Hong Kong Institution (Author: Wei Shi)
+#           2016  Johns Hopkins University (author: Daniel Povey)
 # Apache 2.0
 # Combine filterbank and pitch features together
 # Note: This file is based on make_fbank.sh and make_pitch_kaldi.sh
@@ -21,9 +22,11 @@ echo "$0 $@"  # Print the command line for logging
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
-if [ $# != 3 ]; then
-   echo "usage: make_fbank_pitch.sh [options] <data-dir> <log-dir> <path-to-fbank-pitch-dir>";
-   echo "options: "
+if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+   echo "Usage: $0 [options] <data-dir> [<log-dir> [<fbank-dir>] ]";
+   echo "e.g.: $0 data/train exp/make_fbank/train mfcc"
+   echo "Note: <log-dir> defaults to <data-dir>/log, and <fbank-dir> defaults to <data-dir>/data"
+   echo "Options: "
    echo "  --fbank-config             <config-file>             # config passed to compute-fbank-feats "
    echo "  --pitch-config             <pitch-config-file>       # config passed to compute-kaldi-pitch-feats "
    echo "  --pitch-postprocess-config <postprocess-config-file> # config passed to process-kaldi-pitch-feats "
@@ -34,8 +37,16 @@ if [ $# != 3 ]; then
 fi
 
 data=$1
-logdir=$2
-fbank_pitch_dir=$3
+if [ $# -ge 2 ]; then
+  logdir=$2
+else
+  logdir=$data/log
+fi
+if [ $# -ge 3 ]; then
+  fbank_pitch_dir=$3
+else
+  fbank_pitch_dir=$data/data
+fi
 
 
 # make $fbank_pitch_dir an absolute pathname.

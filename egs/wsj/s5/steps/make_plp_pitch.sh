@@ -2,6 +2,7 @@
 
 # Copyright 2013 The Shenzhen Key Laboratory of Intelligent Media and Speech,
 #                PKU-HKUST Shenzhen Hong Kong Institution (Author: Wei Shi)
+#           2016  Johns Hopkins University (Author: Daniel Povey)
 # Apache 2.0
 # Combine PLP and pitch features together
 # Note: This file is based on make_plp.sh and make_pitch_kaldi.sh
@@ -21,9 +22,11 @@ echo "$0 $@"  # Print the command line for logging
 if [ -f path.sh ]; then . ./path.sh; fi
 . parse_options.sh || exit 1;
 
-if [ $# != 3 ]; then
-   echo "usage: make_plp_pitch.sh [options] <data-dir> <log-dir> <path-to-plp-pitch-dir>";
-   echo "options: "
+if [ $# -lt 1 ] || [ $# -gt 3 ]; then
+   echo "Usage: $0 [options] <data-dir> [<log-dir> [<plp-dir>] ]";
+   echo "e.g.: $0 data/train exp/make_plp/train mfcc"
+   echo "Note: <log-dir> defaults to <data-dir>/log, and <plp-dir> defaults to <data-dir>/data"
+   echo "Options: "
    echo "  --plp-config               <config-file>             # config passed to compute-plp-feats "
    echo "  --pitch-config             <pitch-config-file>       # config passed to compute-kaldi-pitch-feats "
    echo "  --pitch-postprocess-config <postprocess-config-file> # config passed to process-kaldi-pitch-feats "
@@ -34,9 +37,16 @@ if [ $# != 3 ]; then
 fi
 
 data=$1
-logdir=$2
-plp_pitch_dir=$3
-
+if [ $# -ge 2 ]; then
+  logdir=$2
+else
+  logdir=$data/log
+fi
+if [ $# -ge 3 ]; then
+  plp_pitch_dir=$3
+else
+  plp_pitch_dir=$data/data
+fi
 
 # make $plp_pitch_dir an absolute pathname.
 plp_pitch_dir=`perl -e '($dir,$pwd)= @ARGV; if($dir!~m:^/:) { $dir = "$pwd/$dir"; } print $dir; ' $plp_pitch_dir ${PWD}`
