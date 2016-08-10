@@ -841,7 +841,6 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     var.ApplyFloor(kNormFloor);
     var.ApplyPow(-0.5);
     var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
-    ++tot_cnt;
 
     out->CopyFromMat(in);
     out->AddVecToRows(-1.0, mean);
