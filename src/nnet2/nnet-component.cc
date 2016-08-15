@@ -804,6 +804,18 @@ void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in
   tot_cnt += alpha * other->tot_cnt;
 }
 
+void BatchNormComponent::SetZero(bool treat_as_gradient) {
+  if (treat_as_gradient) {
+    SetLearningRate(1.0);
+  }
+  gamma.SetZero();
+  beta.SetZero();
+  a.SetZero();
+  b.SetZero();
+  if (treat_as_gradient)
+    is_gradient_ = true;
+}
+
 int32 BatchNormComponent::GetParameterDim() const {
   return 2 * OutputDim();
 }
@@ -847,10 +859,6 @@ void BatchNormComponent::Propagate(const ChunkInfo &in_info,
     out->MulColsVec(var);
     out->MulColsVec(gamma);
     out->AddVecToRows(1.0, beta);
-
-    a.AddVecVec(1.0, gamma, var, 0.0);
-    b.AddVecVec(-1.0, a, mean, 0.0);
-    b.AddVec(1.0, beta);
   } else {
     out->CopyFromMat(in);
     out->MulColsVec(a);
