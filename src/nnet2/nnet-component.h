@@ -586,7 +586,7 @@ class BatchNormComponent: public UpdatableComponent {
 //#define OUT_DIST
  public:
   explicit BatchNormComponent(const BatchNormComponent &other);
-  BatchNormComponent(): is_dec_(false) { }
+  BatchNormComponent(): is_dec_(false), is_gradient_(false) { }
 
   void SetDec(bool is_dec) {
     is_dec_ = is_dec;
@@ -663,9 +663,8 @@ class BatchNormComponent: public UpdatableComponent {
   CuVector<BaseFloat> beta;
   mutable CuVector<BaseFloat> a;
   mutable CuVector<BaseFloat> b;
-  // about 0.7e-20.  We need a value that's exactly representable in
-  // float and whose inverse square root is also exactly representable
-  // in float (hence, an even power of two).
+
+  bool is_gradient_; // If true, treat this as just a gradient.
 };
 
 class SigmoidComponent: public NonlinearComponent {

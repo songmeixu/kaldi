@@ -644,7 +644,8 @@ BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
     var(component.var),
     tot_mean(component.tot_mean),
     tot_var(component.tot_var),
-    tot_cnt(component.tot_cnt) { }
+    tot_cnt(component.tot_cnt),
+    is_gradient_(component.is_gradient_) { }
 
 void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   KALDI_ASSERT(dim > 0);
@@ -661,6 +662,7 @@ void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   tot_mean.Resize(dim);
   tot_var.Resize(dim);
   tot_cnt = 0;
+  is_gradient_ = false;
 }
 
 std::string BatchNormComponent::Info() const {
@@ -756,6 +758,7 @@ Component* BatchNormComponent::Copy() const {
   ans->tot_mean = tot_mean;
   ans->tot_var = tot_var;
   ans->tot_cnt = tot_cnt;
+  ans->is_gradient_ = is_gradient_;
   return ans;
 }
 
