@@ -56,7 +56,8 @@ int main(int argc, char *argv[]) {
     float trans_prob;
 
     int32 pdf_num = trans_model.NumPdfs();
-    trans_ofp.write((const char *) &pdf_num, sizeof(int));
+    int32 state_num = pdf_num + 1; // 0 for <eps>
+    trans_ofp.write((const char *) &state_num, sizeof(int));
 
     Vector<BaseFloat> trans_probs;
     trans_probs.Resize(2*pdf_num);
