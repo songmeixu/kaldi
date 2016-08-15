@@ -61,31 +61,31 @@ int main(int argc, char *argv[]) {
 
     Vector<BaseFloat> trans_probs;
     trans_probs.Resize(2*pdf_num);
-    trans_probs.Set(1.0f);
+    trans_probs.Set(-1.0f);
 
     for (int t = 1; t <= trans_model.NumTransitionIds(); ++t) {
       int32 pdf_id = trans_model.TransitionIdToPdf(t);
       int32 trans_state = trans_model.TransitionIdToTransitionState(t);
       int32 trans_id;
-      if (trans_probs(pdf_id) > 0.0f) {
+      if (trans_probs(pdf_id) < 0.0f) {
         trans_id = trans_model.PairToTransitionId(trans_state, 0);
-        trans_probs(pdf_id) = trans_model.GetTransitionLogProb(trans_id);
+        trans_probs(pdf_id) = - trans_model.GetTransitionLogProb(trans_id);
       }
-      if (trans_probs(pdf_num + pdf_id) > 0.0f) {
+      if (trans_probs(pdf_num + pdf_id) < 0.0f) {
         trans_id = trans_model.PairToTransitionId(trans_state, 1);
-        trans_probs(pdf_num + pdf_id) = trans_model.GetTransitionLogProb(trans_id);
+        trans_probs(pdf_num + pdf_id) = - trans_model.GetTransitionLogProb(trans_id);
       }
     }
 
     // [0] for eps, compatible with qihoo .trans format
-    // trans_out
-    trans_prob = log(0.5);
+    // trans_self
+    trans_prob = - log(0.5);
     trans_ofp.write((const char *) &trans_prob, sizeof(float));
     for (int i = 0; i < pdf_num; i++) {
       trans_prob = trans_probs(i);
       trans_ofp.write((const char *) &trans_prob, sizeof(float));
     }
-    // trans_self
+    // trans_out
     trans_ofp.write((const char *) &trans_prob, sizeof(float));
     for (int i = pdf_num; i < 2 * pdf_num; i++) {
       trans_prob = trans_probs(i);
