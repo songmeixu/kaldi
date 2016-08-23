@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
         "\n"
         "The program is used jointly with utils/map_arpa_lm.pl to build\n"
         "ConstArpaLm format language model. We first map the words in an Arpa\n"
-        "format language model to integers using utils/map_arpa_m.pl, and\n"
+        "format language model to integers using utils/map_arpa_lm.pl, and\n"
         "then use this program to build a ConstArpaLm format language model.\n"
         "\n"
         "Usage: arpa-to-const-arpa [opts] <input-arpa> <const-arpa>\n"
