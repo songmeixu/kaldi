@@ -108,7 +108,7 @@ if [ $stage -le -5 ]; then
     exit 1;
   fi
   $cmd JOB=1 $dir/log/init_mono.log \
-    gmm-init-mono $shared_phones_opt "--train-feats=$feats subset-feats --n=10 ark:- ark:-|" $lang/topo $feat_dim \
+    gmm-init-mono --binary=false $shared_phones_opt "--train-feats=$feats subset-feats --n=10 ark:- ark:-|" $lang/topo $feat_dim \
       $dir/mono.mdl $dir/mono.tree || exit 1;
 fi
 
@@ -149,14 +149,14 @@ if [ $stage -le -3 ] && $train_tree; then
 
   echo "$0: Building the tree"
   $cmd $dir/log/build_tree.log \
-    build-tree $context_opts --verbose=1 --max-leaves=$numleaves \
+    build-tree --binary=false $context_opts --verbose=1 --max-leaves=$numleaves \
     --cluster-thresh=$cluster_thresh $dir/treeacc $lang/phones/roots.int \
     $dir/questions.qst $lang/topo $dir/tree || exit 1;
 fi
 
 if [ $stage -le -2 ]; then
   echo "$0: Initializing the model"
-  gmm-init-model  --write-occs=$dir/1.occs  \
+  gmm-init-model --binary=false --write-occs=$dir/1.occs  \
     $dir/tree $dir/treeacc $lang/topo $dir/1.mdl 2> $dir/log/init_model.log || exit 1;
   grep 'no stats' $dir/log/init_model.log && echo "This is a bad warning.";
   rm $dir/treeacc
