@@ -1011,6 +1011,7 @@ class AffineComponent: public UpdatableComponent {
              AffineComponent *c3);
  protected:
   friend class AffineComponentPreconditionedOnline;
+  friend class CatComponentPreconditionedOnline;
   // This function Update() is for extensibility; child classes may override this.
   virtual void Update(
       const CuMatrixBase<BaseFloat> &in_value,
@@ -2014,6 +2015,129 @@ bool ParseFromString(const std::string &name, std::string *string,
 bool ParseFromString(const std::string &name, std::string *string,
                      bool *param);
 
+
+class CatComponentPreconditionedOnline: public AffineComponent {
+ public:
+  virtual std::string Type() const {
+    return "CatComponentPreconditionedOnline";
+  }
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+  void Init(BaseFloat learning_rate,
+            int32 input_dim, int32 output_dim,
+            BaseFloat param_stddev, BaseFloat bias_stddev,
+            int32 rank_in, int32 rank_out, int32 update_period,
+            BaseFloat num_samples_history, BaseFloat alpha,
+            BaseFloat max_change_per_sample);
+  void Init(BaseFloat learning_rate, int32 rank_in,
+            int32 rank_out, int32 update_period,
+            BaseFloat num_samples_history,
+            BaseFloat alpha, BaseFloat max_change_per_sample,
+            std::string matrix_filename);
+
+  virtual void Resize(int32 input_dim, int32 output_dim);
+
+  virtual void Add(BaseFloat alpha, const UpdatableComponent &other);
+
+  // This constructor is used when converting neural networks partway through
+  // training, from AffineComponent or CatComponentPreconditionedOnline to
+  // CatComponentPreconditionedOnline.
+  CatComponentPreconditionedOnline(const AffineComponent &orig,
+                                   int32 rank_in, int32 rank_out,
+                                   int32 update_period,
+                                   BaseFloat eta, BaseFloat alpha);
+
+  virtual void InitFromString(std::string args);
+  virtual std::string Info() const;
+  virtual Component* Copy() const;
+
+  virtual int32 GetParameterDim() const;
+
+  virtual void Scale(BaseFloat scale);
+
+  virtual void Vectorize(VectorBase<BaseFloat> *params) const;
+
+  CatComponentPreconditionedOnline(): max_change_per_sample_(0.0) {
+    dec_ = false;
+    num_clusters_ = 10;
+  }
+
+  virtual void Propagate(const ChunkInfo &in_info,
+                         const ChunkInfo &out_info,
+                         const CuMatrixBase<BaseFloat> &in,
+                         CuMatrixBase<BaseFloat> *out) const;
+
+  virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
+
+  void SetSpkerBatch(std::vector<std::string> *spkers) {
+    cur_batch_spkers_.swap(*spkers);
+  }
+
+  void SetCatcomponent(int32 num_clusters) {
+    num_clusters_ = num_clusters;
+  }
+
+  void SetCatSpkerInDec(std::string spker_dec) {
+    dec_ = true;
+    cur_spker_dec_ = spker_dec;
+  }
+
+ private:
+  KALDI_DISALLOW_COPY_AND_ASSIGN(CatComponentPreconditionedOnline);
+
+  // cat members
+  int32 num_clusters_;
+  int32 num_spkers_;
+  bool dec_;
+  std::string cur_spker_dec_;
+  std::vector<CuMatrix<BaseFloat> > cluster_weights_;
+  std::map<std::string, std::vector<BaseFloat> > spker_clusterCoffs_;
+  std::vector<std::string> cur_batch_spkers_;
+
+  // Configs for preconditioner.  The input side tends to be better conditioned ->
+  // smaller rank needed, so make them separately configurable.
+  int32 rank_in_;
+  int32 rank_out_;
+  int32 update_period_;
+  BaseFloat num_samples_history_;
+  BaseFloat alpha_;
+
+  OnlinePreconditioner preconditioner_in_;
+
+  OnlinePreconditioner preconditioner_out_;
+
+  BaseFloat max_change_per_sample_;
+  // If > 0, max_change_per_sample_ this is the maximum amount of parameter
+  // change (in L2 norm) that we allow per sample, averaged over the minibatch.
+  // This was introduced in order to control instability.
+  // Instead of the exact L2 parameter change, for
+  // efficiency purposes we limit a bound on the exact
+  // change.  The limit is applied via a constant <= 1.0
+  // for each minibatch, A suitable value might be, for
+  // example, 10 or so; larger if there are more
+  // parameters.
+
+  /// The following function is only called if max_change_per_sample_ > 0, it returns a
+  /// scaling factor alpha <= 1.0 (1.0 in the normal case) that enforces the
+  /// "max-change" constraint.  "in_products" is the inner product with itself
+  /// of each row of the matrix of preconditioned input features; "out_products"
+  /// is the same for the output derivatives.  gamma_prod is a product of two
+  /// scalars that are output by the preconditioning code (for the input and
+  /// output), which we will need to multiply into the learning rate.
+  /// out_products is a pointer because we modify it in-place.
+  BaseFloat GetScalingFactor(const CuVectorBase<BaseFloat> &in_products,
+                             BaseFloat gamma_prod,
+                             CuVectorBase<BaseFloat> *out_products);
+
+  // Sets the configs rank, alpha and eta in the preconditioner objects,
+  // from the class variables.
+  void SetPreconditionerConfigs();
+
+  virtual void Update(
+      const CuMatrixBase<BaseFloat> &in_value,
+      const CuMatrixBase<BaseFloat> &out_deriv);
+};
 
 } // namespace nnet2
 } // namespace kaldi

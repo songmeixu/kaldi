@@ -37,9 +37,9 @@ int main(int argc, char *argv[]) {
             "affine components.  You specify the number of singlular values to\n"
             "retain as e.g. --dim=200\n"
             "\n"
-            "Usage:  nnet-am-limit-rank-final [options] <nnet-in> <nnet-out>\n"
+            "Usage:  nnet2-eigen-svd-compress [options] <nnet-in> <nnet-out>\n"
             "e.g.:\n"
-            " nnet-am-limit-rank-final --dim=32:32:32:64 1.mdl 1_limited.mdl\n";
+            " nnet2-eigen-svd-compress --dim=32:32:32:64 1.mdl 1_limited.mdl\n";
 
 
     bool binary_write = true;

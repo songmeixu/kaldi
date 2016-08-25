@@ -82,6 +82,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new AffineComponentPreconditioned();
   } else if (component_type == "AffineComponentPreconditionedOnline") {
     ans = new AffineComponentPreconditionedOnline();
+  } else if (component_type == "CatComponentPreconditionedOnline") {
+    ans = new CatComponentPreconditionedOnline();
   } else if (component_type == "AffineComponentLRScalePreconditionedOnline") {
     ans = new AffineComponentLRScalePreconditionedOnline();
   } else if (component_type == "SumGroupComponent") {
@@ -5138,6 +5140,504 @@ std::string MaxpoolingComponent::Info() const {
          << ", pool-size = " << pool_size_
          << ", pool-stride = " << pool_stride_;
   return stream.str();
+}
+
+
+void CatComponentPreconditionedOnline::Resize(
+    int32 input_dim, int32 output_dim) {
+  KALDI_ASSERT(input_dim > 1 && output_dim > 1);
+  if (rank_in_ >= input_dim) rank_in_ = input_dim - 1;
+  if (rank_out_ >= output_dim) rank_out_ = output_dim - 1;
+  bias_params_.Resize(output_dim);
+  linear_params_.Resize(output_dim, input_dim);
+  OnlinePreconditioner temp;
+  preconditioner_in_ = temp;
+  preconditioner_out_ = temp;
+  SetPreconditionerConfigs();
+}
+
+void CatComponentPreconditionedOnline::Add(BaseFloat alpha, const UpdatableComponent &other_in) {
+  const CatComponentPreconditionedOnline *other =
+      dynamic_cast<const CatComponentPreconditionedOnline*>(&other_in);
+  KALDI_ASSERT(other != NULL);
+  bias_params_.AddVec(alpha, other->bias_params_);
+  for (int c = 0; c < num_clusters_; ++c) {
+    cluster_weights_[c].AddMat(alpha, other->cluster_weights_[c]);
+  }
+}
+
+void CatComponentPreconditionedOnline::InitFromString(std::string args) {
+  std::string orig_args(args);
+  bool ok = true;
+  std::string matrix_filename;
+  BaseFloat learning_rate = learning_rate_;
+  BaseFloat num_samples_history = 2000.0, alpha = 4.0,
+      max_change_per_sample = 0.1;
+  int32 input_dim = -1, output_dim = -1, rank_in = 30, rank_out = 80,
+      update_period = 1;
+  ParseFromString("learning-rate", &args, &learning_rate); // optional.
+  ParseFromString("num-samples-history", &args, &num_samples_history);
+  ParseFromString("alpha", &args, &alpha);
+  ParseFromString("max-change-per-sample", &args, &max_change_per_sample);
+  ParseFromString("rank-in", &args, &rank_in);
+  ParseFromString("rank-out", &args, &rank_out);
+  ParseFromString("update-period", &args, &update_period);
+
+  if (ParseFromString("matrix", &args, &matrix_filename)) {
+    Init(learning_rate, rank_in, rank_out, update_period,
+         num_samples_history, alpha, max_change_per_sample,
+         matrix_filename);
+    if (ParseFromString("input-dim", &args, &input_dim))
+      KALDI_ASSERT(input_dim == InputDim() &&
+          "input-dim mismatch vs. matrix.");
+    if (ParseFromString("output-dim", &args, &output_dim))
+      KALDI_ASSERT(output_dim == OutputDim() &&
+          "output-dim mismatch vs. matrix.");
+  } else {
+    ok = ok && ParseFromString("input-dim", &args, &input_dim);
+    ok = ok && ParseFromString("output-dim", &args, &output_dim);
+    BaseFloat param_stddev = 1.0 / std::sqrt(input_dim),
+        bias_stddev = 1.0;
+    ParseFromString("param-stddev", &args, &param_stddev);
+    ParseFromString("bias-stddev", &args, &bias_stddev);
+    Init(learning_rate, input_dim, output_dim, param_stddev,
+         bias_stddev, rank_in, rank_out, update_period,
+         num_samples_history, alpha, max_change_per_sample);
+  }
+  if (!args.empty())
+    KALDI_ERR << "Could not process these elements in initializer: "
+              << args;
+  if (!ok)
+    KALDI_ERR << "Bad initializer " << orig_args;
+}
+
+void CatComponentPreconditionedOnline::Init(
+    BaseFloat learning_rate, int32 rank_in, int32 rank_out,
+    int32 update_period, BaseFloat num_samples_history, BaseFloat alpha,
+    BaseFloat max_change_per_sample,
+    std::string matrix_filename) {
+  UpdatableComponent::Init(learning_rate);
+  rank_in_ = rank_in;
+  rank_out_ = rank_out;
+  update_period_ = update_period;
+  num_samples_history_ = num_samples_history;
+  alpha_ = alpha;
+  SetPreconditionerConfigs();
+  KALDI_ASSERT(max_change_per_sample >= 0.0);
+  max_change_per_sample_ = max_change_per_sample;
+  CuMatrix<BaseFloat> mat;
+  ReadKaldiObject(matrix_filename, &mat); // will abort on failure.
+  KALDI_ASSERT(mat.NumCols() >= 2);
+  int32 input_dim = mat.NumCols() - 1, output_dim = mat.NumRows();
+  linear_params_.Resize(output_dim, input_dim);
+  bias_params_.Resize(output_dim);
+  linear_params_.CopyFromMat(mat.Range(0, output_dim, 0, input_dim));
+  bias_params_.CopyColFromMat(mat, input_dim);
+}
+
+CatComponentPreconditionedOnline::CatComponentPreconditionedOnline(
+    const AffineComponent &orig,
+    int32 rank_in, int32 rank_out, int32 update_period,
+    BaseFloat num_samples_history, BaseFloat alpha):
+    max_change_per_sample_(0.1) {
+  this->linear_params_ = orig.linear_params_;
+  this->bias_params_ = orig.bias_params_;
+  this->learning_rate_ = orig.learning_rate_;
+  this->is_gradient_ = orig.is_gradient_;
+  this->rank_in_ = rank_in;
+  this->rank_out_ = rank_out;
+  this->update_period_ = update_period;
+  this->num_samples_history_ = num_samples_history;
+  this->alpha_ = alpha;
+  SetPreconditionerConfigs();
+}
+
+void CatComponentPreconditionedOnline::Init(
+    BaseFloat learning_rate,
+    int32 input_dim, int32 output_dim,
+    BaseFloat param_stddev, BaseFloat bias_stddev,
+    int32 rank_in, int32 rank_out, int32 update_period,
+    BaseFloat num_samples_history, BaseFloat alpha,
+    BaseFloat max_change_per_sample) {
+  UpdatableComponent::Init(learning_rate);
+  linear_params_.Resize(output_dim, input_dim);
+  bias_params_.Resize(output_dim);
+  KALDI_ASSERT(output_dim > 0 && input_dim > 0 && param_stddev >= 0.0 &&
+      bias_stddev >= 0.0);
+  linear_params_.SetRandn(); // sets to random normally distributed noise.
+  linear_params_.Scale(param_stddev);
+  bias_params_.SetRandn();
+  bias_params_.Scale(bias_stddev);
+  rank_in_ = rank_in;
+  rank_out_ = rank_out;
+  update_period_ = update_period;
+  num_samples_history_ = num_samples_history;
+  alpha_ = alpha;
+  SetPreconditionerConfigs();
+  KALDI_ASSERT(max_change_per_sample >= 0.0);
+  max_change_per_sample_ = max_change_per_sample;
+}
+
+std::string CatComponentPreconditionedOnline::Info() const {
+  std::stringstream stream;
+  BaseFloat linear_params_size = static_cast<BaseFloat>(linear_params_.NumRows())
+      * static_cast<BaseFloat>(linear_params_.NumCols());
+  BaseFloat linear_stddev =
+      std::sqrt(TraceMatMat(linear_params_, linear_params_, kTrans) /
+          linear_params_size),
+      bias_stddev = std::sqrt(VecVec(bias_params_, bias_params_) /
+      bias_params_.Dim());
+  stream << Type() << ", input-dim=" << InputDim()
+         << ", output-dim=" << OutputDim()
+         << ", linear-params-stddev=" << linear_stddev
+         << ", bias-params-stddev=" << bias_stddev
+         << ", learning-rate=" << LearningRate()
+         << ", rank-in=" << rank_in_
+         << ", rank-out=" << rank_out_
+         << ", num_samples_history=" << num_samples_history_
+         << ", update_period=" << update_period_
+         << ", alpha=" << alpha_
+         << ", max-change-per-sample=" << max_change_per_sample_;
+  return stream.str();
+}
+
+Component* CatComponentPreconditionedOnline::Copy() const {
+  CatComponentPreconditionedOnline *ans = new CatComponentPreconditionedOnline();
+  ans->learning_rate_ = learning_rate_;
+  ans->rank_in_ = rank_in_;
+  ans->rank_out_ = rank_out_;
+  ans->update_period_ = update_period_;
+  ans->num_samples_history_ = num_samples_history_;
+  ans->alpha_ = alpha_;
+  ans->linear_params_ = linear_params_;
+  ans->bias_params_ = bias_params_;
+  ans->num_clusters_ = num_clusters_;
+  ans->num_spkers_ = num_spkers_;
+  ans->cluster_weights_ = cluster_weights_;
+  ans->spker_clusterCoffs_ = spker_clusterCoffs_;
+  ans->cur_batch_spkers_= cur_batch_spkers_;
+  ans->preconditioner_in_ = preconditioner_in_;
+  ans->preconditioner_out_ = preconditioner_out_;
+  ans->max_change_per_sample_ = max_change_per_sample_;
+  ans->is_gradient_ = is_gradient_;
+  ans->SetPreconditionerConfigs();
+  return ans;
+}
+
+void CatComponentPreconditionedOnline::SetPreconditionerConfigs() {
+  preconditioner_in_.SetRank(rank_in_);
+  preconditioner_in_.SetNumSamplesHistory(num_samples_history_);
+  preconditioner_in_.SetAlpha(alpha_);
+  preconditioner_in_.SetUpdatePeriod(update_period_);
+  preconditioner_out_.SetRank(rank_out_);
+  preconditioner_out_.SetNumSamplesHistory(num_samples_history_);
+  preconditioner_out_.SetAlpha(alpha_);
+  preconditioner_out_.SetUpdatePeriod(update_period_);
+}
+
+BaseFloat CatComponentPreconditionedOnline::GetScalingFactor(
+    const CuVectorBase<BaseFloat> &in_products,
+    BaseFloat learning_rate_scale,
+    CuVectorBase<BaseFloat> *out_products) {
+  static int scaling_factor_printed = 0;
+  int32 minibatch_size = in_products.Dim();
+
+  out_products->MulElements(in_products);
+  out_products->ApplyPow(0.5);
+  BaseFloat prod_sum = out_products->Sum();
+  BaseFloat tot_change_norm = learning_rate_scale * learning_rate_ * prod_sum,
+      max_change_norm = max_change_per_sample_ * minibatch_size;
+  // tot_change_norm is the product of norms that we are trying to limit
+  // to max_value_.
+  KALDI_ASSERT(tot_change_norm - tot_change_norm == 0.0 && "NaN in backprop");
+  KALDI_ASSERT(tot_change_norm >= 0.0);
+  if (tot_change_norm <= max_change_norm) return 1.0;
+  else {
+    BaseFloat factor = max_change_norm / tot_change_norm;
+    if (scaling_factor_printed < 10) {
+      KALDI_LOG << "Limiting step size using scaling factor "
+                << factor << ", for component index " << Index();
+      scaling_factor_printed++;
+    }
+    return factor;
+  }
+}
+
+void CatComponentPreconditionedOnline::Read(std::istream &is, bool binary) {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">";
+  ostr_end << "</" << Type() << ">";
+  // might not see the "<AffineComponentPreconditionedOnline>" part because
+  // of how ReadNew() works.
+  ExpectOneOrTwoTokens(is, binary, ostr_beg.str(), "<LearningRate>");
+  ReadBasicType(is, binary, &learning_rate_);
+
+  ExpectToken(is, binary, "<NumClusters>");
+  ReadBasicType(is, binary, &num_clusters_);
+  ExpectToken(is, binary, "<LinearParams>");
+  for (int c = 0; c < num_clusters_; ++c) {
+    CuMatrix<BaseFloat> cluster_w;
+    cluster_w.Read(is, binary);
+    cluster_weights_.push_back(cluster_w);
+  }
+  linear_params_.Resize(cluster_weights_[0].NumRows(), cluster_weights_[0].NumCols());
+  //linear_params_.Read(is, binary);
+  ExpectToken(is, binary, "<NumSpkers>");
+  ReadBasicType(is, binary, &num_spkers_);
+  for (int s = 0; s < num_spkers_; ++s) {
+    std::string spker;
+    std::vector<BaseFloat> coffs;
+    Peek(is, binary);
+    ReadToken(is, binary, &spker);
+//     ReadIntegerVector(is, binary, &coffs);
+    for (int c = 0; c < num_clusters_; ++c) {
+      BaseFloat coff;
+      ReadBasicType(is, binary, &coff);
+      coffs.push_back(coff);
+    }
+    spker_clusterCoffs_.insert(std::make_pair(spker, coffs));
+  }
+
+  ExpectToken(is, binary, "<BiasParams>");
+  bias_params_.Read(is, binary);
+  std::string tok;
+  ReadToken(is, binary, &tok);
+  if (tok == "<Rank>") {  // back-compatibility (temporary)
+    ReadBasicType(is, binary, &rank_in_);
+    rank_out_ = rank_in_;
+  } else {
+    KALDI_ASSERT(tok == "<RankIn>");
+    ReadBasicType(is, binary, &rank_in_);
+    ExpectToken(is, binary, "<RankOut>");
+    ReadBasicType(is, binary, &rank_out_);
+  }
+  ReadToken(is, binary, &tok);
+  if (tok == "<UpdatePeriod>") {
+    ReadBasicType(is, binary, &update_period_);
+    ExpectToken(is, binary, "<NumSamplesHistory>");
+  } else {
+    update_period_ = 1;
+    KALDI_ASSERT(tok == "<NumSamplesHistory>");
+  }
+  ReadBasicType(is, binary, &num_samples_history_);
+  ExpectToken(is, binary, "<Alpha>");
+  ReadBasicType(is, binary, &alpha_);
+  ExpectToken(is, binary, "<MaxChangePerSample>");
+  ReadBasicType(is, binary, &max_change_per_sample_);
+  ExpectToken(is, binary, ostr_end.str());
+  SetPreconditionerConfigs();
+}
+
+void CatComponentPreconditionedOnline::Write(std::ostream &os, bool binary) const {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">";
+  ostr_end << "</" << Type() << ">";
+  WriteToken(os, binary, ostr_beg.str());
+  WriteToken(os, binary, "<LearningRate>");
+  WriteBasicType(os, binary, learning_rate_);
+
+  WriteToken(os, binary, "<NumClusters>");
+  WriteBasicType(os, binary, num_clusters_);
+  WriteToken(os, binary, "<LinearParams>");
+  for (int c = 0; c < num_clusters_; ++c) {
+    cluster_weights_[c].Write(os, binary);
+  }
+  WriteToken(os, binary, "<NumSpkers>");
+  WriteBasicType(os, binary, num_spkers_);
+  os << std::endl;
+  std::map<std::string, std::vector<BaseFloat> >::const_iterator pos;
+  for (pos = spker_clusterCoffs_.begin(); pos != spker_clusterCoffs_.end(); ++pos) {
+    WriteToken(os, binary, pos->first);
+    for (int c = 0; c < num_clusters_; ++c) {
+      WriteBasicType(os, binary, pos->second[c]);
+    }
+    os << std::endl;
+  }
+
+  WriteToken(os, binary, "<BiasParams>");
+  bias_params_.Write(os, binary);
+  WriteToken(os, binary, "<RankIn>");
+  WriteBasicType(os, binary, rank_in_);
+  WriteToken(os, binary, "<RankOut>");
+  WriteBasicType(os, binary, rank_out_);
+  WriteToken(os, binary, "<UpdatePeriod>");
+  WriteBasicType(os, binary, update_period_);
+  WriteToken(os, binary, "<NumSamplesHistory>");
+  WriteBasicType(os, binary, num_samples_history_);
+  WriteToken(os, binary, "<Alpha>");
+  WriteBasicType(os, binary, alpha_);
+  WriteToken(os, binary, "<MaxChangePerSample>");
+  WriteBasicType(os, binary, max_change_per_sample_);
+  WriteToken(os, binary, ostr_end.str());
+}
+
+int32 CatComponentPreconditionedOnline::GetParameterDim() const {
+  return num_clusters_ * InputDim() * OutputDim() + OutputDim();
+}
+
+void CatComponentPreconditionedOnline::Scale(BaseFloat scale) {
+  for (int c = 0; c < num_clusters_; ++c) {
+    cluster_weights_[c].Scale(scale);
+  }
+  bias_params_.Scale(scale);
+}
+
+void CatComponentPreconditionedOnline::Vectorize(VectorBase<BaseFloat> *params) const {
+  int dim = InputDim() * OutputDim();
+  for (int c = 0; c < num_clusters_; ++c) {
+    params->Range(c * dim, dim).CopyRowsFromMat(cluster_weights_[c]);
+  }
+  params->Range(num_clusters_ * dim,
+                OutputDim()).CopyFromVec(bias_params_);
+}
+
+void CatComponentPreconditionedOnline::Propagate(const ChunkInfo &in_info,
+                                                 const ChunkInfo &out_info,
+                                                 const CuMatrixBase<BaseFloat> &in,
+                                                 CuMatrixBase<BaseFloat> *out) const {
+  in_info.CheckSize(in);
+  out_info.CheckSize(*out);
+  KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
+
+  // No need for asserts as they'll happen within the matrix operations.
+  out->CopyRowsFromVec(bias_params_); // copies bias_params_ to each
+  // row of *out.
+
+  if (dec_) {
+    CuMatrix<BaseFloat> w_sl;
+    w_sl.Resize(linear_params_.NumRows(), linear_params_.NumCols());
+    std::map<std::string, std::vector<BaseFloat> >::const_iterator pos = spker_clusterCoffs_.find(cur_spker_dec_);
+    if (pos == spker_clusterCoffs_.end())
+      KALDI_ERR << "Could not find coff_vec for: " << cur_spker_dec_;
+    for (int c = 0; c < num_clusters_; ++c) {
+      w_sl.AddMat(pos->second[c], cluster_weights_[c]);
+    }
+    out->AddMatMat(1.0, in, kNoTrans, w_sl, kTrans, 1.0);
+  } else {
+    CuMatrix<BaseFloat> w_sl;
+    w_sl.Resize(linear_params_.NumRows(), linear_params_.NumCols());
+    for (int i = 0; i < in.NumRows(); ++i) {
+      // compute W(sl)
+      w_sl.SetZero();
+      std::map<std::string, std::vector<BaseFloat> >::const_iterator pos = spker_clusterCoffs_.find(cur_batch_spkers_[i]);
+      if (pos == spker_clusterCoffs_.end())
+        KALDI_ERR << "Could not find coff_vec for: " << cur_batch_spkers_[i];
+      for (int c = 0; c < num_clusters_; ++c) {
+        w_sl.AddMat(pos->second[c], cluster_weights_[c]);
+      }
+      // propagate this frame
+      //out->Row(i).AddVec(in.Row(i).AddMatVec(w_sl));
+      out->Row(i).AddMatVec(1.0, w_sl, kNoTrans, in.Row(i), 1.0);
+    }
+  }
+  // out->AddMatMat(1.0, in, kNoTrans, linear_params_, kTrans, 1.0);
+}
+
+BaseFloat CatComponentPreconditionedOnline::DotProduct(const UpdatableComponent &other_in) const {
+  const CatComponentPreconditionedOnline *other =
+      dynamic_cast<const CatComponentPreconditionedOnline*>(&other_in);
+  BaseFloat dotProduct = 0;
+  for (int c = 0; c < num_clusters_; ++c) {
+    dotProduct += TraceMatMat(cluster_weights_[c], other->cluster_weights_[c], kTrans);
+  }
+  dotProduct /= num_clusters_;
+  dotProduct += VecVec(bias_params_, other->bias_params_);
+  return dotProduct;
+}
+
+void CatComponentPreconditionedOnline::Update(
+    const CuMatrixBase<BaseFloat> &in_value,
+    const CuMatrixBase<BaseFloat> &out_deriv) {
+  CuMatrix<BaseFloat> in_value_temp;
+
+  in_value_temp.Resize(in_value.NumRows(),
+                       in_value.NumCols() + 1, kUndefined);
+  in_value_temp.Range(0, in_value.NumRows(),
+                      0, in_value.NumCols()).CopyFromMat(in_value);
+
+  // Add the 1.0 at the end of each row "in_value_temp"
+  in_value_temp.Range(0, in_value.NumRows(),
+                      in_value.NumCols(), 1).Set(1.0);
+
+  CuMatrix<BaseFloat> out_deriv_temp(out_deriv);
+
+  CuMatrix<BaseFloat> row_products(2,
+                                   in_value.NumRows());
+  CuSubVector<BaseFloat> in_row_products(row_products, 0),
+      out_row_products(row_products, 1);
+
+  // These "scale" values get will get multiplied into the learning rate (faster
+  // than having the matrices scaled inside the preconditioning code).
+  BaseFloat in_scale, out_scale;
+
+  preconditioner_in_.PreconditionDirections(&in_value_temp, &in_row_products,
+                                            &in_scale);
+  preconditioner_out_.PreconditionDirections(&out_deriv_temp, &out_row_products,
+                                             &out_scale);
+
+  // "scale" is a scaling factor coming from the PreconditionDirections calls
+  // (it's faster to have them output a scaling factor than to have them scale
+  // their outputs).
+  BaseFloat scale = in_scale * out_scale;
+  BaseFloat minibatch_scale = 1.0;
+
+  if (max_change_per_sample_ > 0.0)
+    minibatch_scale = GetScalingFactor(in_row_products, scale,
+                                       &out_row_products);
+
+  CuSubMatrix<BaseFloat> in_value_precon_part(in_value_temp,
+                                              0, in_value_temp.NumRows(),
+                                              0, in_value_temp.NumCols() - 1);
+  // this "precon_ones" is what happens to the vector of 1's representing
+  // offsets, after multiplication by the preconditioner.
+  CuVector<BaseFloat> precon_ones(in_value_temp.NumRows());
+
+  precon_ones.CopyColFromMat(in_value_temp, in_value_temp.NumCols() - 1);
+
+  BaseFloat local_lrate = scale * minibatch_scale * learning_rate_;
+  if (is_update_param_)
+    bias_params_.AddMatVec(local_lrate, out_deriv_temp, kTrans, precon_ones, 1.0);
+
+  CuMatrix<BaseFloat> cluster_weights_temp[num_clusters_];
+  for (int c = 0; c < num_clusters_; ++c) {
+    cluster_weights_temp[c].Resize(linear_params_.NumRows(), linear_params_.NumCols());
+  }
+  std::map<std::string, std::vector<BaseFloat> > spker_clusterCoffs_temp;
+  // 1) accumulate changes
+  for (int i = 0; i < in_value_precon_part.NumRows(); ++i) {
+    // init coff map
+    std::map<std::string, std::vector<BaseFloat> >::iterator pos = spker_clusterCoffs_temp.find(cur_batch_spkers_[i]);
+    if (pos == spker_clusterCoffs_temp.end()) {
+      std::vector<BaseFloat> coffs_temp(num_clusters_, 0.0);
+      spker_clusterCoffs_temp.insert(std::make_pair(cur_batch_spkers_[i], coffs_temp));
+    }
+    // back propagate this frame
+    for (int c = 0; c < num_clusters_; ++c) {
+      if (is_update_param_)
+        cluster_weights_temp[c].AddMatMat(local_lrate * spker_clusterCoffs_[cur_batch_spkers_[i]][c], out_deriv_temp.RowRange(i, 1),
+                                          kTrans, in_value_precon_part.RowRange(i, 1), kNoTrans, 1.0);
+
+      CuSubMatrix<BaseFloat> coff_w(out_deriv_temp, i, 1, 0, out_deriv_temp.NumCols());
+      CuMatrix<BaseFloat> tmp;
+      tmp.Resize(coff_w.NumRows(), cluster_weights_[c].NumCols());
+      tmp.AddMatMat(1.0, coff_w, kNoTrans, cluster_weights_[c], kNoTrans, 0.0);
+      CuMatrix<BaseFloat> tmp2;
+      tmp2.Resize(1, 1);
+      tmp2.AddMatMat(1.0, tmp, kNoTrans, in_value_precon_part.RowRange(i, 1), kTrans, 0.0); // tmp2 should only have 1 elem
+      spker_clusterCoffs_temp[cur_batch_spkers_[i]][c] += local_lrate * tmp2(0, 0);
+    }
+  }
+  // 2) updata param
+  for (int c = 0; c < num_clusters_ && is_update_param_; ++c) {
+    cluster_weights_[c].AddMat(1.0, cluster_weights_temp[c]);
+  }
+  std::map<std::string, std::vector<BaseFloat> >::iterator pos;
+  for (pos = spker_clusterCoffs_temp.begin(); pos != spker_clusterCoffs_temp.end(); ++pos) {
+    for (int c = 0; c < num_clusters_; ++c)
+      spker_clusterCoffs_[pos->first][c] += pos->second[c];
+  }
+
+  // linear_params_.AddMatMat(local_lrate, out_deriv_temp, kTrans, in_value_precon_part, kNoTrans, 1.0);
 }
 
 } // namespace nnet2
