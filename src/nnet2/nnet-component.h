@@ -2090,6 +2090,7 @@ class CatComponentPreconditionedOnline: public AffineComponent {
   int32 num_clusters_;
   int32 num_spkers_;
   bool dec_;
+  bool is_update_param_;
   std::string cur_spker_dec_;
   std::vector<CuMatrix<BaseFloat> > cluster_weights_;
   std::map<std::string, std::vector<BaseFloat> > spker_clusterCoffs_;
