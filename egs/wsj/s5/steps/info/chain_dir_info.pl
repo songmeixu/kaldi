@@ -40,8 +40,8 @@ sub list_all_log_files {
   my @ans = ();
   my $dh;
   if (!opendir($dh, "$nnet_dir/log")) { return (); }
-  while (readdir $dh) {
-    push @ans, $_;
+  while (my $file = readdir $dh) {
+    push @ans, $file;
   }
   closedir $dh;
   return @ans;

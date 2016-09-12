@@ -40,6 +40,16 @@ using namespace kaldi;
 using std::vector;
 using kaldi::int32;
 
+static bool is_chain_gmm = false;
+
+std::string operator*(std::string const &s, size_t n) {
+  std::string r;  // empty string
+  r.reserve(n * s.size());
+  for (size_t i=0; i<n; i++)
+    r += s;
+  return r;
+}
+
 // Generate a string representation of the given EventType;  the symtable is
 // optional, so is the request for positional symbols (tri-phones: 0-left,
 // 1-center, 2-right.
@@ -74,94 +84,41 @@ static std::string EventTypeToString(EventType &e,
   }
   ss << "\"" << std::endl;
 
-
-  bool isSil = false;
-  if (phones_id.size() == 1) {
-    phones_id.push_back(phones_id[0]);
-    phones_id.push_back(phones_id[0]);
-    pdfs_id.push_back(0);
-    pdfs_id.push_back(1);
-    pdfs_id.push_back(2);
-    isSil = true;
-  } else {
-    for (int32 i = 0; i < phones_id.size(); ++i) {
-      int32 pdf_id;
-      ctx_dep.Compute(phones_id, i, &pdf_id);
-      pdfs_id.push_back(pdf_id);
-    }
+  int center_phone_idx = e.size() / 2;
+  HmmTopology::TopologyEntry phone_topo = trans_model.GetTopo().TopologyForPhone(phones_id[center_phone_idx]);
+  int num_states = phone_topo.size();
+  for (int32 i = 0; i < num_states; ++i) {
+    int32 pdf_id;
+    ctx_dep.Compute(phones_id, i, &pdf_id);
+    pdfs_id.push_back(pdf_id);
   }
 
   ss << "<BEGINHMM>" << std::endl;
-  ss << "<NUMSTATES> " << phones_id.size() + 2 << endl;
+  ss << "<NUMSTATES> " << num_states + 2 << endl;
   for (size_t i = 0; i < phones_id.size(); ++i) {
     ss << "<STATE> " << i + 2 << std::endl;
     ss << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
   }
   // print transion prob
   ss << "<TRANSP> " << phones_id.size() + 2 << std::endl;
-  ss << " 0 1 0 0 0" << std::endl;
+  ss << " 0 1" << std::string(" 0") * num_states << std::endl;
   int32 trans_state;
   int32 trans_id;
   BaseFloat loop_prob;
   BaseFloat out_prob;
-  trans_state = trans_model.TripleToTransitionState(phones_id[1], 0, pdfs_id[0]);
-  trans_id = trans_model.PairToTransitionId(trans_state, 0);
-  loop_prob = trans_model.GetTransitionProb(trans_id);
-  trans_id = trans_model.PairToTransitionId(trans_state, 1);
-  out_prob = trans_model.GetTransitionProb(trans_id);
-  ss << " 0 " << loop_prob << " " << out_prob << " 0 0" << std::endl;
-  trans_state = trans_model.TripleToTransitionState(phones_id[1], 1, pdfs_id[1]);
-  trans_id = trans_model.PairToTransitionId(trans_state, 0);
-  loop_prob = trans_model.GetTransitionProb(trans_id);
-  trans_id = trans_model.PairToTransitionId(trans_state, 1);
-  out_prob = trans_model.GetTransitionProb(trans_id);
-  ss << " 0 0 " << loop_prob << " " << out_prob << " 0" << std::endl;
-  trans_state = trans_model.TripleToTransitionState(phones_id[1], 2, pdfs_id[2]);
-  trans_id = trans_model.PairToTransitionId(trans_state, 0);
-  loop_prob = trans_model.GetTransitionProb(trans_id);
-  trans_id = trans_model.PairToTransitionId(trans_state, 1);
-  out_prob = trans_model.GetTransitionProb(trans_id);
-  ss << " 0 0 0 " << loop_prob << " " << out_prob << std::endl;
-  ss << " 0 0 0 0 0" << std::endl;
-  ss << "<ENDHMM>" << std::endl;
-
-  // "sp" copy from "sil"
-  if(isSil) {
-    ss << "~h \"sp\"" << std::endl;
-    ss << "<BEGINHMM>" << std::endl;
-    ss << "<NUMSTATES> " << phones_id.size() + 2 << endl;
-    for (size_t i = 0; i < phones_id.size(); ++i) {
-      ss << "<STATE> " << i + 2 << std::endl;
-      ss << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
-    }
-    // print transion prob
-    ss << "<TRANSP> " << phones_id.size() + 2 << std::endl;
-    ss << " 0 1 0 0 0" << std::endl;
-    int32 trans_state;
-    int32 trans_id;
-    BaseFloat loop_prob;
-    BaseFloat out_prob;
-    trans_state = trans_model.TripleToTransitionState(phones_id[1], 0, pdfs_id[0]);
+  for (int32 i = 0; i < num_states; ++ i) {
+    trans_state = trans_model.TripleToTransitionState(phones_id[center_phone_idx], i, pdfs_id[i]);
     trans_id = trans_model.PairToTransitionId(trans_state, 0);
     loop_prob = trans_model.GetTransitionProb(trans_id);
     trans_id = trans_model.PairToTransitionId(trans_state, 1);
     out_prob = trans_model.GetTransitionProb(trans_id);
-    ss << " 0 " << loop_prob << " " << out_prob << " 0 0" << std::endl;
-    trans_state = trans_model.TripleToTransitionState(phones_id[1], 1, pdfs_id[1]);
-    trans_id = trans_model.PairToTransitionId(trans_state, 0);
-    loop_prob = trans_model.GetTransitionProb(trans_id);
-    trans_id = trans_model.PairToTransitionId(trans_state, 1);
-    out_prob = trans_model.GetTransitionProb(trans_id);
-    ss << " 0 0 " << loop_prob << " " << out_prob << " 0" << std::endl;
-    trans_state = trans_model.TripleToTransitionState(phones_id[1], 2, pdfs_id[2]);
-    trans_id = trans_model.PairToTransitionId(trans_state, 0);
-    loop_prob = trans_model.GetTransitionProb(trans_id);
-    trans_id = trans_model.PairToTransitionId(trans_state, 1);
-    out_prob = trans_model.GetTransitionProb(trans_id);
-    ss << " 0 0 0 " << loop_prob << " " << out_prob << std::endl;
-    ss << " 0 0 0 0 0" << std::endl;
-    ss << "<ENDHMM>" << std::endl;
+    if (is_chain_gmm && i == 1)
+      ss << " 0 0" << loop_prob << " " << out_prob << std::endl;
+    else
+      ss << " 0" << std::string(" 0") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
   }
+  ss << std::string(" 0") * (num_states + 2) << std::endl;
+  ss << "<ENDHMM>" << std::endl;
 
   return ss.str();
 }
@@ -188,48 +145,42 @@ void PrintUnseen(std::ostream &os,
     std::vector<int32> triphone(3, 1);
     std::vector<int32> pdfs_id;
     triphone[1] = *it;
-    for (int32 i = 0; i < 3; ++i) {
+    HmmTopology::TopologyEntry phone_topo = trans_model.GetTopo().TopologyForPhone(*it);
+    int num_states = phone_topo.size();
+    for (int32 i = 0; i < num_states; ++i) {
       int32 pdf_id;
       ctx_dep.Compute(triphone, i, &pdf_id);
       pdfs_id.push_back(pdf_id);
     }
     os << "~h \"sil-" << phn << "+sil\"" << std::endl;
     os << "<BEGINHMM>" << std::endl;
-    os << "<NUMSTATES> 5" << endl;
-    for (size_t i = 0; i < 3; ++i) {
+    os << "<NUMSTATES> " << num_states + 2 << endl;
+    for (size_t i = 0; i < num_states; ++i) {
       os << "<STATE> " << i + 2 << std::endl;
       os << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
     }
     // print transion prob
-    os << "<TRANSP> 5" << std::endl;
-    os << " 0 1 0 0 0" << std::endl;
+    os << "<TRANSP> " << num_states + 2 << std::endl;
+    os << " 0 1" << std::string(" 0") * num_states << std::endl;
     int32 trans_state;
     int32 trans_id;
     BaseFloat loop_prob;
     BaseFloat out_prob;
-    trans_state = trans_model.TripleToTransitionState(*it, 0, pdfs_id[0]);
-    trans_id = trans_model.PairToTransitionId(trans_state, 0);
-    loop_prob = trans_model.GetTransitionProb(trans_id);
-    trans_id = trans_model.PairToTransitionId(trans_state, 1);
-    out_prob = trans_model.GetTransitionProb(trans_id);
-    os << " 0 " << loop_prob << " " << out_prob << " 0 0" << std::endl;
-    trans_state = trans_model.TripleToTransitionState(*it, 1, pdfs_id[1]);
-    trans_id = trans_model.PairToTransitionId(trans_state, 0);
-    loop_prob = trans_model.GetTransitionProb(trans_id);
-    trans_id = trans_model.PairToTransitionId(trans_state, 1);
-    out_prob = trans_model.GetTransitionProb(trans_id);
-    os << " 0 0 " << loop_prob << " " << out_prob << " 0" << std::endl;
-    trans_state = trans_model.TripleToTransitionState(*it, 2, pdfs_id[2]);
-    trans_id = trans_model.PairToTransitionId(trans_state, 0);
-    loop_prob = trans_model.GetTransitionProb(trans_id);
-    trans_id = trans_model.PairToTransitionId(trans_state, 1);
-    out_prob = trans_model.GetTransitionProb(trans_id);
-    os << " 0 0 0 " << loop_prob << " " << out_prob << std::endl;
-    os << " 0 0 0 0 0" << std::endl;
+    for (int32 i = 0; i < num_states; ++ i) {
+      trans_state = trans_model.TripleToTransitionState(*it, i, pdfs_id[i]);
+      trans_id = trans_model.PairToTransitionId(trans_state, 0);
+      loop_prob = trans_model.GetTransitionProb(trans_id);
+      trans_id = trans_model.PairToTransitionId(trans_state, 1);
+      out_prob = trans_model.GetTransitionProb(trans_id);
+      if (is_chain_gmm && i == 1)
+        os << " 0 0" << loop_prob << " " << out_prob << std::endl;
+      else
+        os << " 0" << std::string(" 0") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
+    }
+    os << std::string(" 0") * (num_states + 2) << std::endl;
     os << "<ENDHMM>" << std::endl;
   }
 }
-
 
 int main(int argc, const char *argv[]) {
   try {
@@ -239,11 +190,13 @@ int main(int argc, const char *argv[]) {
 
     const char *usage =
         "convert kaldi hmm.mdl to htk mmf\n"
-            "Usage:  convert2htk <phones-symbol-table> <in-kaldi-mdl-file> <treeacc> <*.occs> <tree>\n"
+            "Usage:  gmm2htk [option] <phones-symbol-table> <in-kaldi-mdl-file> <treeacc> <*.occs> <tree>\n"
             "e.g.: \n"
-            " convert2htk phones.txt final.mdl treeacc occs tree > hmmdefs\n";
+            "gmm2htk phones.txt final.mdl treeacc occs tree > hmmdefs\n";
 
+    bool chain = false;
     ParseOptions po(usage);
+    po.Register("chain", &chain, "input chain gmm model");
 
     po.Read(argc, argv);
 
@@ -252,12 +205,13 @@ int main(int argc, const char *argv[]) {
       exit(1);
     }
 
+    is_chain_gmm = chain;
+
     std::string phones_symtab_filename = po.GetArg(1),
         model_in_filename = po.GetArg(2),
         acc_filename = po.GetOptArg(3),
         occ_filename = po.GetOptArg(4),
         tree_filename = po.GetOptArg(5);
-//                 mmf_filename = po.GetOptArg(5);
 
     // 1. load phones.txt
     fst::SymbolTable *phones_symtab = fst::SymbolTable::ReadText(phones_symtab_filename);
@@ -305,6 +259,7 @@ int main(int argc, const char *argv[]) {
     // (in practice, many of them will be shared, but we plot them anyways)
 
     // build-tree-questions.h:typedef std::vector<std::pair<EventType, Clusterable*> > BuildTreeStatsType
+    // typedef std::vector<std::pair<EventKeyType,EventValueType> > EventType
     BuildTreeStatsType stats;
     {
       bool binary_in;
@@ -312,9 +267,6 @@ int main(int argc, const char *argv[]) {
       Input ki(acc_filename, &binary_in);
       ReadBuildTreeStats(ki.Stream(), binary_in, gc, &stats);
     }
-//    KALDI_LOG << "Number of separate statistics is " << stats.size();
-
-    // typedef std::vector<std::pair<EventKeyType,EventValueType> > EventType
 
     // print hmm: ~h
     // read the tree, get all the leaves
