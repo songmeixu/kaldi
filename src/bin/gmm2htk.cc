@@ -84,13 +84,20 @@ static std::string EventTypeToString(EventType &e,
   }
   ss << "\"" << std::endl;
 
-  int center_phone_idx = e.size() / 2;
+  int center_phone_idx = (e.size() - 1) / 2;
   HmmTopology::TopologyEntry phone_topo = trans_model.GetTopo().TopologyForPhone(phones_id[center_phone_idx]);
-  int num_states = phone_topo.size();
-  for (int32 i = 0; i < num_states; ++i) {
-    int32 pdf_id;
-    ctx_dep.Compute(phones_id, i, &pdf_id);
-    pdfs_id.push_back(pdf_id);
+  int num_states = phone_topo.size() - 1;
+  if (phones_id.size() == 1 && phones_id[0] == 1) { // sil
+    pdfs_id.push_back(0);
+    pdfs_id.push_back(1);
+    if (!is_chain_gmm)
+      pdfs_id.push_back(2);
+  } else { // non-sil
+    for (int32 i = 0; i < num_states; ++i) {
+      int32 pdf_id;
+      ctx_dep.Compute(phones_id, i, &pdf_id);
+      pdfs_id.push_back(pdf_id);
+    }
   }
 
   ss << "<BEGINHMM>" << std::endl;
@@ -146,7 +153,7 @@ void PrintUnseen(std::ostream &os,
     std::vector<int32> pdfs_id;
     triphone[1] = *it;
     HmmTopology::TopologyEntry phone_topo = trans_model.GetTopo().TopologyForPhone(*it);
-    int num_states = phone_topo.size();
+    int num_states = phone_topo.size() - 1;
     for (int32 i = 0; i < num_states; ++i) {
       int32 pdf_id;
       ctx_dep.Compute(triphone, i, &pdf_id);
