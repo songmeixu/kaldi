@@ -102,12 +102,12 @@ static std::string EventTypeToString(EventType &e,
 
   ss << "<BEGINHMM>" << std::endl;
   ss << "<NUMSTATES> " << num_states + 2 << endl;
-  for (size_t i = 0; i < phones_id.size(); ++i) {
+  for (size_t i = 0; i < num_states; ++i) {
     ss << "<STATE> " << i + 2 << std::endl;
     ss << "~s \"PDFID_" << pdfs_id[i] << "\"" << std::endl;
   }
   // print transion prob
-  ss << "<TRANSP> " << phones_id.size() + 2 << std::endl;
+  ss << "<TRANSP> " << num_states + 2 << std::endl;
   ss << " 0 1" << std::string(" 0") * num_states << std::endl;
   int32 trans_state;
   int32 trans_id;
@@ -120,9 +120,9 @@ static std::string EventTypeToString(EventType &e,
     trans_id = trans_model.PairToTransitionId(trans_state, 1);
     out_prob = trans_model.GetTransitionProb(trans_id);
     if (is_chain_gmm && i == 1)
-      ss << " 0 0" << loop_prob << " " << out_prob << std::endl;
+      ss << " 0 0 " << loop_prob << " " << out_prob << std::endl;
     else
-      ss << " 0" << std::string(" 0") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
+      ss << " 0 " << std::string("0 ") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
   }
   ss << std::string(" 0") * (num_states + 2) << std::endl;
   ss << "<ENDHMM>" << std::endl;
@@ -180,9 +180,9 @@ void PrintUnseen(std::ostream &os,
       trans_id = trans_model.PairToTransitionId(trans_state, 1);
       out_prob = trans_model.GetTransitionProb(trans_id);
       if (is_chain_gmm && i == 1)
-        os << " 0 0" << loop_prob << " " << out_prob << std::endl;
+        os << " 0 0 " << loop_prob << " " << out_prob << std::endl;
       else
-        os << " 0" << std::string(" 0") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
+        os << " 0 " << std::string("0 ") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
     }
     os << std::string(" 0") * (num_states + 2) << std::endl;
     os << "<ENDHMM>" << std::endl;
