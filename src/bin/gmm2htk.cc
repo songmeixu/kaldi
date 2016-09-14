@@ -119,7 +119,7 @@ static std::string EventTypeToString(EventType &e,
     loop_prob = trans_model.GetTransitionProb(trans_id);
     trans_id = trans_model.PairToTransitionId(trans_state, 1);
     out_prob = trans_model.GetTransitionProb(trans_id);
-    if (is_chain_gmm && i == 1)
+    if (is_chain_gmm && i == 0)
       ss << " 0 0 " << loop_prob << " " << out_prob << std::endl;
     else
       ss << " 0 " << std::string("0 ") * i << loop_prob << " " << out_prob << std::string(" 0") * (num_states - i - 1) << std::endl;
