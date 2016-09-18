@@ -241,7 +241,8 @@ int main(int argc, const char *argv[]) {
     // print state: ~s
     for (int s = 0; s < trans_model.NumPdfs(); ++s) {
       std::cout << "~s \"PDFID_" << s << "\"" << std::endl;
-      std::cout << "<NUMMIXES> " << am_gmm.NumGaussInPdf(s) << std::endl;
+      if (am_gmm.NumGaussInPdf(s) > 1)
+        std::cout << "<NUMMIXES> " << am_gmm.NumGaussInPdf(s) << std::endl;
       Vector<BaseFloat> weight(am_gmm.GetPdf(s).weights());
       Matrix<BaseFloat> means(am_gmm.NumGaussInPdf(s), am_gmm.Dim());
       am_gmm.GetPdf(s).GetMeans(&means);
@@ -249,7 +250,8 @@ int main(int argc, const char *argv[]) {
       am_gmm.GetPdf(s).GetVars(&vars);
 //      Vector<BaseFloat> gconst(am_gmm.GetPdf(s).gconsts());
       for (int m = 0; m < am_gmm.NumGaussInPdf(s); ++m) {
-        std::cout << "<MIXTURE> " << m+1 << " " << weight(m) << std::endl;
+        if (am_gmm.NumGaussInPdf(s) > 1)
+          std::cout << "<MIXTURE> " << m+1 << " " << weight(m) << std::endl;
         std::cout << "<MEAN> " << am_gmm.Dim() << std::endl;
         for (int i = 0; i < am_gmm.Dim(); ++i)
           std::cout << " " << means(m, i);

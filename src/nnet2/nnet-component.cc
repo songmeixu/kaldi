@@ -793,6 +793,9 @@ void BatchNormComponent::Scale(BaseFloat scale) {
   beta.Scale(scale);
   a.Scale(scale);
   b.Scale(scale);
+  tot_cnt *= scale;
+  tot_mean.Scale(scale);
+  tot_var.Scale(scale);
 }
 
 void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in) {
