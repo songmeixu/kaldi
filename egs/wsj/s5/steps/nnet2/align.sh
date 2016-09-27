@@ -53,6 +53,9 @@ for f in $srcdir/tree $srcdir/${iter}.mdl $data/feats.scp $lang/L.fst $extra_fil
   [ ! -f $f ] && echo "$0: no such file $f" && exit 1;
 done
 
+utils/lang/check_phones_compatible.sh $lang/phones.txt $srcdir/phones.txt || exit 1;
+cp $srcdir/phones.txt  $dir || exit 1;
+
 cp $srcdir/{tree,${iter}.mdl} $dir || exit 1;
 
 
@@ -65,7 +68,7 @@ fi
 echo "$0: feature type is $feat_type"
 
 cmvn_opts=`cat $srcdir/cmvn_opts 2>/dev/null`
-cp $srcdir/cmvn_opts $dir 2>/dev/null
+cp $srcdir/cmvn_opts $srcdir/splice_opts $dir 2>/dev/null
 
 delta_order=`cat $srcdir/delta_order 2>/dev/null`
 cp $srcdir/delta_order $dir 2>/dev/null
