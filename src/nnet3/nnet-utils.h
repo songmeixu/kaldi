@@ -33,7 +33,7 @@ namespace kaldi {
 namespace nnet3 {
 
 
-/// \file nnet-utils.h
+/// \file nnet3/nnet-utils.h
 /// This file contains some miscellaneous functions dealing with class Nnet.
 
 /// Given an nnet and a computation request, this function works out which
@@ -174,6 +174,9 @@ void ConvertRepeatedToBlockAffine(Nnet *nnet);
 /// Info() function (we need this in the CTC code).
 std::string NnetInfo(const Nnet &nnet);
 
+/// This function sets the dropout proportion in all dropout component to 
+/// dropout_proportion value.
+void SetDropoutProportion(BaseFloat dropout_proportion, Nnet *nnet);
 
 /// This function finds a list of components that are never used, and outputs
 /// the integer comopnent indexes (you can use these to index
