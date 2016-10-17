@@ -587,7 +587,8 @@ def Train(args, run_opts):
                                     frames_per_iter = args.frames_per_iter,
                                     srand = args.srand,
                                     transform_dir = args.transform_dir,
-                                    stage = args.egs_stage)
+                                    stage = args.egs_stage,
+                                    egs_opts = "--nj 100")
 
     if args.egs_dir is None:
         egs_dir = default_egs_dir
