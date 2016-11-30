@@ -22,7 +22,7 @@ mkdir -p $data/.backup
 
 [ ! -f $data/utt2spk ] && echo "$0: no such file $data/utt2spk" && exit 1;
 
-tmpdir=$(mktemp -d /glfs/tmp/kaldi.XXXX);
+tmpdir=$(mktemp -d ./tmp/kaldi.XXXX);
 trap 'rm -rf "$tmpdir"' EXIT HUP INT PIPE TERM
 
 export LC_ALL=C
@@ -39,7 +39,7 @@ function check_sorted {
   fi
 }
 
-for x in utt2spk spk2utt feats.scp text segments wav.scp cmvn.scp vad.scp \
+for x in utt2spk spk2utt feats.scp text segments wav.scp cmvn.scp vad.scp ali.scp \
     reco2file_and_channel spk2gender utt2lang utt2uniq utt2dur utt2num_frames; do
   if [ -f $data/$x ]; then
     cp $data/$x $data/.backup/$x
@@ -160,7 +160,7 @@ function filter_utts {
     fi
   fi
 
-  for x in utt2spk utt2uniq feats.scp vad.scp text segments utt2lang utt2dur utt2num_frames $maybe_wav; do
+  for x in utt2spk utt2uniq feats.scp vad.scp ali.scp text segments utt2lang utt2dur utt2num_frames $maybe_wav; do
     if [ -f $data/$x ]; then
       cp $data/$x $data/.backup/$x
       if ! cmp -s $data/$x <( utils/filter_scp.pl $tmpdir/utts $data/$x ) ; then
