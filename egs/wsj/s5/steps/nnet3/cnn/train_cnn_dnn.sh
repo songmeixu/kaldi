@@ -280,7 +280,7 @@ num_archives_expanded=$[$num_archives*$frames_per_eg]
 
 
 
-if [ $stage -le -2 ]; then
+if [ $stage -le -2 && use_presoftmax_prior_scale ]; then
   echo "$0: preparing initial vector for FixedScaleComponent before softmax"
   echo "  ... using priors^$presoftmax_prior_scale_power and rescaling to average 1"
 
