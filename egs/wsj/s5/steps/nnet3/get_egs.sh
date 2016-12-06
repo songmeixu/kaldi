@@ -28,6 +28,7 @@ valid_left_context=   # amount of left_context for validation egs, typically use
 valid_right_context=  # amount of right_context for validation egs
 compress=true   # set this to false to disable compression (e.g. if you want to see whether
                 # results are affected).
+delta_order=0     # delta feature order
 
 reduce_frames_per_eg=true  # If true, this script may reduce the frames_per_eg
                            # if there is only one archive and even with the
@@ -95,7 +96,7 @@ dir=$3
 [ ! -z "$online_ivector_dir" ] && \
   extra_files="$online_ivector_dir/ivector_online.scp $online_ivector_dir/ivector_period"
 
-for f in $data/feats.scp $alidir/ali.1.gz $alidir/final.mdl $alidir/tree $extra_files; do
+for f in $data/feats.scp $alidir/tree $extra_files; do
   [ ! -f $f ] && echo "$0: no such file $f" && exit 1;
 done
 
@@ -106,7 +107,6 @@ mkdir -p $dir/log $dir/info
 cp $alidir/tree $dir
 
 num_ali_jobs=$(cat $alidir/num_jobs) || exit 1;
-
 
 num_utts=$(cat $data/utt2spk | wc -l)
 if ! [ $num_utts -gt $[$num_utts_subset*4] ]; then
@@ -152,16 +152,15 @@ if [ -f $transform_dir/raw_trans.1 ] && [ $feat_type == "raw" ]; then
   fi
 fi
 
-
-
 ## Set up features.
 echo "$0: feature type is $feat_type"
 
 case $feat_type in
-  raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:- ark:- |"
-    valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
-    train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | apply-cmvn $cmvn_opts --utt2spk=ark:$data/utt2spk scp:$data/cmvn.scp scp:- ark:- |"
+  raw) feats="ark,s,cs:utils/filter_scp.pl --exclude $dir/valid_uttlist $sdata/JOB/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/global.cmvn ark:- ark:- |"
+    valid_feats="ark,s,cs:utils/filter_scp.pl $dir/valid_uttlist $data/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/global.cmvn ark:- ark:- |"
+    train_subset_feats="ark,s,cs:utils/filter_scp.pl $dir/train_subset_uttlist $data/feats.scp | add-deltas --delta-order=$delta_order scp:- ark:- | apply-cmvn $cmvn_opts $data/global.cmvn ark:- ark:- |"
     echo $cmvn_opts >$dir/cmvn_opts # caution: the top-level nnet training script should copy this to its own dir now.
+    echo $delta_order >$dir/delta_order
    ;;
   lda)
     splice_opts=`cat $alidir/splice_opts 2>/dev/null`
@@ -262,8 +261,9 @@ fi
 
 if [ $stage -le 2 ]; then
   echo "$0: copying data alignments"
-  for id in $(seq $num_ali_jobs); do gunzip -c $alidir/ali.$id.gz; done | \
-    copy-int-vector ark:- ark,scp:$dir/ali.ark,$dir/ali.scp || exit 1;
+  # for id in $(seq $num_ali_jobs); do gunzip -c $alidir/ali.$id.gz; done | \
+  #   copy-int-vector ark:- ark,scp:$dir/ali.ark,$dir/ali.scp || exit 1;
+  cp $data/ali.scp $dir/ali.scp
 fi
 
 egs_opts="--left-context=$left_context --right-context=$right_context --compress=$compress"
