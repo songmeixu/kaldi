@@ -55,6 +55,8 @@ ComponentPrecomputedIndexes* ComponentPrecomputedIndexes::NewComponentPrecompute
     ans = new StatisticsExtractionComponentPrecomputedIndexes();
   } else if (cpi_type == "StatisticsPoolingComponentPrecomputedIndexes") {
     ans = new StatisticsPoolingComponentPrecomputedIndexes();
+  } else if (cpi_type == "BackpropTruncationComponentPrecomputedIndexes") {
+    ans = new BackpropTruncationComponentPrecomputedIndexes();
   }
   if (ans != NULL) {
     KALDI_ASSERT(cpi_type == ans->Type());
@@ -143,6 +145,10 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new ConstantFunctionComponent();
   } else if (component_type == "DropoutComponent") {
     ans = new DropoutComponent();
+  } else if (component_type == "BackpropTruncationComponent") {
+    ans = new BackpropTruncationComponent();
+  } else if (component_type == "LstmNonlinearityComponent") {
+    ans = new LstmNonlinearityComponent();
   }
   if (ans != NULL) {
     KALDI_ASSERT(component_type == ans->Type());
@@ -302,12 +308,14 @@ void NonlinearComponent::ZeroStats() {
 
 std::string NonlinearComponent::Info() const {
   std::stringstream stream;
-  if (InputDim() == OutputDim())
+  if (InputDim() == OutputDim()) {
     stream << Type() << ", dim=" << InputDim();
-  else
+  } else {
+    // Note: this is a very special case tailored for class NormalizeComponent.
     stream << Type() << ", input-dim=" << InputDim()
            << ", output-dim=" << OutputDim()
            << ", add-log-stddev=true";
+  }
 
   if (self_repair_lower_threshold_ != BaseFloat(kUnsetThreshold))
     stream << ", self-repair-lower-threshold=" << self_repair_lower_threshold_;
