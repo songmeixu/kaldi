@@ -181,7 +181,7 @@ else
   ivector_dim=$(feat-to-dim scp:$online_ivector_dir/ivector_online.scp -) || exit 1;
 fi
 
-$feat_dim=$[$feat_dim * ($delta_order + 1)]
+$feat_dim=$[$feat_dim*($delta_order+1)]
 if [ $stage -le -4 ]; then
   echo "$0: creating neural net configs";
 
