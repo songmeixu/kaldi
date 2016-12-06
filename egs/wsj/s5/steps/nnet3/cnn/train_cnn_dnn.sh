@@ -279,7 +279,7 @@ num_archives_expanded=$[$num_archives*$frames_per_eg]
   echo "$0: --final-num-jobs cannot exceed #archives $num_archives_expanded." && exit 1;
 
 
-if [ $stage -le -2] && $use_presoftmax_prior_scale; then
+if $use_presoftmax_prior_scale && [ $stage -le -2 ]; then
   echo "$0: preparing initial vector for FixedScaleComponent before softmax"
   echo "  ... using priors^$presoftmax_prior_scale_power and rescaling to average 1"
 
@@ -307,8 +307,7 @@ if [ $stage -le -1 ]; then
        nnet3-init --srand=-3 $dir/init.raw $dir/configs/layer1.config $dir/0.raw || exit 1;
 
   $cmd $dir/log/init_mdl.log \
-    nnet3-am-init $dir/tree $lang/topo $dir/0.raw - \| \
-    nnet3-am-train-transitions - scp:$data/ali.scp $dir/0.mdl || exit 1;
+    nnet3-am-init $dir/tree $lang/topo $dir/0.raw $dir/0.mdl || exit 1;
 fi
 
 
