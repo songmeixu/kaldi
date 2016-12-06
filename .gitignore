@@ -117,3 +117,4 @@ GSYMS
 .DS_Store
 CMakeLists.txt
 tools/eigen
+/cmake-build-debug
