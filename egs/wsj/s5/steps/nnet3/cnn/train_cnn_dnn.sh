@@ -195,7 +195,7 @@ if [ $stage -le -4 ]; then
   # ln -sf ../idct.mat $dir/configs/idct.mat
 
   # create the config files for nnet initialization
-  python steps/nnet3/make_cnn_dnn_configs.py  \
+  python steps/nnet3/cnn/make_cnn_dnn_configs.py  \
     --cnn-indexes "$cnn_indexes"  \
     --cnn-reduced-dim $cnn_reduced_dim \
     --splice-indexes "$splice_indexes"  \
