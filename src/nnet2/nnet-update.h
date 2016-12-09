@@ -57,7 +57,7 @@ class NnetUpdater {
   /// outputs to that pointer the total accuracy.
   double ComputeForMinibatch(const std::vector<NnetExample> &data,
                              double *tot_accuracy,
-                             const std::vector<std::vector> *pdfids_classes = NULL,
+                             const std::vector<std::vector> &pdfids_classes = NULL,
                              double *tot_classes_accuracy= NULL);
 
   /// This version of ComputeForMinibatch is used when you have already called
@@ -88,7 +88,7 @@ class NnetUpdater {
   double ComputeObjfAndDeriv(const std::vector<NnetExample> &data,
                              CuMatrix<BaseFloat> *deriv,
                              double *tot_accuracy = NULL,
-                             const std::vector<std::vector> *pdfids_classes = NULL,
+                             const std::vector<std::vector> &pdfids_classes = NULL,
                              double *tot_classes_accuracy= NULL) const;
   
 
@@ -103,7 +103,7 @@ class NnetUpdater {
  private:
   // Must be called after Propagate().
   double ComputeTotAccuracy(const std::vector<NnetExample> &data,
-                            const std::vector<std::vector> *pdfids_classes = NULL,
+                            const std::vector<std::vector> &pdfids_classes = NULL,
                             double *tot_classes_accuracy= NULL) const;
 
   const Nnet &nnet_;
@@ -169,7 +169,7 @@ BaseFloat TotalNnetTrainingWeight(const std::vector<NnetExample> &egs);
 double ComputeNnetObjf(const Nnet &nnet,
                        const std::vector<NnetExample> &examples,
                        double *tot_accuracy= NULL,
-                       const std::vector<std::vector> *pdfids_classes = NULL,
+                       const std::vector<std::vector> &pdfids_classes = NULL,
                        double *tot_classes_accuracy= NULL);
 
 /// This version of ComputeNnetObjf breaks up the examples into
