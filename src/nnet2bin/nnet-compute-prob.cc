@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     std::string nnet_rxfilename = po.GetArg(1),
         examples_rspecifier = po.GetArg(2);
 
-    std::vector<std::vector<int>> pdfid_classes;
+    std::vector<std::vector<int>> *pdfid_classes;
     if (!pdf_classes.empty()) {
       std::vector<int32> pdf_ids;
       std::vector<std::string> classes = SplitStrings(pdf_classes, ';');
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
           KALDI_ERR << "Bad --skip-dims option (should be colon-separated list of "
                     << "integers)";
         }
-        pdfid_classes.push_back(pdf_ids);
+        pdfid_classes->push_back(pdf_ids);
       }
     }
 
@@ -118,7 +118,7 @@ int main(int argc, char *argv[]) {
               << " and accuracy is " << (tot_accuracy / tot_weight) << " with "
               << "total weight " << tot_weight;
 
-    if (!pdfid_classes.empty()) {
+    if (!pdfid_classes->empty()) {
       KALDI_LOG << "total classes accuracy is "
                 << (tot_classes_accuracy / tot_weight);
 
