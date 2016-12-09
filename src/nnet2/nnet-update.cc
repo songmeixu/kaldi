@@ -196,6 +196,7 @@ double NnetUpdater::ComputeTotAccuracy(
                 != pdfids_classes[c].end()) {
               *tot_classes_accuracy += weight;
             }
+            break;
           }
         }
       }
