@@ -46,8 +46,8 @@ void NnetUpdater::FormatInput(const std::vector<NnetExample> &data) {
 double NnetUpdater::ComputeForMinibatch(
     const std::vector<NnetExample> &data,
     double *tot_accuracy,
-    const std::vector<std::vector<int>> &pdfids_classes = NULL,
-    double *tot_classes_accuracy= NULL) {
+    const std::vector<std::vector<int>> &pdfids_classes,
+    double *tot_classes_accuracy) {
 
   FormatInput(data);
   Propagate();
@@ -129,8 +129,8 @@ double NnetUpdater::ComputeObjfAndDeriv(
     const std::vector<NnetExample> &data,
     CuMatrix<BaseFloat> *deriv,
     double *tot_accuracy,
-    const std::vector<std::vector<int>> &pdfids_classes = NULL,
-    double *tot_classes_accuracy= NULL) const {
+    const std::vector<std::vector<int>> &pdfids_classes,
+    double *tot_classes_accuracy) const {
   BaseFloat tot_objf = 0.0, tot_weight = 0.0;
   int32 num_components = nnet_.NumComponents();
   int32 num_chunks = data.size();
@@ -165,8 +165,8 @@ double NnetUpdater::ComputeObjfAndDeriv(
 
 double NnetUpdater::ComputeTotAccuracy(
     const std::vector<NnetExample> &data,
-    const std::vector<std::vector<int>> &pdfids_classes = NULL,
-    double *tot_classes_accuracy= NULL) const {
+    const std::vector<std::vector<int>> &pdfids_classes,
+    double *tot_classes_accuracy) const {
   BaseFloat tot_accuracy = 0.0;
   int32 num_components = nnet_.NumComponents();
   const CuMatrix<BaseFloat> &output(forward_data_[num_components]);
@@ -189,11 +189,11 @@ double NnetUpdater::ComputeTotAccuracy(
       if (!pdfids_classes.empty()) {
         for (int c = 0; c < pdfids_classes.size(); ++c) {
           // find ref_pdf_id
-          if (std::find(pdfids_classes[c].begin(), pdfids_classes.end(), ref_pdf_id)
-              != pdfids_classes.end()) {
+          if (std::find(pdfids_classes[c].begin(), pdfids_classes[c].end(), ref_pdf_id)
+              != pdfids_classes[c].end()) {
             // find hyp_pdf_id
-            if (std::find(pdfids_classes[c].begin(), pdfids_classes.end(), hyp_pdf_id)
-                != pdfids_classes.end()) {
+            if (std::find(pdfids_classes[c].begin(), pdfids_classes[c].end(), hyp_pdf_id)
+                != pdfids_classes[c].end()) {
               *tot_classes_accuracy += weight;
             }
           }
@@ -278,8 +278,8 @@ BaseFloat TotalNnetTrainingWeight(const std::vector<NnetExample> &egs) {
 double ComputeNnetObjf(const Nnet &nnet,
                        const std::vector<NnetExample> &examples,
                        double *tot_accuracy,
-                       const std::vector<std::vector<int>> &pdfids_classes = NULL,
-                       double *tot_classes_accuracy= NULL) {
+                       const std::vector<std::vector<int>> &pdfids_classes,
+                       double *tot_classes_accuracy) {
   NnetUpdater updater(nnet, NULL);
   return updater.ComputeForMinibatch(examples, tot_accuracy,
                                      pdfids_classes, tot_classes_accuracy);
