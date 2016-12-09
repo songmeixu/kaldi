@@ -40,8 +40,13 @@ int main(int argc, char *argv[]) {
         "\n"
         "Usage:  nnet-compute-prob [options] <model-in> <training-examples-in>\n"
         "e.g.: nnet-compute-prob 1.nnet ark:valid.egs\n";
+
+    string pdf_classes;
     
     ParseOptions po(usage);
+
+    po.Register("pdf-classes", &pdf_classes, "pdf classes to calculate accuracy: "
+        "colon-separated list of integers, e.g. 0,1,2;3,4,5,6,7,8");
 
     po.Read(argc, argv);
     
@@ -49,9 +54,22 @@ int main(int argc, char *argv[]) {
       po.PrintUsage();
       exit(1);
     }
-    
+
     std::string nnet_rxfilename = po.GetArg(1),
         examples_rspecifier = po.GetArg(2);
+
+    std::vector<std::vector<int>> pdfid_classes;
+    if (!pdf_classes.empty()) {
+      std::vector<int32> pdf_ids;
+      std::vector<std::string> classes = SplitStrings(pdf_classes, ';');
+      for (int i = 0; i < classes.size(); ++i) {
+        if (!SplitStringToIntegers(classes[i], ",", false, &pdf_ids)) {
+          KALDI_ERR << "Bad --skip-dims option (should be colon-separated list of "
+                    << "integers)";
+        }
+        pdfid_classes.push_back(pdf_ids);
+      }
+    }
 
     TransitionModel trans_model;
     AmNnet am_nnet;
@@ -65,13 +83,17 @@ int main(int argc, char *argv[]) {
 
     std::vector<NnetExample> examples;
     double tot_weight = 0.0, tot_like = 0.0, tot_accuracy = 0.0;
+    double tot_classes_accuracy = 0.0;
     int64 num_examples = 0;
     SequentialNnetExampleReader example_reader(examples_rspecifier);
     for (; !example_reader.Done(); example_reader.Next(), num_examples++) {
       if (examples.size() == 1000) {
         double accuracy;
-        tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy);
+        double class_accuracy;
+        tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
+                                    pdfid_classes, &class_accuracy);
         tot_accuracy += accuracy;
+        tot_classes_accuracy += class_accuracy;
         tot_weight += TotalNnetTrainingWeight(examples);
         examples.clear();
       }
@@ -83,8 +105,11 @@ int main(int argc, char *argv[]) {
     }
     if (!examples.empty()) {
       double accuracy;
-      tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy);
-      tot_accuracy += accuracy;      
+      double class_accuracy;
+      tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
+                                  pdfid_classes, &class_accuracy);
+      tot_accuracy += accuracy;
+      tot_classes_accuracy += class_accuracy;
       tot_weight += TotalNnetTrainingWeight(examples);
     }
 
@@ -92,6 +117,12 @@ int main(int argc, char *argv[]) {
               << "probability is " << (tot_like / tot_weight)
               << " and accuracy is " << (tot_accuracy / tot_weight) << " with "
               << "total weight " << tot_weight;
+
+    if (!pdfid_classes.empty()) {
+      KALDI_LOG << "total classes accuracy is "
+                << (tot_classes_accuracy / tot_weight);
+
+    }
     
     std::cout << (tot_like / tot_weight) << "\n";
     return (num_examples == 0 ? 1 : 0);

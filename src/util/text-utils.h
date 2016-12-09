@@ -165,6 +165,9 @@ bool IsToken(const std::string &token);
 /// characters, and does not contain leading or trailing whitespace.
 bool IsLine(const std::string &line);
 
+void SplitStrings(const std::string &s, char delim, std::vector<std::string> &elems);
+
+std::vector<std::string> SplitStrings(const std::string &s, char delim);
 
 }  // namespace kaldi
 

@@ -56,7 +56,9 @@ class NnetUpdater {
   /// Returns total objective function over this minibatch.  If tot_accuracy != NULL,
   /// outputs to that pointer the total accuracy.
   double ComputeForMinibatch(const std::vector<NnetExample> &data,
-                             double *tot_accuracy);
+                             double *tot_accuracy,
+                             const std::vector<std::vector> &pdfids_classes = NULL,
+                             double *tot_classes_accuracy= NULL);
 
   /// This version of ComputeForMinibatch is used when you have already called
   /// the function FormatNnetInput (defined below) to format your data as a
@@ -85,7 +87,9 @@ class NnetUpdater {
   /// involves extra computation.
   double ComputeObjfAndDeriv(const std::vector<NnetExample> &data,
                              CuMatrix<BaseFloat> *deriv,
-                             double *tot_accuracy = NULL) const;
+                             double *tot_accuracy = NULL,
+                             const std::vector<std::vector> &pdfids_classes = NULL,
+                             double *tot_classes_accuracy= NULL) const;
   
 
   /// Backprop must be called after ComputeObjfAndDeriv.  Does the
@@ -98,7 +102,9 @@ class NnetUpdater {
   friend class NnetEnsembleTrainer;
  private:
   // Must be called after Propagate().
-  double ComputeTotAccuracy(const std::vector<NnetExample> &data) const;
+  double ComputeTotAccuracy(const std::vector<NnetExample> &data,
+                            const std::vector<std::vector> &pdfids_classes = NULL,
+                            double *tot_classes_accuracy= NULL) const;
 
   const Nnet &nnet_;
   Nnet *nnet_to_update_;
@@ -162,7 +168,9 @@ BaseFloat TotalNnetTrainingWeight(const std::vector<NnetExample> &egs);
 /// accuracy.
 double ComputeNnetObjf(const Nnet &nnet,
                        const std::vector<NnetExample> &examples,
-                       double *tot_accuracy= NULL);
+                       double *tot_accuracy= NULL,
+                       const std::vector<std::vector> &pdfids_classes = NULL,
+                       double *tot_classes_accuracy= NULL);
 
 /// This version of ComputeNnetObjf breaks up the examples into
 /// multiple minibatches to do the computation.

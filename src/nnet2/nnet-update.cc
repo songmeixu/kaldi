@@ -45,12 +45,15 @@ void NnetUpdater::FormatInput(const std::vector<NnetExample> &data) {
 
 double NnetUpdater::ComputeForMinibatch(
     const std::vector<NnetExample> &data,
-    double *tot_accuracy) {
+    double *tot_accuracy,
+    const std::vector<std::vector> &pdfids_classes = NULL,
+    double *tot_classes_accuracy= NULL) {
 
   FormatInput(data);
   Propagate();
   CuMatrix<BaseFloat> tmp_deriv;
-  double ans = ComputeObjfAndDeriv(data, &tmp_deriv, tot_accuracy);
+  double ans = ComputeObjfAndDeriv(data, &tmp_deriv, tot_accuracy,
+                                   pdfids_classes, tot_classes_accuracy);
   if (nnet_to_update_ != NULL)
     Backprop(&tmp_deriv); // this is summed (after weighting), not
                           // averaged.
@@ -125,7 +128,9 @@ void NnetUpdater::Propagate() {
 double NnetUpdater::ComputeObjfAndDeriv(
     const std::vector<NnetExample> &data,
     CuMatrix<BaseFloat> *deriv,
-    double *tot_accuracy) const {
+    double *tot_accuracy,
+    const std::vector<std::vector> &pdfids_classes = NULL,
+    double *tot_classes_accuracy= NULL) const {
   BaseFloat tot_objf = 0.0, tot_weight = 0.0;
   int32 num_components = nnet_.NumComponents();
   int32 num_chunks = data.size();
@@ -148,7 +153,7 @@ double NnetUpdater::ComputeObjfAndDeriv(
   }
 
   if (tot_accuracy != NULL)
-    *tot_accuracy = ComputeTotAccuracy(data);
+    *tot_accuracy = ComputeTotAccuracy(data, pdfids_classes, tot_classes_accuracy);
   
   deriv->CompObjfAndDeriv(sv_labels, output, &tot_objf, &tot_weight);
   
@@ -159,7 +164,9 @@ double NnetUpdater::ComputeObjfAndDeriv(
 
 
 double NnetUpdater::ComputeTotAccuracy(
-    const std::vector<NnetExample> &data) const {
+    const std::vector<NnetExample> &data,
+    const std::vector<std::vector> &pdfids_classes = NULL,
+    double *tot_classes_accuracy= NULL) const {
   BaseFloat tot_accuracy = 0.0;
   int32 num_components = nnet_.NumComponents();
   const CuMatrix<BaseFloat> &output(forward_data_[num_components]);
@@ -179,6 +186,19 @@ double NnetUpdater::ComputeTotAccuracy(
           hyp_pdf_id = best_pdf_cpu[i];
       BaseFloat weight = labels[j].second;
       tot_accuracy += weight * (hyp_pdf_id == ref_pdf_id ? 1.0 : 0.0);
+      if (!pdfids_classes.empty()) {
+        for (int c = 0; c < pdfids_classes.size(); ++c) {
+          // find ref_pdf_id
+          if (std::find(pdfids_classes[c].begin(), pdfids_classes.end(), ref_pdf_id)
+              != pdfids_classes.end()) {
+            // find hyp_pdf_id
+            if (std::find(pdfids_classes[c].begin(), pdfids_classes.end(), hyp_pdf_id)
+                != pdfids_classes.end()) {
+              *tot_classes_accuracy += weight;
+            }
+          }
+        }
+      }
     }
   }
   return tot_accuracy;
@@ -257,9 +277,12 @@ BaseFloat TotalNnetTrainingWeight(const std::vector<NnetExample> &egs) {
 
 double ComputeNnetObjf(const Nnet &nnet,
                        const std::vector<NnetExample> &examples,
-                       double *tot_accuracy) {
+                       double *tot_accuracy,
+                       const std::vector<std::vector> &pdfids_classes = NULL,
+                       double *tot_classes_accuracy= NULL) {
   NnetUpdater updater(nnet, NULL);
-  return updater.ComputeForMinibatch(examples, tot_accuracy);
+  return updater.ComputeForMinibatch(examples, tot_accuracy,
+                                     pdfids_classes, tot_classes_accuracy);
 }
 
 double DoBackprop(const Nnet &nnet,
