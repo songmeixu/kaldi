@@ -121,7 +121,8 @@ int main(int argc, char *argv[]) {
 
     if (!pdfid_classes.empty()) {
       KALDI_LOG << "total classes accuracy is "
-                << (tot_classes_accuracy / tot_weight);
+                << (tot_classes_accuracy / tot_weight)
+                << " total classes correct num is " << tot_classes_accuracy;
 
     }
     
