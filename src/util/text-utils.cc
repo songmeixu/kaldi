@@ -264,7 +264,7 @@ void SplitStrings(const std::string &s, char delim, std::vector<std::string> &el
 
 std::vector<std::string> SplitStrings(const std::string &s, char delim) {
   std::vector<std::string> elems;
-  split(s, delim, elems);
+  SplitStrings(s, delim, elems);
   return elems;
 }
 
