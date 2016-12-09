@@ -195,8 +195,6 @@ double NnetUpdater::ComputeTotAccuracy(
             if (std::find(pdfids_classes[c].begin(), pdfids_classes[c].end(), hyp_pdf_id)
                 != pdfids_classes[c].end()) {
               *tot_classes_accuracy += weight;
-              std::cout << *tot_classes_accuracy << " " << weight << " "
-                        << ref_pdf_id << " - " << hyp_pdf_id << "\n";
             }
             break;
           }

@@ -89,8 +89,8 @@ int main(int argc, char *argv[]) {
     SequentialNnetExampleReader example_reader(examples_rspecifier);
     for (; !example_reader.Done(); example_reader.Next(), num_examples++) {
       if (examples.size() == 1000) {
-        double accuracy;
-        double class_accuracy;
+        double accuracy = 0.0;
+        double class_accuracy = 0.0;
         tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
                                     pdfid_classes, &class_accuracy);
         tot_accuracy += accuracy;
@@ -105,8 +105,8 @@ int main(int argc, char *argv[]) {
                   << "total weight " << num_examples;
     }
     if (!examples.empty()) {
-      double accuracy;
-      double class_accuracy;
+      double accuracy = 0.0;
+      double class_accuracy = 0.0;
       tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
                                   pdfid_classes, &class_accuracy);
       tot_accuracy += accuracy;
