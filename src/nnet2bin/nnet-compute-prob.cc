@@ -59,9 +59,10 @@ int main(int argc, char *argv[]) {
         examples_rspecifier = po.GetArg(2);
 
     std::vector< std::vector<int> > pdfid_classes;
+    std::cout << pdf_classes << std::endl;
     if (!pdf_classes.empty()) {
-      std::vector<int32> pdf_ids;
-      std::vector<std::string> classes = SplitStrings(pdf_classes, ';');
+      std::vector<int> pdf_ids;
+      std::vector<std::string> classes = SplitStrings(pdf_classes, ':');
       for (int i = 0; i < classes.size(); ++i) {
         if (!SplitStringToIntegers(classes[i], ",", false, &pdf_ids)) {
           KALDI_ERR << "Bad --skip-dims option (should be colon-separated list of "
