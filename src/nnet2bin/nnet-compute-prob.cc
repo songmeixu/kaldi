@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     std::string nnet_rxfilename = po.GetArg(1),
         examples_rspecifier = po.GetArg(2);
 
-    std::vector<std::vector<int>> pdfid_classes;
+    std::vector< std::vector<int> > pdfid_classes;
     if (!pdf_classes.empty()) {
       std::vector<int32> pdf_ids;
       std::vector<std::string> classes = SplitStrings(pdf_classes, ';');
