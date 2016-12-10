@@ -30,7 +30,7 @@ export LC_ALL=C
 
 function check_sorted {
   file=$1
-  sort -T /glfs/tmp -k1,1 -u <$file >$file.tmp
+  sort -T $tmpdir -k1,1 -u <$file >$file.tmp
   if ! cmp -s $file $file.tmp; then
     echo "$0: file $1 is not in sorted order or not unique, sorting it"
     mv $file.tmp $file
@@ -76,7 +76,7 @@ function filter_recordings {
       echo "$0: $data/segments exists but not $data/wav.scp"
       exit 1;
     fi
-    awk '{print $2}' < $data/segments | sort -T /glfs/tmp | uniq > $tmpdir/recordings
+    awk '{print $2}' < $data/segments | sort -T $tmpdir | uniq > $tmpdir/recordings
     n1=`cat $tmpdir/recordings | wc -l`
     [ ! -s $tmpdir/recordings ] && \
       echo "Empty list of recordings (bad file $data/segments)?" && exit 1;
@@ -123,18 +123,18 @@ function filter_utts {
 
 # Do a check.
 
-  ! cat $data/utt2spk | sort -T /glfs/tmp | cmp - $data/utt2spk && \
+  ! cat $data/utt2spk | sort -T $tmpdir | cmp - $data/utt2spk && \
     echo "utt2spk is not in sorted order (fix this yourself)" && exit 1;
 
-  ! cat $data/utt2spk | sort -T /glfs/tmp -k2 | cmp - $data/utt2spk && \
+  ! cat $data/utt2spk | sort -T $tmpdir -k2 | cmp - $data/utt2spk && \
     echo "utt2spk is not in sorted order when sorted first on speaker-id " && \
     echo "(fix this by making speaker-ids prefixes of utt-ids)" && exit 1;
 
-  ! cat $data/spk2utt | sort -T /glfs/tmp | cmp - $data/spk2utt && \
+  ! cat $data/spk2utt | sort -T $tmpdir | cmp - $data/spk2utt && \
     echo "spk2utt is not in sorted order (fix this yourself)" && exit 1;
 
   if [ -f $data/utt2uniq ]; then
-    ! cat $data/utt2uniq | sort -T /glfs/tmp | cmp - $data/utt2uniq && \
+    ! cat $data/utt2uniq | sort -T $tmpdir | cmp - $data/utt2uniq && \
       echo "utt2uniq is not in sorted order (fix this yourself)" && exit 1;
   fi
 

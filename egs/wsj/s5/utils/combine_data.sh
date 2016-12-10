@@ -62,7 +62,7 @@ if $has_utt2uniq; then
     else
       cat $in_dir/utt2uniq
     fi
-  done | sort -T /glfs/tmp -k1 > $dest/utt2uniq
+  done | sort -T /tmp -k1 > $dest/utt2uniq
   echo "$0: combined utt2uniq"
 else
   echo "$0 [info]: not combining utt2uniq as it does not exist"

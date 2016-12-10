@@ -116,7 +116,7 @@ function do_filtering {
   [ -f $srcdir/cmvn.scp ] && utils/filter_scp.pl $destdir/spk2utt <$srcdir/cmvn.scp >$destdir/cmvn.scp
   if [ -f $srcdir/segments ]; then
      utils/filter_scp.pl $destdir/utt2spk <$srcdir/segments >$destdir/segments
-     awk '{print $2;}' $destdir/segments | sort -T /glfs/tmp | uniq > $destdir/reco # recordings.
+     awk '{print $2;}' $destdir/segments | sort -T /tmp | uniq > $destdir/reco # recordings.
      # The next line would override the command above for wav.scp, which would be incorrect.
      [ -f $srcdir/wav.scp ] && utils/filter_scp.pl $destdir/reco <$srcdir/wav.scp >$destdir/wav.scp
      [ -f $srcdir/reco2file_and_channel ] && \
@@ -148,7 +148,7 @@ elif $utt_list_specified; then
 elif $speakers; then
   mkdir -p $destdir
   utils/shuffle_list.pl < $srcdir/spk2utt | awk -v numutt=$numutt '{ if (tot < numutt){ print; } tot += (NF-1); }' | \
-    sort -T /glfs/tmp > $destdir/spk2utt
+    sort -T /tmp > $destdir/spk2utt
   utils/spk2utt_to_utt2spk.pl < $destdir/spk2utt > $destdir/utt2spk
   do_filtering; # bash function.
   exit 0;
@@ -174,7 +174,7 @@ else
     . ./path.sh
     [ ! -f $srcdir/feats.scp ] && echo "$0: you selected --shortest but no feats.scp exist." && exit 1;
     feat-to-len scp:$srcdir/feats.scp ark,t:$destdir/tmp.len || exit 1;
-    sort -T /glfs/tmp -n -k2 $destdir/tmp.len | awk '{print $1}' | head -$numutt >$destdir/tmp.uttlist
+    sort -T /tmp -n -k2 $destdir/tmp.len | awk '{print $1}' | head -$numutt >$destdir/tmp.uttlist
     utils/filter_scp.pl $destdir/tmp.uttlist $srcdir/utt2spk >$destdir/utt2spk
     rm $destdir/tmp.uttlist $destdir/tmp.len
   else

@@ -55,13 +55,13 @@ if [ "$ns" == 1 ]; then
 fi
 
 
-tmpdir=$(mktemp -d /glfs/tmp/kaldi.XXXX);
+tmpdir=$(mktemp -d /tmp/kaldi.XXXX);
 trap 'rm -rf "$tmpdir"' EXIT HUP INT PIPE TERM
 
 export LC_ALL=C
 
 function check_sorted_and_uniq {
-  ! awk '{print $1}' $1 | sort -T /glfs/tmp | uniq | cmp -s - <(awk '{print $1}' $1) && \
+  ! awk '{print $1}' $1 | sort -T $tmpdir | uniq | cmp -s - <(awk '{print $1}' $1) && \
     echo "$0: file $1 is not in sorted order or has duplicates" && exit 1;
 }
 
@@ -76,7 +76,7 @@ function partial_diff {
 
 check_sorted_and_uniq $data/utt2spk
 
-! cat $data/utt2spk | sort -T /glfs/tmp -k2 | cmp -s - $data/utt2spk && \
+! cat $data/utt2spk | sort -T $tmpdir -k2 | cmp -s - $data/utt2spk && \
    echo "$0: utt2spk is not in sorted order when sorted first on speaker-id " && \
    echo "(fix this by making speaker-ids prefixes of utt-ids)" && exit 1;
 
@@ -142,7 +142,7 @@ if [ -f $data/wav.scp ]; then
         echo "$0: Lengths are $segments_len vs $num_utts";
     fi
 
-    cat $data/segments | awk '{print $2}' | sort -T /glfs/tmp | uniq > $tmpdir/recordings
+    cat $data/segments | awk '{print $2}' | sort -T $tmpdir | uniq > $tmpdir/recordings
     awk '{print $1}' $data/wav.scp > $tmpdir/recordings.wav
     if ! cmp -s $tmpdir/recordings{,.wav}; then
       echo "$0: Error: in $data, recording-ids extracted from segments and wav.scp"

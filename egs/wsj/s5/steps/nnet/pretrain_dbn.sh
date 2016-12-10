@@ -46,7 +46,7 @@ rbm_extra_opts=
 
 # data processing,
 copy_feats=true     # resave the features to tmpdir,
-copy_feats_tmproot=/glfs/tmp/kaldi.XXXX # sets tmproot for 'copy-feats',
+copy_feats_tmproot=/tmp/kaldi.XXXX # sets tmproot for 'copy-feats',
 copy_feats_compress=true # compress feats while resaving
 
 # feature processing,
