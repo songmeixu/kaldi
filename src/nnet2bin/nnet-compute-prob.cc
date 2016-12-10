@@ -70,6 +70,10 @@ int main(int argc, char *argv[]) {
         }
         pdfid_classes.push_back(pdf_ids);
       }
+      std::vector<int> corr_classes_num(classes.size(), 0);
+      std::vector<int> classes_num(classes.size(), 0);
+      pdfid_classes.push_back(corr_classes_num);
+      pdfid_classes.push_back(classes_num);
     }
 
     TransitionModel trans_model;
@@ -123,7 +127,13 @@ int main(int argc, char *argv[]) {
       KALDI_LOG << "total classes accuracy is "
                 << (tot_classes_accuracy / tot_weight)
                 << " total classes correct num is " << tot_classes_accuracy;
-
+      for (int c = 0; c < pdfid_classes[pdfid_classes.size() - 2].size(); ++c) {
+        KALDI_LOG << "class " << c + 1 << " accuracy is "
+                  << (pdfid_classes[pdfid_classes.size() - 2][c]
+                      / pdfid_classes[pdfid_classes.size() - 1][c])
+                  << " total classes correct num is "
+                  << pdfid_classes[pdfid_classes.size() - 2][c];
+      }
     }
     
     std::cout << (tot_like / tot_weight) << "\n";
