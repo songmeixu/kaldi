@@ -84,17 +84,19 @@ int main(int argc, char *argv[]) {
 
     std::vector<NnetExample> examples;
     double tot_weight = 0.0, tot_like = 0.0, tot_accuracy = 0.0;
-    double tot_classes_accuracy = 0.0;
+    double *tot_classes_accuracy = new double[2*(pdfid_classes.size()+1)](0.0);
     int64 num_examples = 0;
     SequentialNnetExampleReader example_reader(examples_rspecifier);
     for (; !example_reader.Done(); example_reader.Next(), num_examples++) {
       if (examples.size() == 1000) {
         double accuracy = 0.0;
-        double class_accuracy = 0.0;
+        double *class_accuracy = new double[2*(pdfid_classes.size()+1)](0.0);
         tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
-                                    pdfid_classes, &class_accuracy);
+                                    pdfid_classes, class_accuracy);
         tot_accuracy += accuracy;
-        tot_classes_accuracy += class_accuracy;
+        for (int c = 0; c < 2 * (pdfid_classes.size() + 1); ++c) {
+          tot_classes_accuracy[c] += class_accuracy[c];
+        }
         tot_weight += TotalNnetTrainingWeight(examples);
         examples.clear();
       }
@@ -106,11 +108,13 @@ int main(int argc, char *argv[]) {
     }
     if (!examples.empty()) {
       double accuracy = 0.0;
-      double class_accuracy = 0.0;
+      double *class_accuracy = new double[2*(pdfid_classes.size()+1)](0.0);
       tot_like += ComputeNnetObjf(am_nnet.GetNnet(), examples, &accuracy,
-                                  pdfid_classes, &class_accuracy);
+                                  pdfid_classes, class_accuracy);
       tot_accuracy += accuracy;
-      tot_classes_accuracy += class_accuracy;
+      for (int c = 0; c < 2 * (pdfid_classes.size() + 1); ++c) {
+        tot_classes_accuracy[c] += class_accuracy[c];
+      }
       tot_weight += TotalNnetTrainingWeight(examples);
     }
 
@@ -120,13 +124,20 @@ int main(int argc, char *argv[]) {
               << "total weight " << tot_weight;
 
     if (!pdfid_classes.empty()) {
+      for (int c = 0; c < pdfid_classes.size(); ++c) {
+        KALDI_LOG << "class " << c + 1 << " accuracy is "
+                  << (tot_classes_accuracy[2*c]
+                      / tot_classes_accuracy[2*c+1])
+                  << " total classes correct num is "
+                  << tot_classes_accuracy[2*c];
+      }
       KALDI_LOG << "total classes accuracy is "
-                << (tot_classes_accuracy / tot_weight)
-                << " total classes correct num is " << tot_classes_accuracy;
-
+                << (tot_classes_accuracy[2*pdfid_classes.size()] /
+                    tot_classes_accuracy[2*pdfid_classes.size()+1])
+                << " total classes correct num is "
+                << tot_classes_accuracy[2*pdfid_classes.size()];
     }
-    
-    std::cout << (tot_like / tot_weight) << "\n";
+
     return (num_examples == 0 ? 1 : 0);
   } catch(const std::exception &e) {
     std::cerr << e.what() << '\n';

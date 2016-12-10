@@ -191,10 +191,13 @@ double NnetUpdater::ComputeTotAccuracy(
           // find ref_pdf_id
           if (std::find(pdfids_classes[c].begin(), pdfids_classes[c].end(), ref_pdf_id)
               != pdfids_classes[c].end()) {
+            tot_classes_accuracy[2*c+1] += weight;
+            tot_classes_accuracy[2*pdfids_classes.size()+1] += weight;
             // find hyp_pdf_id
             if (std::find(pdfids_classes[c].begin(), pdfids_classes[c].end(), hyp_pdf_id)
                 != pdfids_classes[c].end()) {
-              *tot_classes_accuracy += weight;
+              tot_classes_accuracy[2*c] += weight;
+              tot_classes_accuracy[2*pdfids_classes.size()] += weight;
             }
             break;
           }
