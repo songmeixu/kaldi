@@ -46,7 +46,7 @@ void NnetUpdater::FormatInput(const std::vector<NnetExample> &data) {
 double NnetUpdater::ComputeForMinibatch(
     const std::vector<NnetExample> &data,
     double *tot_accuracy,
-    const std::vector< std::vector<int> > &pdfids_classes,
+    std::vector< std::vector<int> > &pdfids_classes,
     double *tot_classes_accuracy) {
 
   FormatInput(data);
@@ -129,7 +129,7 @@ double NnetUpdater::ComputeObjfAndDeriv(
     const std::vector<NnetExample> &data,
     CuMatrix<BaseFloat> *deriv,
     double *tot_accuracy,
-    const std::vector< std::vector<int> > &pdfids_classes,
+    std::vector< std::vector<int> > &pdfids_classes,
     double *tot_classes_accuracy) const {
   BaseFloat tot_objf = 0.0, tot_weight = 0.0;
   int32 num_components = nnet_.NumComponents();
@@ -165,7 +165,7 @@ double NnetUpdater::ComputeObjfAndDeriv(
 
 double NnetUpdater::ComputeTotAccuracy(
     const std::vector<NnetExample> &data,
-    const std::vector< std::vector<int> > &pdfids_classes,
+    std::vector< std::vector<int> > &pdfids_classes,
     double *tot_classes_accuracy) const {
   BaseFloat tot_accuracy = 0.0;
   int32 num_components = nnet_.NumComponents();
@@ -281,7 +281,7 @@ BaseFloat TotalNnetTrainingWeight(const std::vector<NnetExample> &egs) {
 double ComputeNnetObjf(const Nnet &nnet,
                        const std::vector<NnetExample> &examples,
                        double *tot_accuracy,
-                       const std::vector< std::vector<int> > &pdfids_classes,
+                       std::vector< std::vector<int> > &pdfids_classes,
                        double *tot_classes_accuracy) {
   NnetUpdater updater(nnet, NULL);
   return updater.ComputeForMinibatch(examples, tot_accuracy,
