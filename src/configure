@@ -463,6 +463,8 @@ function configure_cuda {
       else
         cat makefiles/cuda_64bit.mk >> kaldi.mk
       fi
+    elif [ "`uname -m`" == "ppc64le" ]; then
+      cat makefiles/cuda_ppc64le.mk >> kaldi.mk
     else
       cat makefiles/cuda_32bit.mk >> kaldi.mk
     fi
@@ -527,6 +529,8 @@ function linux_atlas_failure { # function we use when we couldn't find
    echo ATLASLIBS = [somewhere]/liblapack.a [somewhere]/libcblas.a [somewhere]/libatlas.a [somewhere]/libf77blas.a $ATLASLIBDIR >> kaldi.mk
    if [[ "`uname -m`" == arm* ]]; then
      cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+   elif [[ "`uname -m`" == ppc64le ]]; then
+     cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
    else
      cat makefiles/linux_atlas.mk >> kaldi.mk
    fi
@@ -582,6 +586,8 @@ function linux_configure_debian_ubuntu {
   echo ATLASLIBS = $ATLASLIBS >> kaldi.mk
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+   elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -605,6 +611,8 @@ function linux_configure_debian_ubuntu3 {
   echo ATLASLIBS = $ATLASLIBS >> kaldi.mk
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -631,6 +639,8 @@ function linux_configure_debian7 {
   echo
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -654,6 +664,8 @@ function linux_configure_redhat {
   echo
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -679,6 +691,8 @@ function linux_configure_redhat_fat {
   echo
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -736,6 +750,8 @@ function linux_configure_static {
   echo ATLASLIBS = $ATLASLIBS >> kaldi.mk
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -819,6 +835,8 @@ function linux_configure_dynamic {
   echo ATLASLIBS = $ATLASLIBS >> kaldi.mk
   if [[ "`uname -m`" == arm* ]]; then
     cat makefiles/linux_atlas_arm.mk >> kaldi.mk
+  elif [[ "`uname -m`" == ppc64le ]]; then
+    cat makefiles/linux_atlas_ppc64le.mk >> kaldi.mk
   else
     cat makefiles/linux_atlas.mk >> kaldi.mk
   fi
@@ -1107,6 +1125,8 @@ if [ "`uname`" == "Linux" ]; then
     echo "OPENBLASROOT = $OPENBLASROOT" >> kaldi.mk
     if [[ "`uname -m`" == arm* ]]; then
       cat makefiles/linux_openblas_arm.mk >> kaldi.mk
+    elif [[ "`uname -m`" == ppc64le ]]; then
+      cat makefiles/linux_openblas_ppc64le.mk >> kaldi.mk
     else
       cat makefiles/linux_openblas.mk >> kaldi.mk
     fi
