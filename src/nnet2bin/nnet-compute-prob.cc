@@ -128,16 +128,16 @@ int main(int argc, char *argv[]) {
     if (!pdfid_classes.empty()) {
       for (int c = 0; c < pdfid_classes.size(); ++c) {
         KALDI_LOG << "class " << c + 1 << " accuracy is "
-                  << (tot_classes_accuracy[2*c]
-                      / tot_classes_accuracy[2*c+1])
-                  << " total classes correct num is "
-                  << tot_classes_accuracy[2*c];
+                  << tot_classes_accuracy[2*c+1] == 0 ? 0 :
+                     (tot_classes_accuracy[2*c] / tot_classes_accuracy[2*c+1])
+                  << " total classes num is "
+                  << tot_classes_accuracy[2*c+1];
       }
       KALDI_LOG << "total classes accuracy is "
                 << (tot_classes_accuracy[2*pdfid_classes.size()] /
                     tot_classes_accuracy[2*pdfid_classes.size()+1])
-                << " total classes correct num is "
-                << tot_classes_accuracy[2*pdfid_classes.size()];
+                << " total classes num is "
+                << tot_classes_accuracy[2*pdfid_classes.size()+1];
     }
     delete[] tot_classes_accuracy;
 
