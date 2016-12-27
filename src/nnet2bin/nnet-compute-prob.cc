@@ -127,9 +127,10 @@ int main(int argc, char *argv[]) {
 
     if (!pdfid_classes.empty()) {
       for (int c = 0; c < pdfid_classes.size(); ++c) {
+        double accuracy = tot_classes_accuracy[2*c+1] == 0 ? 0 :
+                     (tot_classes_accuracy[2*c] / tot_classes_accuracy[2*c+1]);
         KALDI_LOG << "class " << c + 1 << " accuracy is "
-                  << tot_classes_accuracy[2*c+1] == 0 ? 0 :
-                     (tot_classes_accuracy[2*c] / tot_classes_accuracy[2*c+1])
+                  << accuracy
                   << " total classes num is "
                   << tot_classes_accuracy[2*c+1];
       }
