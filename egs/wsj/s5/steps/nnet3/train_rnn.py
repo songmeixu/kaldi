@@ -318,7 +318,7 @@ def train(args, run_opts, background_process_handler):
     # use during decoding
     common_train_lib.copy_egs_properties_to_exp_dir(egs_dir, args.dir)
 
-    if (args.stage <= -3):
+    # if (args.stage <= -3):
         # logger.info('Computing the preconditioning matrix for input features')
         #
         # train_lib.common.compute_preconditioning_matrix(
@@ -326,7 +326,7 @@ def train(args, run_opts, background_process_handler):
         #     max_lda_jobs=args.max_lda_jobs,
         #     rand_prune=args.rand_prune)
 
-    if (args.stage <= -2):
+    # if (args.stage <= -2):
         # logger.info("Computing initial vector for FixedScaleComponent before"
         #             " softmax, using priors^{prior_scale} and rescaling to"
         #             " average 1".format(
