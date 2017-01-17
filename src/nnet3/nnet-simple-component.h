@@ -224,6 +224,88 @@ class NormalizeComponent: public Component {
                         // is an extra dimension of the output.
 };
 
+class BatchNormComponent: public UpdatableComponent {
+//#define OUT_DIST
+ public:
+  explicit BatchNormComponent(const BatchNormComponent &other);
+  BatchNormComponent(): is_dec_(false), is_gradient_(false) { }
+
+  void SetDec(bool is_dec) {
+    is_dec_ = is_dec;
+    CalcFromTotal();
+  }
+
+  void Reset();
+
+  virtual int32 InputDim() const { return a.Dim(); }
+  virtual int32 OutputDim() const { return a.Dim(); }
+
+  // The following functions are used for collapsing multiple layers
+  // together.  They return a pointer to a new Component equivalent to
+  // the sequence of two components.  We haven't implemented this for
+  // FixedLinearComponent yet.
+//  Component *CollapseWithPrevious(const FixedAffineComponent &prev) const;
+
+  virtual std::string Info() const;
+  void Init(BaseFloat learning_rate, int32 dim);
+  virtual void InitFromString(std::string args);
+
+  virtual std::string Type() const { return "BatchNormComponent"; }
+  virtual Component* Copy() const;
+  virtual bool BackpropNeedsInput() const { return true; }
+  virtual bool BackpropNeedsOutput() const { return false; }
+  using Component::Propagate; // to avoid name hiding
+  virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
+                         const CuMatrixBase<BaseFloat> &in,
+                         CuMatrixBase<BaseFloat> *out) const;
+  virtual void Backprop(const ComponentPrecomputedIndexes *indexes,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &out_value,
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update_in, // may be identical to "this".
+                        CuMatrix<BaseFloat> *in_deriv) const;
+
+  virtual void PerturbParams(BaseFloat stddev) {}
+
+  virtual void Scale(BaseFloat scale);
+  virtual void Add(BaseFloat alpha, const UpdatableComponent &other);
+  virtual void SetZero(bool treat_as_gradient);
+
+  virtual void Read(std::istream &is, bool binary);
+  virtual void Write(std::ostream &os, bool binary) const;
+
+  virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
+
+  void CalcFromTotal();
+
+  virtual int32 GetParameterDim() const;
+
+ protected:
+  virtual void Update(const CuMatrixBase<BaseFloat> &in_value,
+                      const CuMatrixBase<BaseFloat> &out_deriv,
+                      CuMatrix<BaseFloat> *in_deriv);
+
+ private:
+  BatchNormComponent &operator = (const BatchNormComponent &other); // Disallow.
+
+  bool is_dec_;
+
+  static const BaseFloat kNormFloor;
+  static const BaseFloat epsion;
+
+  mutable CuVector<BaseFloat> mean;
+  mutable CuVector<BaseFloat> var;
+  mutable BaseFloat tot_cnt;
+  mutable CuVector<double> tot_mean;
+  mutable CuVector<double> tot_var;
+
+  CuVector<BaseFloat> gamma;
+  CuVector<BaseFloat> beta;
+  mutable CuVector<BaseFloat> a;
+  mutable CuVector<BaseFloat> b;
+
+  bool is_gradient_; // If true, treat this as just a gradient.
+};
 
 class SigmoidComponent: public NonlinearComponent {
  public:

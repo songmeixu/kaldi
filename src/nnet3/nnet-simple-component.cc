@@ -493,6 +493,330 @@ void NormalizeComponent::Backprop(const std::string &debug_info,
   }
 }
 
+BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
+    UpdatableComponent(component),
+    is_dec_(component.is_dec_),
+    gamma(component.gamma),
+    beta(component.beta),
+    a(component.a), b(component.b),
+    mean(component.mean),
+    var(component.var),
+    tot_mean(component.tot_mean),
+    tot_var(component.tot_var),
+    tot_cnt(component.tot_cnt),
+    is_gradient_(component.is_gradient_) { }
+
+void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
+  KALDI_ASSERT(dim > 0);
+  UpdatableComponent::SetActualLearningRate(learning_rate);
+  is_dec_ = false;
+  gamma.Resize(dim);
+  gamma.Set(1.0);
+  beta.Resize(dim);
+  a.Resize(dim);
+  a.Set(1.0);
+  b.Resize(dim);
+  mean.Resize(dim);
+  var.Resize(dim);
+  tot_mean.Resize(dim);
+  tot_var.Resize(dim);
+  tot_cnt = 0;
+  is_gradient_ = false;
+}
+
+std::string BatchNormComponent::Info() const {
+  std::stringstream stream;
+  stream << Type() << ", input-dim=" << InputDim()
+         << ", output-dim=" << OutputDim()
+         << ", learning-rate=" << LearningRate();
+  return stream.str();
+}
+
+void BatchNormComponent::InitFromString(std::string args) {
+  std::string orig_args(args);
+  bool ok = true;
+  BaseFloat learning_rate = learning_rate_;
+  int32 dim = -1;
+  ParseFromString("learning-rate", &args, &learning_rate); // optional.
+  ok = ok && ParseFromString("dim", &args, &dim);
+  Init(learning_rate, dim);
+  if (!args.empty())
+    KALDI_ERR << "Could not process these elements in initializer: "
+              << args;
+  if (!ok)
+    KALDI_ERR << "Bad initializer " << orig_args;
+}
+
+
+void BatchNormComponent::Read(std::istream &is, bool binary) {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">"; // e.g. "<BatchNormComponent>"
+  ostr_end << "</" << Type() << ">"; // e.g. "</BatchNormComponent>"
+  // might not see the "<BatchNormComponent>" part because
+  // of how ReadNew() works.
+  ExpectOneOrTwoTokens(is, binary, ostr_beg.str(), "<LearningRate>");
+  ReadBasicType(is, binary, &learning_rate_);
+  ExpectToken(is, binary, "<gamma>");
+  gamma.Read(is, binary);
+  ExpectToken(is, binary, "<beta>");
+  beta.Read(is, binary);
+  ExpectToken(is, binary, "<a>");
+  a.Read(is, binary);
+  ExpectToken(is, binary, "<b>");
+  b.Read(is, binary);
+  ExpectToken(is, binary, "<tot_mean>");
+  tot_mean.Read(is, binary);
+  ExpectToken(is, binary, "<tot_var>");
+  tot_var.Read(is, binary);
+  ExpectToken(is, binary, "<tot_cnt>");
+  ReadBasicType(is, binary, &tot_cnt);
+  ExpectToken(is, binary, "<is_dec>");
+  ReadBasicType(is, binary, &is_dec_);
+  mean.Resize(tot_mean.Dim());
+  var.Resize(tot_var.Dim());
+  std::string tok;
+  ReadToken(is, binary, &tok);
+  KALDI_ASSERT(tok == ostr_end.str());
+}
+
+void BatchNormComponent::Write(std::ostream &os, bool binary) const {
+  std::ostringstream ostr_beg, ostr_end;
+  ostr_beg << "<" << Type() << ">"; // e.g. "<BatchNormComponent>"
+  ostr_end << "</" << Type() << ">"; // e.g. "</BatchNormComponent>"
+  WriteToken(os, binary, ostr_beg.str());
+  WriteToken(os, binary, "<LearningRate>");
+  WriteBasicType(os, binary, learning_rate_);
+  WriteToken(os, binary, "<gamma>");
+  gamma.Write(os, binary);
+  WriteToken(os, binary, "<beta>");
+  beta.Write(os, binary);
+  WriteToken(os, binary, "<a>");
+  a.Write(os, binary);
+  WriteToken(os, binary, "<b>");
+  b.Write(os, binary);
+  WriteToken(os, binary, "<tot_mean>");
+  tot_mean.Write(os, binary);
+  WriteToken(os, binary, "<tot_var>");
+  tot_var.Write(os, binary);
+  WriteToken(os, binary, "<tot_cnt>");
+  WriteBasicType(os, binary, tot_cnt);
+  WriteToken(os, binary, "<is_dec>");
+  WriteBasicType(os, binary, is_dec_);
+  WriteToken(os, binary, ostr_end.str());
+}
+
+Component* BatchNormComponent::Copy() const {
+  BatchNormComponent *ans = new BatchNormComponent();
+  ans->learning_rate_ = learning_rate_;
+  ans->gamma = gamma;
+  ans->beta = beta;
+  ans->a = a;
+  ans->b = b;
+  ans->mean = mean;
+  ans->var = var;
+  ans->tot_mean = tot_mean;
+  ans->tot_var = tot_var;
+  ans->tot_cnt = tot_cnt;
+  ans->is_gradient_ = is_gradient_;
+  return ans;
+}
+
+BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) const {
+  const BatchNormComponent *other =
+      dynamic_cast<const BatchNormComponent*>(&other_in);
+  return VecVec(gamma, other->gamma) + VecVec(beta, other->beta);
+}
+
+void BatchNormComponent::CalcFromTotal() {
+  mean.CopyFromVec(tot_mean);
+  var.CopyFromVec(tot_var);
+  mean.Scale(1.0 / tot_cnt);
+  var.Scale(512.0 / (511.0 * tot_cnt));
+  var.ApplyPow(-0.5);
+
+  a.AddVecVec(1.0, gamma, var, 0.0);
+  b.AddVecVec(-1.0, a, mean, 0.0);
+  b.AddVec(1.0, beta);
+}
+
+void BatchNormComponent::Reset() {
+  tot_cnt = 0;
+  tot_mean.SetZero();
+  tot_var.SetZero();
+}
+
+void BatchNormComponent::Scale(BaseFloat scale) {
+  gamma.Scale(scale);
+  beta.Scale(scale);
+  a.Scale(scale);
+  b.Scale(scale);
+  tot_cnt *= scale;
+  tot_mean.Scale(scale);
+  tot_var.Scale(scale);
+}
+
+void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in) {
+  const BatchNormComponent *other =
+      dynamic_cast<const BatchNormComponent*>(&other_in);
+  KALDI_ASSERT(other != NULL);
+  gamma.AddVec(alpha, other->gamma);
+  beta.AddVec(alpha, other->beta);
+  a.AddVec(alpha, other->a);
+  b.AddVec(alpha, other->b);
+
+  tot_mean.AddVec(alpha, other->tot_mean);
+  tot_var.AddVec(alpha, other->tot_var);
+  tot_cnt += alpha * other->tot_cnt;
+}
+
+void BatchNormComponent::SetZero(bool treat_as_gradient) {
+  if (treat_as_gradient) {
+    SetLearningRate(1.0);
+  }
+  gamma.SetZero();
+  beta.SetZero();
+  a.SetZero();
+  b.SetZero();
+  if (treat_as_gradient)
+    is_gradient_ = true;
+}
+
+int32 BatchNormComponent::GetParameterDim() const {
+  return 2 * OutputDim();
+}
+
+const BaseFloat BatchNormComponent::kNormFloor = pow(2.0, -66);
+
+const BaseFloat BatchNormComponent::epsion = pow(2.0, -32);
+
+// y = a * x + b
+// a & b are calc in BP as:
+// a = gamma / sqrt(var + epsion)
+// b = beta - a * mean
+void BatchNormComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
+                                   const CuMatrixBase<BaseFloat> &in,
+                                   CuMatrixBase<BaseFloat> *out) const  {
+  if (!is_dec_) {
+    // mean
+    mean.AddRowSumMat(1.0 / in.NumRows(), in, 0.0);
+    // var
+    var.AddDiagMat2(1.0 / in.NumRows(), in, kTrans, 0.0);
+    CuVector<BaseFloat> mean2(mean);
+    mean2.ApplyPow(2);
+    var.AddVec(-1.0, mean2);
+
+    ++tot_cnt;
+//    if (tot_cnt > 1000) {
+//      tot_mean.SetZero();
+//      tot_var.SetZero();
+//      tot_cnt = 1;
+//    }
+    tot_mean.AddVec(1.0, mean);
+    tot_var.AddVec(1.0, var);
+
+    var.ApplyFloor(kNormFloor);
+    var.ApplyPow(-0.5);
+    var.ReplaceValue(1.0 / sqrt(kNormFloor), 0.0);
+
+    out->CopyFromMat(in);
+    out->AddVecToRows(-1.0, mean);
+    out->MulColsVec(var);
+    out->MulColsVec(gamma);
+    out->AddVecToRows(1.0, beta);
+  } else {
+    out->CopyFromMat(in);
+    out->MulColsVec(a);
+    out->AddVecToRows(1.0, b);
+  }
+
+#ifdef OUT_DIST
+  CuVector<BaseFloat> out_one(out->NumRows());
+  for (int32 c = 0; c < out->NumCols(); ++c) {
+    out_one.CopyColFromMat(*out, c);
+    BaseFloat *data = out_one.Data();
+    std::sort(data, data + out_one.Dim());
+    KALDI_LOG << out_one(out_one.Dim()*0.15) << " "
+              << out_one(out_one.Dim()*0.5) << " "
+              << out_one(out_one.Dim()*0.85);
+    BaseFloat mean_new = out_one.Sum() / out_one.Dim();
+    out_one.Add(-1.0*mean_new);
+    out_one.ApplyPow(2);
+    BaseFloat var_new = out_one.Sum() / out_one.Dim();
+    KALDI_LOG << " ori-mean: " << mean(c) << " new-mean " << mean_new
+              << " ori-var: " << var(c) << " new-var " << var_new;
+  }
+#endif
+
+}
+
+void BatchNormComponent::Backprop(const ComponentPrecomputedIndexes *indexes,
+                                  const CuMatrixBase<BaseFloat> &in_value,
+                                  const CuMatrixBase<BaseFloat> &out_value,
+                                  const CuMatrixBase<BaseFloat> &out_deriv,
+                                  Component *to_update_in,
+    // may be identical to "this".
+                                  CuMatrix<BaseFloat> *in_deriv) const  {
+  BatchNormComponent *to_update = dynamic_cast<BatchNormComponent*>(to_update_in);
+  in_deriv->Resize(out_deriv.NumRows(), InputDim());
+
+  if (to_update != NULL) {
+    // Next update the model (must do this 2nd so the derivatives we propagate
+    // are accurate, in case this == to_update_in.)
+    to_update->Update(in_value, out_deriv, in_deriv);  // by child classes.
+  }
+}
+
+void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
+                                const CuMatrixBase<BaseFloat> &out_deriv,
+                                CuMatrix<BaseFloat> *in_deriv) {
+  // x_new
+  CuMatrix<BaseFloat> x_new(in_value);
+  x_new.AddVecToRows(-1.0, mean);
+  x_new.MulColsVec(var);
+
+  // l_x_new
+  CuMatrix<BaseFloat> l_x_new(out_deriv);
+  l_x_new.MulColsVec(gamma);
+
+  // l_mean
+  CuVector<BaseFloat> l_mean(in_value.NumCols());
+  CuMatrix<BaseFloat> l_mean_M(l_x_new);
+  l_mean_M.MulColsVec(var);
+  l_mean.AddRowSumMat(-1.0, l_mean_M, 0.0);
+
+  // l_var
+  CuVector<BaseFloat> l_var(var);
+  l_var.ApplyPow(3.0);
+  l_var.Scale(-0.5);
+  CuMatrix<BaseFloat> l_var_M(l_x_new);
+  CuMatrix<BaseFloat> x(in_value);
+  x.AddVecToRows(-1.0, mean);
+  x.MulColsVec(l_var);
+  l_var_M.MulElements(x);
+  l_var.SetZero();
+  l_var.AddRowSumMat(1.0, l_var_M, 0.0);
+
+  // l_x
+  in_deriv->CopyFromMat(l_x_new);
+  in_deriv->MulColsVec(var);
+  x.CopyFromMat(in_value);
+  x.AddVecToRows(-1.0, mean);
+  x.MulColsVec(l_var);
+  in_deriv->AddMat(2.0 / in_value.NumRows(), x);
+  in_deriv->AddVecToRows(1.0 / in_value.NumRows(), l_mean);
+
+  // beta
+  CuVector<BaseFloat> l_beta(out_deriv.NumCols());
+  l_beta.AddRowSumMat(1.0, out_deriv, 0.0);
+  beta.AddVec(learning_rate_, l_beta);
+  // gamma
+  CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
+  CuMatrix<BaseFloat> l_gamma_M(out_deriv);
+  l_gamma_M.MulElements(x_new);
+  l_gamma.AddRowSumMat(1.0, l_gamma_M, 0.0);
+  gamma.AddVec(learning_rate_, l_gamma);
+}
+
 void SigmoidComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
                                  const CuMatrixBase<BaseFloat> &in,
                                  CuMatrixBase<BaseFloat> *out) const {
