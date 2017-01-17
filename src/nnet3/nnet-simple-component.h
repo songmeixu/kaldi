@@ -1625,7 +1625,7 @@ class ConvolutionComponent: public UpdatableComponent {
   virtual std::string Type() const { return "ConvolutionComponent"; }
   virtual int32 Properties() const {
     return kSimpleComponent|kUpdatableComponent|kBackpropNeedsInput|
-	    kBackpropAdds|kPropagateAdds;
+           kBackpropAdds|kPropagateAdds;
   }
 
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
@@ -1682,7 +1682,7 @@ class ConvolutionComponent: public UpdatableComponent {
   void Resize(int32 input_dim, int32 output_dim);
 
   void Update(const std::string &debug_info,
-	      const CuMatrixBase<BaseFloat> &in_value,
+              const CuMatrixBase<BaseFloat> &in_value,
               const CuMatrixBase<BaseFloat> &out_deriv);
 
 
@@ -1826,6 +1826,7 @@ class LstmNonlinearityComponent: public UpdatableComponent {
   virtual int32 NumParameters() const;
   virtual void Vectorize(VectorBase<BaseFloat> *params) const;
   virtual void UnVectorize(const VectorBase<BaseFloat> &params);
+  virtual void ZeroStats();
 
   // Some functions that are specific to this class:
   explicit LstmNonlinearityComponent(
@@ -1954,7 +1955,7 @@ class MaxpoolingComponent: public Component {
   virtual std::string Type() const { return "MaxpoolingComponent"; }
   virtual int32 Properties() const {
     return kSimpleComponent|kBackpropNeedsInput|kBackpropNeedsOutput|
-	    kBackpropAdds;
+           kBackpropAdds;
   }
 
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,

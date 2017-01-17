@@ -1443,7 +1443,7 @@ void Matrix<Real>::Read(std::istream & is, bool binary, bool add) {
       delete cur_row;
     for (size_t i = 0; i < data.size(); i++)
       if(data[i] != NULL)
-        delete data[i];    
+        delete data[i];
     // and then go on to "bad" below, where we print error.
   }
 bad:
@@ -2683,7 +2683,7 @@ void MatrixBase<Real>::AddCols(const MatrixBase<Real> &src,
     const MatrixIndexT *index_ptr = &(indices[0]);
     for (MatrixIndexT c = 0; c < num_cols; c++, index_ptr++) {
       if (*index_ptr >= 0)
-	this_data[c] += src_data[*index_ptr];
+        this_data[c] += src_data[*index_ptr];
     }
   }
 }
@@ -2899,4 +2899,3 @@ template class SubMatrix<float>;
 template class SubMatrix<double>;
 
 } // namespace kaldi
-
