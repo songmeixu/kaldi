@@ -533,6 +533,7 @@ class AffineComponent: public UpdatableComponent {
 
  protected:
   friend class NaturalGradientAffineComponent;
+  friend class BinaryNaturalGradientAffineComponent;
   // This function Update() is for extensibility; child classes may override
   // this, e.g. for natural gradient update.
   virtual void Update(
@@ -815,6 +816,13 @@ class NaturalGradientAffineComponent: public AffineComponent {
       const NaturalGradientAffineComponent &other);
   virtual void ZeroStats();
 
+ protected:
+  friend class BinaryNaturalGradientAffineComponent;
+  virtual void Update(
+      const std::string &debug_info,
+      const CuMatrixBase<BaseFloat> &in_value,
+      const CuMatrixBase<BaseFloat> &out_deriv);
+
  private:
   // disallow assignment operator.
   NaturalGradientAffineComponent &operator= (
@@ -858,11 +866,6 @@ class NaturalGradientAffineComponent: public AffineComponent {
   // Sets the configs rank, alpha and eta in the preconditioner objects,
   // from the class variables.
   void SetNaturalGradientConfigs();
-
-  virtual void Update(
-      const std::string &debug_info,
-      const CuMatrixBase<BaseFloat> &in_value,
-      const CuMatrixBase<BaseFloat> &out_deriv);
 };
 
 

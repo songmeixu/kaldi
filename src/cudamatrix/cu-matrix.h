@@ -374,6 +374,7 @@ class CuMatrixBase {
   /// For each element, sets x = (x > 0 ? 1.0 : 0.0).
   /// See also Heaviside().
   void ApplyHeaviside();
+  void CancelGradient();
   void ApplyFloor(Real floor_val);
   void ApplyCeiling(Real ceiling_val);
   void ApplyExp();

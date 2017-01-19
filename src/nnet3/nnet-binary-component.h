@@ -38,7 +38,7 @@ namespace nnet3 {
 /// It is described, under the name Online NG-SGD, in the paper "Parallel
 /// training of DNNs with Natural Gradient and Parameter Averaging" (ICLR
 /// workshop, 2015) by Daniel Povey, Xiaohui Zhang and Sanjeev Khudanpur.
-class BinaryNaturalGradientAffineComponent: public AffineComponent {
+class BinaryNaturalGradientAffineComponent: public NaturalGradientAffineComponent {
  public:
   virtual std::string Type() const { return "BinaryNaturalGradientAffineComponent"; }
   virtual void Read(std::istream &is, bool binary);
@@ -62,12 +62,26 @@ class BinaryNaturalGradientAffineComponent: public AffineComponent {
   virtual void Add(BaseFloat alpha, const Component &other);
   // copy constructor
   explicit BinaryNaturalGradientAffineComponent(
-      const NaturalGradientAffineComponent &other);
+      const BinaryNaturalGradientAffineComponent &other);
   virtual void ZeroStats();
 
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
                          const CuMatrixBase<BaseFloat> &in,
                          CuMatrixBase<BaseFloat> *out) const;
+
+  virtual void Backprop(const std::string &debug_info,
+                        const ComponentPrecomputedIndexes *indexes,
+                        const CuMatrixBase<BaseFloat> &in_value,
+                        const CuMatrixBase<BaseFloat> &, // out_value
+                        const CuMatrixBase<BaseFloat> &out_deriv,
+                        Component *to_update,
+                        CuMatrixBase<BaseFloat> *in_deriv) const;
+ protected:
+  virtual void Update(
+      const std::string &debug_info,
+      const CuMatrixBase<BaseFloat> &in_value,
+      const CuMatrixBase<BaseFloat> &out_deriv);
+
  private:
   // disallow assignment operator.
   BinaryNaturalGradientAffineComponent &operator= (
@@ -111,11 +125,6 @@ class BinaryNaturalGradientAffineComponent: public AffineComponent {
   // Sets the configs rank, alpha and eta in the preconditioner objects,
   // from the class variables.
   void SetNaturalGradientConfigs();
-
-  virtual void Update(
-      const std::string &debug_info,
-      const CuMatrixBase<BaseFloat> &in_value,
-      const CuMatrixBase<BaseFloat> &out_deriv);
 
   CuMatrix<BaseFloat> w_b;
 };

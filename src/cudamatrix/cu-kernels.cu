@@ -1630,6 +1630,16 @@ static void _apply_heaviside(Real* mat, MatrixDim d) {
 
 template<typename Real>
 __global__
+static void _cancel_gradient(Real* mat, MatrixDim d) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
+  int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
+  int index = i + j * d.stride;
+  if (i < d.cols && j < d.rows)
+    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : mat[index]);
+}
+
+template<typename Real>
+__global__
 static void _apply_floor(Real* mat, Real floor_val, MatrixDim d) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
   int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
@@ -3231,6 +3241,10 @@ void cudaF_apply_pow_abs(dim3 Gr, dim3 Bl, float* mat, float power,
 
 void cudaF_apply_heaviside(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
   _apply_heaviside<<<Gr,Bl>>>(mat, d);
+}
+
+void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
 
 void cudaF_copy_cols(dim3 Gr, dim3 Bl, float* dst, const float* src,

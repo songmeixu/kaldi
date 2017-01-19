@@ -2212,6 +2212,24 @@ void CuMatrixBase<Real>::ApplyHeaviside() {
 }
 
 template<typename Real>
+void CuMatrixBase<Real>::CancelGradient() {
+#if HAVE_CUDA == 1
+  if (CuDevice::Instantiate().Enabled()) {
+    Timer tim;
+    dim3 dimGrid, dimBlock;
+    GetBlockSizesForSimpleMatrixOperation(NumRows(), NumCols(),
+                                          &dimGrid, &dimBlock);
+    cuda_cancel_gradient(dimGrid, dimBlock, data_, Dim());
+    CU_SAFE_CALL(cudaGetLastError());
+    CuDevice::Instantiate().AccuProfile(__func__, tim.Elapsed());
+  } else
+#endif
+  {
+    Mat().CancelGradient();
+  }
+}
+
+template<typename Real>
 void CuMatrixBase<Real>::Heaviside(const CuMatrixBase<Real> &src) {
   KALDI_ASSERT(SameDim(*this, src));
 #if HAVE_CUDA == 1

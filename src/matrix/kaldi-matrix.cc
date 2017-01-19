@@ -2030,6 +2030,16 @@ void MatrixBase<Real>::ApplyHeaviside() {
 }
 
 template<typename Real>
+void MatrixBase<Real>::CancelGradient() {
+  MatrixIndexT num_rows = num_rows_, num_cols = num_cols_;
+  for (MatrixIndexT i = 0; i < num_rows; i++) {
+    Real *data = this->RowData(i);
+    for (MatrixIndexT j = 0; j < num_cols; j++)
+      data[j] = (abs(data[j]) > 1.0 ? 0.0 : data[j]);
+  }
+}
+
+template<typename Real>
 void MatrixBase<Real>::Heaviside(const MatrixBase<Real> &src) {
   KALDI_ASSERT(SameDim(*this, src));
   MatrixIndexT num_rows = num_rows_, num_cols = num_cols_;
