@@ -248,7 +248,7 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual std::string Info() const;
   void Init(BaseFloat learning_rate, int32 dim);
-  virtual void InitFromString(std::string args);
+  virtual void InitFromConfig(ConfigLine *cfl);
 
   virtual std::string Type() const { return "BatchNormComponent"; }
   virtual Component* Copy() const;

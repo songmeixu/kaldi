@@ -8,7 +8,7 @@
 from __future__ import print_function
 import re
 import sys
-
+import ast
 
 # [utility function used in xconfig_layers.py]
 # Given a list of objects of type XconfigLayerBase ('all_layers'),
@@ -126,6 +126,13 @@ def convert_value_to_type(key, dest_type, string_value):
                 key, string_value))
     elif dest_type == type(str()):
         return string_value
+    elif dest_type == type(list()):
+        try:
+            return ast.literal_eval(string_value)
+        except:
+            raise RuntimeError("Invalid configuration value {0}={1} (expected list)".format(
+                key, string_value))
+
 
 
 
@@ -484,7 +491,7 @@ def parse_config_line(orig_config_line):
     # treats splitting on space as a special case that may give zero fields.
     config_line = orig_config_line.split('#')[0]
     # Note: this set of allowed characters may have to be expanded in future.
-    x = re.search('[^a-zA-Z0-9\.\-\(\)@_=,/\s"]', config_line)
+    x = re.search('[^a-zA-Z0-9\.\-\(\)\[\]@_=,/\s"]', config_line)
     if x is not None:
         bad_char = x.group(0)
         if bad_char == "'":

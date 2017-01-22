@@ -12,7 +12,6 @@ import libs.nnet3.xconfig.layers as xlayers
 import libs.nnet3.xconfig.utils as xutils
 
 
-
 # We have to modify this dictionary when adding new layers
 config_to_layer = {
         'input' : xlayers.XconfigInputLayer,
@@ -32,7 +31,10 @@ config_to_layer = {
         'lstmp-layer' : xlayers.XconfigLstmpLayer,
         'lstmpc-layer' : xlayers.XconfigLstmpcLayer,
         'fast-lstm-layer' : xlayers.XconfigFastLstmLayer,
-        'fast-lstmp-layer' : xlayers.XconfigFastLstmpLayer
+        'fast-lstmp-layer' : xlayers.XconfigFastLstmpLayer,
+        'conv-layer' : xlayers.XconfigConvLayer,
+        'conv-bn-layer' : xlayers.XconfigConvLayer,
+        'max-pool-layer' : xlayers.XconfigPoolLayer,
         }
 
 # Turn a config line and a list of previous layers into

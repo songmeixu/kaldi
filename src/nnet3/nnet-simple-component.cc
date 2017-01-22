@@ -532,21 +532,15 @@ std::string BatchNormComponent::Info() const {
   return stream.str();
 }
 
-void BatchNormComponent::InitFromString(std::string args) {
-  std::string orig_args(args);
-  bool ok = true;
-  BaseFloat learning_rate = learning_rate_;
+void BatchNormComponent::InitFromConfig(ConfigLine *cfl) {
   int32 dim = -1;
-  ParseFromString("learning-rate", &args, &learning_rate); // optional.
-  ok = ok && ParseFromString("dim", &args, &dim);
-  Init(learning_rate, dim);
-  if (!args.empty())
-    KALDI_ERR << "Could not process these elements in initializer: "
-              << args;
-  if (!ok)
-    KALDI_ERR << "Bad initializer " << orig_args;
+  InitLearningRatesFromConfig(cfl);
+  bool ok = cfl->GetValue("dim", &dim);
+  if (!ok || cfl->HasUnusedValues() || dim <= 0)
+    KALDI_ERR << "Invalid initializer for layer of type "
+              << Type() << ": \"" << cfl->WholeLine() << "\"";
+  Init(learning_rate_, dim);
 }
-
 
 void BatchNormComponent::Read(std::istream &is, bool binary) {
   std::ostringstream ostr_beg, ostr_end;

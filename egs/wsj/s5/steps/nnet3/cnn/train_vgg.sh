@@ -41,16 +41,6 @@ add_layers_period=2 # by default, add new layers every 2 iterations.
 stage=-6
 exit_stage=-100 # you can set this to terminate the training early.  Exits before running this stage
 
-# count space-separated fields in splice_indexes to get num-hidden-layers.
-splice_indexes="-4,-3,-2,-1,0,1,2,3,4 0 0 0 0 0"
-# Format : layer<hidden_layer>/<frame_indices>....layer<hidden_layer>/<frame_indices> "
-# note: hidden layers which are composed of one or more components,
-# so hidden layer indexing is different from component count
-
-# count space-separated fields in cnn_indexes to get num-cnn-layers.
-cnn_indexes="3,8,1,1,256,1,3,1,1,3,1"
-cnn_reduced_dim=256
-
 randprune=4.0 # speeds up LDA.
 use_gpu=true    # if true, we run on GPU.
 cleanup=true
@@ -107,19 +97,6 @@ if [ $# != 4 ]; then
   echo "                                                   # should not get too large, e.g. >2k)."
   echo "  --samples-per-iter <#samples|400000>             # Number of samples of data to process per iteration, per"
   echo "                                                   # process."
-  echo "  --splice-indexes <string|layer0/-4:-3:-2:-1:0:1:2:3:4> "
-  echo "                                                   # Frame indices used for each splice layer."
-  echo "                                                   # Format : layer<hidden_layer_index>/<frame_indices>....layer<hidden_layer>/<frame_indices> "
-  echo "                                                   # (note: we splice processed, typically 40-dimensional frames"
-  echo "  --cnn-indexes <string|cnn-layer0/3,8,1,1,256,1,3,1,1,3,1> "
-  echo "                                                   # Parameter indices used for each CNN layer."
-  echo "                                                   # Format: layer<CNN_index>/<parameter_indices>....layer<CNN_index>/<parameter_indices>"
-  echo "                                                   # The <parameter_indices> for each CNN layer must contain 11 positive integers."
-  echo "                                                   # The first 5 integers correspond to the parameter of ConvolutionComponent:"
-  echo "                                                   # <filt_x_dim, filt_y_dim, filt_x_step, filt_y_step, num_filters>"
-  echo "                                                   # The next 6 integers correspond to the parameter of MaxpoolingComponent:"
-  echo "                                                   # <pool_x_size, pool_y_size, pool_z_size, pool_x_step, pool_y_step, pool_z_step>"
-  echo "  --cnn-reduced-dim <dim|''>                       # Output dimension of the linear layer at the CNN output for dimension reduction."
   echo "  --realign-times <list-of-times|\"\">             # A list of space-separated floating point numbers between 0.0 and"
   echo "                                                   # 1.0 to specify how far through training realignment is to be done"
   echo "  --align-cmd (utils/run.pl|utils/queue.pl <queue opts>) # passed to align.sh"
@@ -127,7 +104,6 @@ if [ $# != 4 ]; then
   echo "  --num-jobs-align <#njobs|30>                     # Number of jobs to perform realignment"
   echo "  --stage <stage|-4>                               # Used to run a partially-completed training process from somewhere in"
   echo "                                                   # the middle."
-
 
   exit 1;
 fi
