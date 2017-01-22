@@ -26,7 +26,7 @@
 #include "matrix/jama-eig.h"
 #include "matrix/compressed-matrix.h"
 #include "matrix/sparse-matrix.h"
-#include "Eigen/Dense"
+//#include "Eigen/Dense"
 
 namespace kaldi {
 
@@ -1655,43 +1655,43 @@ void MatrixBase<Real>::DestructiveSvd(VectorBase<Real> *s, MatrixBase<Real> *U, 
 
 template<typename Real>
 void MatrixBase<Real>::EigenSVDShrink(MatrixBase<Real> *U, MatrixBase<Real> *sVt) {
-  using namespace Eigen;
-
-  int32 d = U->NumCols();
-
-  // to eigen matrix
-  Real* data_buf = (Real *) calloc(num_rows_ * num_cols_, sizeof(Real));
-  for (int32 r = 0; r < num_rows_; ++r) {
-    memcpy(data_buf + r * num_cols_, RowData(r), num_cols_ * sizeof(Real));
-  }
-
-  // eigen jacobi svd
-  MatrixXf A = Map<MatrixXf>((float *) data_buf, num_cols_, num_rows_);
-  JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
-  MatrixXf u = svd.matrixU().leftCols(d);
-  MatrixXf v_t = svd.matrixV().transpose().topRows(d);
-  MatrixXf s = svd.singularValues().segment(0, d).asDiagonal();
-  MatrixXf n = s * v_t;
-
-  int32 rc_min = std::min(num_rows_, num_cols_);
-  BaseFloat old_svd_sum = svd.singularValues().segment(0, rc_min).sum();
-  BaseFloat new_svd_sum = svd.singularValues().segment(0, d).sum();
-  KALDI_LOG << "Reduced rank from "
-      << rc_min <<  " to " << d << ", SVD sum reduced from "
-      << old_svd_sum << " to " << new_svd_sum;
-
-  // to kaldi matrix
-  for (int32 r = 0; r < U->NumRows(); ++r) {
-    for (int32 c = 0; c < U->NumCols(); ++c) {
-      (*U)(r,c) = u(r,c);
-    }
-  }
-  for (int32 r = 0; r < sVt->NumRows(); ++r) {
-    for (int32 c = 0; c < sVt->NumCols(); ++c) {
-      (*sVt)(r,c) = n(r,c);
-    }
-  }
-  delete data_buf;
+//  using namespace Eigen;
+//
+//  int32 d = U->NumCols();
+//
+//  // to eigen matrix
+//  Real* data_buf = (Real *) calloc(num_rows_ * num_cols_, sizeof(Real));
+//  for (int32 r = 0; r < num_rows_; ++r) {
+//    memcpy(data_buf + r * num_cols_, RowData(r), num_cols_ * sizeof(Real));
+//  }
+//
+//  // eigen jacobi svd
+//  MatrixXf A = Map<MatrixXf>((float *) data_buf, num_cols_, num_rows_);
+//  JacobiSVD<MatrixXf> svd(A, ComputeThinU | ComputeThinV);
+//  MatrixXf u = svd.matrixU().leftCols(d);
+//  MatrixXf v_t = svd.matrixV().transpose().topRows(d);
+//  MatrixXf s = svd.singularValues().segment(0, d).asDiagonal();
+//  MatrixXf n = s * v_t;
+//
+//  int32 rc_min = std::min(num_rows_, num_cols_);
+//  BaseFloat old_svd_sum = svd.singularValues().segment(0, rc_min).sum();
+//  BaseFloat new_svd_sum = svd.singularValues().segment(0, d).sum();
+//  KALDI_LOG << "Reduced rank from "
+//      << rc_min <<  " to " << d << ", SVD sum reduced from "
+//      << old_svd_sum << " to " << new_svd_sum;
+//
+//  // to kaldi matrix
+//  for (int32 r = 0; r < U->NumRows(); ++r) {
+//    for (int32 c = 0; c < U->NumCols(); ++c) {
+//      (*U)(r,c) = u(r,c);
+//    }
+//  }
+//  for (int32 r = 0; r < sVt->NumRows(); ++r) {
+//    for (int32 c = 0; c < sVt->NumCols(); ++c) {
+//      (*sVt)(r,c) = n(r,c);
+//    }
+//  }
+//  delete data_buf;
 }
 
 template<typename Real>
