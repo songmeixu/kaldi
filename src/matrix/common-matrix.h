@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <malloc.h>
+#include <sys/malloc.h>
 
 #define USE_POSIX_MEM_ALLOC
 #define pad_zero_bits 128
@@ -26,7 +26,7 @@ class Matrix {
   Matrix() : _data(0), _cols(0), _rows(0), _rcols(0), _rrows(0) { }
   Matrix(Matrix &b) : _cols(b._cols), _rows(b._rows), _rrows(b._rrows), _rcols(b._rcols) {
     if (_rcols > 0 && _rrows > 0) {
-      _data =  (T*)memalign(pad_zero_bits / sizeof(char), sizeof(T)*_rrows * _rcols);
+      _data =  (T*)malloc(sizeof(T)*_rrows * _rcols);
       memcpy(_data, b._data, sizeof(T) * _rcols * _rrows);
     }
   }
@@ -86,7 +86,7 @@ class Matrix {
     int pad_zero_size = pad_zero_bits / sizeof(T);
     _rcols = (_rcols + pad_zero_size - 1) / pad_zero_size * pad_zero_size;
     if (_rrows * _rcols != 0) {
-      _data = (T*)memalign(pad_zero_bits / sizeof(char), sizeof(T)*_rrows * _rcols);
+      _data = (T*)malloc(sizeof(T)*_rrows * _rcols);
       memset(_data, 0, sizeof(T) * _rrows * _rcols);
     }
   }
@@ -112,7 +112,7 @@ class Matrix {
     int pad_zero_size = pad_zero_bits / sizeof(T);
     _rcols = (_rcols + pad_zero_size - 1) / pad_zero_size * pad_zero_size;
     if (_rrows * _rcols != 0) {
-      _data = (T*)memalign(pad_zero_bits / sizeof(char), sizeof(T)*_rrows * _rcols);
+      _data = (T*)malloc(sizeof(T)*_rrows * _rcols);
       memcpy(_data, b._data, sizeof(T) * _rrows * _rcols);
     }
   }
