@@ -3247,6 +3247,10 @@ void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
   _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
 
+void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
+}
+
 void cudaF_copy_cols(dim3 Gr, dim3 Bl, float* dst, const float* src,
                      const MatrixIndexT_cuda* reorder, MatrixDim dst_dim,
                      int src_stride) {
