@@ -124,12 +124,12 @@ class XconfigConvLayer(XconfigBasicLayer):
         #     args.num_targets)
 
         configs.append('# Now for the network structure')
-        configs.append('component-node name={0} component={1} input={1}'
+        configs.append('component-node name={0} component={1} input={2}'
                        .format(self.name, self.name, self.descriptors['input']['final-string']))
 
         if batchnorm == 'bn':
-            configs.append('component-node name={0}.bn component={1}.bn input={2}'
-                           .format(self.name, self.name, self.name))
+            configs.append('component-node name={0}.bn component={0}.bn input={0}'
+                           .format(self.name))
             # configs.append('component-node name=final-affine component=final-affine input={0}.bn'
             #                .format(self.name))
         # else:
@@ -146,11 +146,11 @@ class XconfigConvLayer(XconfigBasicLayer):
 
 class XconfigPoolLayer(XconfigBasicLayer):
     """This class is for parsing lines like
-    max-pool-layer name=pool1 kernel=[2,2] step=[2,2] pad=False
+    pool-max-layer name=pool1 kernel=[2,2] step=[2,2] pad=False
     """
 
     def __init__(self, first_token, key_to_value, prev_names = None):
-        assert first_token in [ 'max-pool-layer', 'avg-pool-layer' ]
+        assert first_token in [ 'pool-max-layer', 'pool-avg-layer' ]
         # TODO: 'avg-pool-layer' to be implemented in c++
         XconfigLayerBase.__init__(self, first_token, key_to_value, prev_names)
 
@@ -216,7 +216,7 @@ class XconfigPoolLayer(XconfigBasicLayer):
                                self.config['step'][0], self.config['step'][1], 1))
 
         configs.append('# Now for the network structure')
-        configs.append('component-node name={0} component={1} input={2}'
+        configs.append('component-node name={0}.max component={1} input={2}'
                        .format(self.name, self.name, self.descriptors['input']['final-string']))
 
         return configs

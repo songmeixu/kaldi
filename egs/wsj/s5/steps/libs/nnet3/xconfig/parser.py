@@ -34,7 +34,7 @@ config_to_layer = {
         'fast-lstmp-layer' : xlayers.XconfigFastLstmpLayer,
         'conv-layer' : xlayers.XconfigConvLayer,
         'conv-bn-layer' : xlayers.XconfigConvLayer,
-        'max-pool-layer' : xlayers.XconfigPoolLayer,
+        'pool-max-layer' : xlayers.XconfigPoolLayer,
         }
 
 # Turn a config line and a list of previous layers into

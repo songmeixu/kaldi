@@ -235,6 +235,11 @@ class BatchNormComponent: public UpdatableComponent {
     CalcFromTotal();
   }
 
+  virtual int32 Properties() const {
+    return kSimpleComponent|kUpdatableComponent|
+        kBackpropNeedsInput|kBackpropAdds|kStoresStats;
+  }
+
   void Reset();
 
   virtual int32 InputDim() const { return a.Dim(); }
@@ -252,18 +257,17 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual std::string Type() const { return "BatchNormComponent"; }
   virtual Component* Copy() const;
-  virtual bool BackpropNeedsInput() const { return true; }
-  virtual bool BackpropNeedsOutput() const { return false; }
   using Component::Propagate; // to avoid name hiding
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
                          const CuMatrixBase<BaseFloat> &in,
                          CuMatrixBase<BaseFloat> *out) const;
-  virtual void Backprop(const ComponentPrecomputedIndexes *indexes,
+  virtual void Backprop(const std::string &debug_info,
+                        const ComponentPrecomputedIndexes *indexes,
                         const CuMatrixBase<BaseFloat> &in_value,
                         const CuMatrixBase<BaseFloat> &out_value,
                         const CuMatrixBase<BaseFloat> &out_deriv,
                         Component *to_update_in, // may be identical to "this".
-                        CuMatrix<BaseFloat> *in_deriv) const;
+                        CuMatrixBase<BaseFloat> *in_deriv) const;
 
   virtual void PerturbParams(BaseFloat stddev) {}
 
@@ -278,12 +282,12 @@ class BatchNormComponent: public UpdatableComponent {
 
   void CalcFromTotal();
 
-  virtual int32 GetParameterDim() const;
+  virtual int32 NumParameters() const;
 
  protected:
   virtual void Update(const CuMatrixBase<BaseFloat> &in_value,
                       const CuMatrixBase<BaseFloat> &out_deriv,
-                      CuMatrix<BaseFloat> *in_deriv);
+                      CuMatrixBase<BaseFloat> *in_deriv);
 
  private:
   BatchNormComponent &operator = (const BatchNormComponent &other); // Disallow.

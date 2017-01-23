@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <iostream>
 #include <string>
-#include <sys/malloc.h>
+#include <malloc.h>
 
 #define USE_POSIX_MEM_ALLOC
 #define pad_zero_bits 128

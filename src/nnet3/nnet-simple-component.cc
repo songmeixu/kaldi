@@ -665,7 +665,7 @@ void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in
 
 void BatchNormComponent::SetZero(bool treat_as_gradient) {
   if (treat_as_gradient) {
-    SetLearningRate(1.0);
+    SetActualLearningRate(1.0);
   }
   gamma.SetZero();
   beta.SetZero();
@@ -675,7 +675,7 @@ void BatchNormComponent::SetZero(bool treat_as_gradient) {
     is_gradient_ = true;
 }
 
-int32 BatchNormComponent::GetParameterDim() const {
+int32 BatchNormComponent::NumParameters() const {
   return 2 * OutputDim();
 }
 
@@ -743,15 +743,17 @@ void BatchNormComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
 
 }
 
-void BatchNormComponent::Backprop(const ComponentPrecomputedIndexes *indexes,
+void BatchNormComponent::Backprop(const std::string &debug_info,
+                                  const ComponentPrecomputedIndexes *indexes,
                                   const CuMatrixBase<BaseFloat> &in_value,
                                   const CuMatrixBase<BaseFloat> &out_value,
                                   const CuMatrixBase<BaseFloat> &out_deriv,
                                   Component *to_update_in,
-    // may be identical to "this".
-                                  CuMatrix<BaseFloat> *in_deriv) const  {
+                                  CuMatrixBase<BaseFloat> *in_deriv) const  {
+  if (!in_deriv)
+    return;
   BatchNormComponent *to_update = dynamic_cast<BatchNormComponent*>(to_update_in);
-  in_deriv->Resize(out_deriv.NumRows(), InputDim());
+//  in_deriv->Resize(out_deriv.NumRows(), InputDim());
 
   if (to_update != NULL) {
     // Next update the model (must do this 2nd so the derivatives we propagate
@@ -762,7 +764,7 @@ void BatchNormComponent::Backprop(const ComponentPrecomputedIndexes *indexes,
 
 void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
                                 const CuMatrixBase<BaseFloat> &out_deriv,
-                                CuMatrix<BaseFloat> *in_deriv) {
+                                CuMatrixBase<BaseFloat> *in_deriv) {
   // x_new
   CuMatrix<BaseFloat> x_new(in_value);
   x_new.AddVecToRows(-1.0, mean);
