@@ -280,23 +280,24 @@ def train(args, run_opts, background_process_handler):
                                              dir=args.dir))
 
     default_egs_dir = '{0}/egs'.format(args.dir)
+
     if (args.stage <= -4) and args.egs_dir is None:
         logger.info("Generating egs")
 
-        train_lib.acoustic_model.generate_egs(
-            data=args.feat_dir, alidir=args.ali_dir, egs_dir=default_egs_dir,
-            left_context=left_context, right_context=right_context,
-            valid_left_context=left_context + args.chunk_width,
-            valid_right_context=right_context + args.chunk_width,
-            run_opts=run_opts,
-            frames_per_eg=args.chunk_width,
-            srand=args.srand,
-            egs_opts=args.egs_opts,
-            cmvn_opts=args.cmvn_opts,
-            online_ivector_dir=args.online_ivector_dir,
-            samples_per_iter=args.samples_per_iter,
-            transform_dir=args.transform_dir,
-            stage=args.egs_stage)
+        # train_lib.acoustic_model.generate_egs(
+        #     data=args.feat_dir, alidir=args.ali_dir, egs_dir=default_egs_dir,
+        #     left_context=left_context, right_context=right_context,
+        #     valid_left_context=left_context + args.chunk_width,
+        #     valid_right_context=right_context + args.chunk_width,
+        #     run_opts=run_opts,
+        #     frames_per_eg=args.chunk_width,
+        #     srand=args.srand,
+        #     egs_opts=args.egs_opts,
+        #     cmvn_opts=args.cmvn_opts,
+        #     online_ivector_dir=args.online_ivector_dir,
+        #     samples_per_iter=args.samples_per_iter,
+        #     transform_dir=args.transform_dir,
+        #     stage=args.egs_stage)
 
     if args.egs_dir is None:
         egs_dir = default_egs_dir
@@ -317,23 +318,23 @@ def train(args, run_opts, background_process_handler):
     # use during decoding
     common_train_lib.copy_egs_properties_to_exp_dir(egs_dir, args.dir)
 
-    if (args.stage <= -3):
-        logger.info('Computing the preconditioning matrix for input features')
+    # if (args.stage <= -3):
+        # logger.info('Computing the preconditioning matrix for input features')
+        #
+        # train_lib.common.compute_preconditioning_matrix(
+        #     args.dir, egs_dir, num_archives, run_opts,
+        #     max_lda_jobs=args.max_lda_jobs,
+        #     rand_prune=args.rand_prune)
 
-        train_lib.common.compute_preconditioning_matrix(
-            args.dir, egs_dir, num_archives, run_opts,
-            max_lda_jobs=args.max_lda_jobs,
-            rand_prune=args.rand_prune)
-
-    if (args.stage <= -2):
-        logger.info("Computing initial vector for FixedScaleComponent before"
-                    " softmax, using priors^{prior_scale} and rescaling to"
-                    " average 1".format(
-                        prior_scale=args.presoftmax_prior_scale_power))
-
-        common_train_lib.compute_presoftmax_prior_scale(
-                args.dir, args.ali_dir, num_jobs, run_opts,
-                presoftmax_prior_scale_power=args.presoftmax_prior_scale_power)
+    # if (args.stage <= -2):
+        # logger.info("Computing initial vector for FixedScaleComponent before"
+        #             " softmax, using priors^{prior_scale} and rescaling to"
+        #             " average 1".format(
+        #                 prior_scale=args.presoftmax_prior_scale_power))
+        #
+        # common_train_lib.compute_presoftmax_prior_scale(
+        #         args.dir, args.ali_dir, num_jobs, run_opts,
+        #         presoftmax_prior_scale_power=args.presoftmax_prior_scale_power)
 
     if (args.stage <= -1):
         logger.info("Preparing the initial acoustic model.")
