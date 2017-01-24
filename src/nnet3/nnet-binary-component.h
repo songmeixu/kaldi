@@ -45,15 +45,15 @@ class BinaryNaturalGradientAffineComponent: public NaturalGradientAffineComponen
   virtual void Write(std::ostream &os, bool binary) const;
   // this constructor does not really initialize, use Init() or Read().
   BinaryNaturalGradientAffineComponent() { }
-  void Init(int32 input_dim, int32 output_dim,
-            BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
-            int32 rank_in, int32 rank_out, int32 update_period,
-            BaseFloat num_samples_history, BaseFloat alpha,
-            BaseFloat max_change_per_sample);
-  void Init(int32 rank_in, int32 rank_out, int32 update_period,
-            BaseFloat num_samples_history,
-            BaseFloat alpha, BaseFloat max_change_per_sample,
-            std::string matrix_filename);
+  virtual void Init(int32 input_dim, int32 output_dim,
+                    BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
+                    int32 rank_in, int32 rank_out, int32 update_period,
+                    BaseFloat num_samples_history, BaseFloat alpha,
+                    BaseFloat max_change_per_sample);
+  virtual void Init(int32 rank_in, int32 rank_out, int32 update_period,
+                    BaseFloat num_samples_history,
+                    BaseFloat alpha, BaseFloat max_change_per_sample,
+                    std::string matrix_filename);
   virtual Component* Copy() const;
   virtual void Scale(BaseFloat scale);
   virtual void Add(BaseFloat alpha, const Component &other);

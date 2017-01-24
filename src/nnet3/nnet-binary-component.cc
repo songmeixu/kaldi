@@ -131,6 +131,7 @@ void BinaryNaturalGradientAffineComponent::Init(
   int32 input_dim = mat.NumCols() - 1, output_dim = mat.NumRows();
   linear_params_.Resize(output_dim, input_dim);
   w_b.Resize(output_dim, input_dim);
+  w_b.SetZero();
   bias_params_.Resize(output_dim);
   linear_params_.CopyFromMat(mat.Range(0, output_dim, 0, input_dim));
   bias_params_.CopyColFromMat(mat, input_dim);

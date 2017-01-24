@@ -798,15 +798,15 @@ class NaturalGradientAffineComponent: public AffineComponent {
   virtual std::string Type() const { return "NaturalGradientAffineComponent"; }
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
-  void Init(int32 input_dim, int32 output_dim,
-            BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
-            int32 rank_in, int32 rank_out, int32 update_period,
-            BaseFloat num_samples_history, BaseFloat alpha,
-            BaseFloat max_change_per_sample);
-  void Init(int32 rank_in, int32 rank_out, int32 update_period,
-            BaseFloat num_samples_history,
-            BaseFloat alpha, BaseFloat max_change_per_sample,
-            std::string matrix_filename);
+  virtual void Init(int32 input_dim, int32 output_dim,
+                    BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
+                    int32 rank_in, int32 rank_out, int32 update_period,
+                    BaseFloat num_samples_history, BaseFloat alpha,
+                    BaseFloat max_change_per_sample);
+  virtual void Init(int32 rank_in, int32 rank_out, int32 update_period,
+                    BaseFloat num_samples_history,
+                    BaseFloat alpha, BaseFloat max_change_per_sample,
+                    std::string matrix_filename);
   // this constructor does not really initialize, use Init() or Read().
   NaturalGradientAffineComponent();
   virtual void Resize(int32 input_dim, int32 output_dim);
