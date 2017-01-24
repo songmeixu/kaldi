@@ -7,3 +7,4 @@ from basic_layers import *
 from lstm import *
 from tdnn import *
 from cnn import *
+from bnn_basic_layers import *
