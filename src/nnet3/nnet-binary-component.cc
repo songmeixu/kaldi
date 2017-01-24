@@ -204,6 +204,7 @@ void BinaryNaturalGradientAffineComponent::Add(BaseFloat alpha, const Component 
 
 BinaryNaturalGradientAffineComponent::BinaryNaturalGradientAffineComponent(
     const BinaryNaturalGradientAffineComponent &other):
+    NaturalGradientAffineComponent(other),
     w_b(other.w_b) {
 }
 
