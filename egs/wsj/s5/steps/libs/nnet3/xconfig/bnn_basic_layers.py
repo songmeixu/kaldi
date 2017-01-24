@@ -129,7 +129,7 @@ class XconfigBNNBasicLayer(XconfigBasicLayer):
         line = ('component name={0}.ba'
                 ' type=BinaryActivitionComponent'
                 ' dim={1}'
-                .format(self.name, input_dim))
+                .format(self.name, output_dim))
         configs.append(line)
 
         line = ('component-node name={0}.ba'
