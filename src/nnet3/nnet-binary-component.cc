@@ -153,6 +153,7 @@ void BinaryNaturalGradientAffineComponent::Init(
       bias_stddev >= 0.0);
   linear_params_.SetRandn(); // sets to random normally distributed noise.
   linear_params_.Scale(param_stddev);
+  w_b.SetZero();
   bias_params_.SetRandn();
   bias_params_.Scale(bias_stddev);
   bias_params_.Add(bias_mean);
