@@ -152,8 +152,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new LstmNonlinearityComponent();
   } else if (component_type == "BatchNormComponent") {
     ans = new BatchNormComponent();
-  } else if (component_type == "BinaryNaturalGradientAffineComponent") {
-    ans = new BinaryNaturalGradientAffineComponent();
+  } else if (component_type == "BinaryAffineComponent") {
+    ans = new BinaryAffineComponent();
   } else if (component_type == "BinaryActivitionComponent") {
     ans = new BinaryActivitionComponent();
   }

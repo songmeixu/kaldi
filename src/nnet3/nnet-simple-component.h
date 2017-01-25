@@ -537,7 +537,7 @@ class AffineComponent: public UpdatableComponent {
 
  protected:
   friend class NaturalGradientAffineComponent;
-  friend class BinaryNaturalGradientAffineComponent;
+  friend class BinaryAffineComponent;
   // This function Update() is for extensibility; child classes may override
   // this, e.g. for natural gradient update.
   virtual void Update(
@@ -821,7 +821,7 @@ class NaturalGradientAffineComponent: public AffineComponent {
   virtual void ZeroStats();
 
  protected:
-  friend class BinaryNaturalGradientAffineComponent;
+  friend class BinaryAffineComponent;
   virtual void Update(
       const std::string &debug_info,
       const CuMatrixBase<BaseFloat> &in_value,

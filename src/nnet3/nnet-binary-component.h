@@ -38,13 +38,13 @@ namespace nnet3 {
 /// It is described, under the name Online NG-SGD, in the paper "Parallel
 /// training of DNNs with Natural Gradient and Parameter Averaging" (ICLR
 /// workshop, 2015) by Daniel Povey, Xiaohui Zhang and Sanjeev Khudanpur.
-class BinaryNaturalGradientAffineComponent: public AffineComponent {
+class BinaryAffineComponent: public AffineComponent {
  public:
-  virtual std::string Type() const { return "BinaryNaturalGradientAffineComponent"; }
+  virtual std::string Type() const { return "BinaryAffineComponent"; }
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
   // this constructor does not really initialize, use Init() or Read().
-  BinaryNaturalGradientAffineComponent() { }
+  BinaryAffineComponent() { }
   virtual void Init(int32 input_dim, int32 output_dim,
                     BaseFloat param_stddev, BaseFloat bias_stddev);
   virtual void Init(std::string matrix_filename);
@@ -52,8 +52,8 @@ class BinaryNaturalGradientAffineComponent: public AffineComponent {
   virtual void Scale(BaseFloat scale);
   virtual void Add(BaseFloat alpha, const Component &other);
   // copy constructor
-  explicit BinaryNaturalGradientAffineComponent(
-      const BinaryNaturalGradientAffineComponent &other);
+  explicit BinaryAffineComponent(
+      const BinaryAffineComponent &other);
 
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
                          const CuMatrixBase<BaseFloat> &in,
@@ -74,8 +74,8 @@ class BinaryNaturalGradientAffineComponent: public AffineComponent {
 
  private:
   // disallow assignment operator.
-  BinaryNaturalGradientAffineComponent &operator= (
-      const BinaryNaturalGradientAffineComponent&);
+  BinaryAffineComponent &operator= (
+      const BinaryAffineComponent&);
 
   mutable CuMatrix<BaseFloat> w_b;
 };

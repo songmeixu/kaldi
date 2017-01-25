@@ -36,12 +36,12 @@ CuMatrix<BaseFloat> Binarize(const CuMatrixBase<BaseFloat> &w) {
   return w_b;
 }
 
-//BinaryNaturalGradientAffineComponent::BinaryNaturalGradientAffineComponent():
+//BinaryAffineComponent::BinaryAffineComponent():
 //    max_change_per_sample_(0.0),
 //    update_count_(0.0), active_scaling_count_(0.0),
 //    max_change_scale_stats_(0.0) { }
 
-void BinaryNaturalGradientAffineComponent::Read(std::istream &is, bool binary) {
+void BinaryAffineComponent::Read(std::istream &is, bool binary) {
   ReadUpdatableCommon(is, binary);  // read opening tag and learning rate.
   ExpectToken(is, binary, "<LinearParams>");
   linear_params_.Read(is, binary);
@@ -54,7 +54,7 @@ void BinaryNaturalGradientAffineComponent::Read(std::istream &is, bool binary) {
   ExpectToken(is, binary, "</AffineComponent>");
 }
 
-void BinaryNaturalGradientAffineComponent::Write(std::ostream &os,
+void BinaryAffineComponent::Write(std::ostream &os,
                                                  bool binary) const {
   WriteUpdatableCommon(os, binary);  // Write opening tag and learning rate
   WriteToken(os, binary, "<LinearParams>");
@@ -68,7 +68,7 @@ void BinaryNaturalGradientAffineComponent::Write(std::ostream &os,
   WriteToken(os, binary, "</AffineComponent>");
 }
 
-void BinaryNaturalGradientAffineComponent::Init(int32 input_dim, int32 output_dim,
+void BinaryAffineComponent::Init(int32 input_dim, int32 output_dim,
                            BaseFloat param_stddev, BaseFloat bias_stddev) {
   linear_params_.Resize(output_dim, input_dim);
   w_b.Resize(output_dim, input_dim);
@@ -77,11 +77,10 @@ void BinaryNaturalGradientAffineComponent::Init(int32 input_dim, int32 output_di
   linear_params_.SetRandn(); // sets to random normally distributed noise.
   linear_params_.Scale(param_stddev);
   w_b.SetZero();
-  bias_params_.SetRandn();
-  bias_params_.Scale(bias_stddev);
+  bias_params_.SetZero();
 }
 
-void BinaryNaturalGradientAffineComponent::Init(std::string matrix_filename) {
+void BinaryAffineComponent::Init(std::string matrix_filename) {
   CuMatrix<BaseFloat> mat;
   ReadKaldiObject(matrix_filename, &mat); // will abort on failure.
   KALDI_ASSERT(mat.NumCols() >= 2);
@@ -94,32 +93,32 @@ void BinaryNaturalGradientAffineComponent::Init(std::string matrix_filename) {
   bias_params_.CopyColFromMat(mat, input_dim);
 }
 
-Component* BinaryNaturalGradientAffineComponent::Copy() const {
-  return new BinaryNaturalGradientAffineComponent(*this);
+Component* BinaryAffineComponent::Copy() const {
+  return new BinaryAffineComponent(*this);
 }
 
-void BinaryNaturalGradientAffineComponent::Scale(BaseFloat scale) {
+void BinaryAffineComponent::Scale(BaseFloat scale) {
   linear_params_.Scale(scale);
   bias_params_.Scale(scale);
   w_b.Scale(scale);
 }
 
-void BinaryNaturalGradientAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
-  const BinaryNaturalGradientAffineComponent *other =
-      dynamic_cast<const BinaryNaturalGradientAffineComponent*>(&other_in);
+void BinaryAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
+  const BinaryAffineComponent *other =
+      dynamic_cast<const BinaryAffineComponent*>(&other_in);
   KALDI_ASSERT(other != NULL);
   linear_params_.AddMat(alpha, other->linear_params_);
   bias_params_.AddVec(alpha, other->bias_params_);
   w_b.AddMat(alpha, other->w_b);
 }
 
-BinaryNaturalGradientAffineComponent::BinaryNaturalGradientAffineComponent(
-    const BinaryNaturalGradientAffineComponent &other):
+BinaryAffineComponent::BinaryAffineComponent(
+    const BinaryAffineComponent &other):
     AffineComponent(other),
     w_b(other.w_b) {
 }
 
-void BinaryNaturalGradientAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
+void BinaryAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
                                                      const CuMatrixBase<BaseFloat> &in,
                                                      CuMatrixBase<BaseFloat> *out) const {
   // No need for asserts as they'll happen within the matrix operations.
@@ -128,7 +127,7 @@ void BinaryNaturalGradientAffineComponent::Propagate(const ComponentPrecomputedI
   out->AddMatMat(1.0, in, kNoTrans, w_b, kTrans, 1.0);
 }
 
-void BinaryNaturalGradientAffineComponent::Backprop(const std::string &debug_info,
+void BinaryAffineComponent::Backprop(const std::string &debug_info,
                                                     const ComponentPrecomputedIndexes *indexes,
                                                     const CuMatrixBase<BaseFloat> &in_value,
                                                     const CuMatrixBase<BaseFloat> &,
@@ -155,11 +154,12 @@ void BinaryNaturalGradientAffineComponent::Backprop(const std::string &debug_inf
   }
 }
 
-void BinaryNaturalGradientAffineComponent::Update(
+void BinaryAffineComponent::Update(
     const std::string &debug_info,
     const CuMatrixBase<BaseFloat> &in_value,
     const CuMatrixBase<BaseFloat> &out_deriv) {
-  this->AffineComponent::Update(debug_info, in_value, out_deriv);
+  linear_params_.AddMatMat(learning_rate_, out_deriv, kTrans,
+                           in_value, kNoTrans, 1.0);
   linear_params_.ApplyCeiling(1.0);
   linear_params_.ApplyFloor(-1.0);
 }
