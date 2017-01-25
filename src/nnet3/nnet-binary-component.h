@@ -38,7 +38,7 @@ namespace nnet3 {
 /// It is described, under the name Online NG-SGD, in the paper "Parallel
 /// training of DNNs with Natural Gradient and Parameter Averaging" (ICLR
 /// workshop, 2015) by Daniel Povey, Xiaohui Zhang and Sanjeev Khudanpur.
-class BinaryNaturalGradientAffineComponent: public NaturalGradientAffineComponent {
+class BinaryNaturalGradientAffineComponent: public AffineComponent {
  public:
   virtual std::string Type() const { return "BinaryNaturalGradientAffineComponent"; }
   virtual void Read(std::istream &is, bool binary);
@@ -46,14 +46,8 @@ class BinaryNaturalGradientAffineComponent: public NaturalGradientAffineComponen
   // this constructor does not really initialize, use Init() or Read().
   BinaryNaturalGradientAffineComponent() { }
   virtual void Init(int32 input_dim, int32 output_dim,
-                    BaseFloat param_stddev, BaseFloat bias_stddev, BaseFloat bias_mean,
-                    int32 rank_in, int32 rank_out, int32 update_period,
-                    BaseFloat num_samples_history, BaseFloat alpha,
-                    BaseFloat max_change_per_sample);
-  virtual void Init(int32 rank_in, int32 rank_out, int32 update_period,
-                    BaseFloat num_samples_history,
-                    BaseFloat alpha, BaseFloat max_change_per_sample,
-                    std::string matrix_filename);
+                    BaseFloat param_stddev, BaseFloat bias_stddev);
+  virtual void Init(std::string matrix_filename);
   virtual Component* Copy() const;
   virtual void Scale(BaseFloat scale);
   virtual void Add(BaseFloat alpha, const Component &other);

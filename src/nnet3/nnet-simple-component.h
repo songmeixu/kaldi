@@ -518,9 +518,9 @@ class AffineComponent: public UpdatableComponent {
   AffineComponent(const CuMatrixBase<BaseFloat> &linear_params,
                   const CuVectorBase<BaseFloat> &bias_params,
                   BaseFloat learning_rate);
-  void Init(int32 input_dim, int32 output_dim,
-            BaseFloat param_stddev, BaseFloat bias_stddev);
-  void Init(std::string matrix_filename);
+  virtual void Init(int32 input_dim, int32 output_dim,
+                    BaseFloat param_stddev, BaseFloat bias_stddev);
+  virtual void Init(std::string matrix_filename);
 
   // This function resizes the dimensions of the component, setting the
   // parameters to zero, while leaving any other configuration values the same.
