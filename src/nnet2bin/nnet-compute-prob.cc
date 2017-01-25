@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     ParseOptions po(usage);
 
     po.Register("pdf-classes", &pdf_classes, "pdf classes to calculate accuracy: "
-        "colon-separated list of integers, e.g. 0,1,2;3,4,5,6,7,8");
+        "colon-separated list of integers, e.g. 0,1,2:3,4,5,6,7,8");
 
     po.Read(argc, argv);
     
