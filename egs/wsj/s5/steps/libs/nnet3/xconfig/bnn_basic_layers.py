@@ -64,7 +64,7 @@ class XconfigBNNBasicLayer(XconfigBasicLayer):
         configs = []
         # First the affine node.
         line = ('component name={0}.affine'
-                ' type=BinaryNaturalGradientAffineComponent'
+                ' type=BinaryAffineComponent'
                 ' input-dim={1}'
                 ' output-dim={2}'
                 ' max-change={3}'
