@@ -28,12 +28,12 @@
 namespace kaldi {
 namespace nnet3 {
 
-CuMatrix<BaseFloat> Binarize(const CuMatrixBase<BaseFloat> &w) {
-  CuMatrix<BaseFloat> w_b(w);
-  w_b.ApplyHeaviside();
-  w_b.Scale(2.0);
-  w_b.Add(-1.0);
-  return w_b;
+CuMatrix<BaseFloat> Binarize(const CuMatrixBase<BaseFloat> &M) {
+  CuMatrix<BaseFloat> M_b(M);
+  M_b.ApplyHeaviside();
+  M_b.Scale(2.0);
+  M_b.Add(-1.0);
+  return M_b;
 }
 
 //BinaryAffineComponent::BinaryAffineComponent():
@@ -100,7 +100,6 @@ Component* BinaryAffineComponent::Copy() const {
 void BinaryAffineComponent::Scale(BaseFloat scale) {
   linear_params_.Scale(scale);
   bias_params_.Scale(scale);
-  w_b.Scale(scale);
 }
 
 void BinaryAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
@@ -109,7 +108,6 @@ void BinaryAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
   KALDI_ASSERT(other != NULL);
   linear_params_.AddMat(alpha, other->linear_params_);
   bias_params_.AddVec(alpha, other->bias_params_);
-  w_b.AddMat(alpha, other->w_b);
 }
 
 BinaryAffineComponent::BinaryAffineComponent(
@@ -122,7 +120,6 @@ void BinaryAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes
                                                      const CuMatrixBase<BaseFloat> &in,
                                                      CuMatrixBase<BaseFloat> *out) const {
   // No need for asserts as they'll happen within the matrix operations.
-  w_b.Resize(linear_params_.NumRows(), linear_params_.NumCols());
   w_b.CopyFromMat(Binarize(linear_params_));
   out->AddMatMat(1.0, in, kNoTrans, w_b, kTrans, 1.0);
 }
