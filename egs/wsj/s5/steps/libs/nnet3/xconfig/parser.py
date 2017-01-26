@@ -44,6 +44,7 @@ config_to_layer = {
         'conv-bn-layer' : xlayers.XconfigConvLayer,
         'pool-max-layer' : xlayers.XconfigPoolLayer,
         'bnn-bn-ba-layer' : xlayers.XconfigBNNBasicLayer,
+        'bnn-output-layer' : xlayers.XconfigBNNOutputLayer,
         }
 
 # Turn a config line and a list of previous layers into
