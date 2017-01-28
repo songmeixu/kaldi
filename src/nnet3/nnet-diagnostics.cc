@@ -37,7 +37,7 @@ NnetComputeProb::NnetComputeProb(const NnetComputeProbOptions &config,
   }
 
   if (!config_.pdf_classes.empty()) {
-    std::cout << config_.pdf_classes << std::endl;
+    std::cout << "pdf-id classes: " << config_.pdf_classes << std::endl;
     std::vector<int> pdf_ids;
     std::vector<std::string> classes = SplitStrings(config_.pdf_classes, ':');
     for (int i = 0; i < classes.size(); ++i) {
@@ -182,13 +182,13 @@ bool NnetComputeProb::PrintTotalStats() const {
                             (info.tot_class_accuracy[2 * c] / info.tot_class_accuracy[2 * c + 1]);
           KALDI_LOG << "class " << c + 1 << " accuracy is "
                     << accuracy
-                    << " total classes num is "
+                    << ", total classes num is "
                     << info.tot_class_accuracy[2 * c + 1];
         }
         KALDI_LOG << "total classes accuracy is "
                   << (info.tot_class_accuracy[2 * pdfid_classes_.size()] /
                       info.tot_class_accuracy[2 * pdfid_classes_.size() + 1])
-                  << " total classes num is "
+                  << ", total classes num is "
                   << info.tot_class_accuracy[2 * pdfid_classes_.size() + 1];
       }
     }
@@ -261,22 +261,22 @@ void ComputeAccuracy(const GeneralMatrix &supervision,
         tot_weight += row_sum;
         if (best_index == best_index_cpu[r]) {
           tot_accuracy += row_sum;
-          if (!pdfid_classes.empty()) {
-            int32 ref_pdf_id = best_index, hyp_pdf_id = best_index_cpu[r];
-            for (int c = 0; c < pdfid_classes.size(); ++c) {
-              // find ref_pdf_id
-              if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), ref_pdf_id)
+        }
+        if (!pdfid_classes.empty()) {
+          int32 ref_pdf_id = best_index, hyp_pdf_id = best_index_cpu[r];
+          for (int c = 0; c < pdfid_classes.size(); ++c) {
+            // find ref_pdf_id
+            if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), ref_pdf_id)
+                != pdfid_classes[c].end()) {
+              tot_classes_accuracy[2*c+1] += row_sum;
+              tot_classes_accuracy[2*pdfid_classes.size()+1] += row_sum;
+              // find hyp_pdf_id
+              if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), hyp_pdf_id)
                   != pdfid_classes[c].end()) {
-                tot_classes_accuracy[2*c+1] += row_sum;
-                tot_classes_accuracy[2*pdfid_classes.size()+1] += row_sum;
-                // find hyp_pdf_id
-                if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), hyp_pdf_id)
-                    != pdfid_classes[c].end()) {
-                  tot_classes_accuracy[2*c] += row_sum;
-                  tot_classes_accuracy[2*pdfid_classes.size()] += row_sum;
-                }
-                break;
+                tot_classes_accuracy[2*c] += row_sum;
+                tot_classes_accuracy[2*pdfid_classes.size()] += row_sum;
               }
+              break;
             }
           }
         }
