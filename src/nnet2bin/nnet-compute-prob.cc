@@ -59,8 +59,8 @@ int main(int argc, char *argv[]) {
         examples_rspecifier = po.GetArg(2);
 
     std::vector< std::vector<int> > pdfid_classes;
-    std::cout << pdf_classes << std::endl;
     if (!pdf_classes.empty()) {
+      std::cout << "pdf-id classes: " << pdf_classes << std::endl;
       std::vector<int> pdf_ids;
       std::vector<std::string> classes = SplitStrings(pdf_classes, ':');
       for (int i = 0; i < classes.size(); ++i) {

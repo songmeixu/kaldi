@@ -34,8 +34,10 @@ namespace nnet3 {
 struct SimpleObjectiveInfo {
   double tot_weight;
   double tot_objective;
+  double *tot_class_accuracy;
   SimpleObjectiveInfo(): tot_weight(0.0),
-                         tot_objective(0.0) { }
+                         tot_objective(0.0),
+                         tot_class_accuracy(NULL) { }
 
 };
 
@@ -44,6 +46,7 @@ struct NnetComputeProbOptions {
   bool debug_computation;
   bool compute_deriv;
   bool compute_accuracy;
+  string pdf_classes;
   NnetOptimizeOptions optimize_config;
   NnetComputeOptions compute_config;
   NnetComputeProbOptions():
@@ -57,6 +60,9 @@ struct NnetComputeProbOptions {
                    "debug for the actual computation (very verbose!)");
     opts->Register("compute-accuracy", &compute_accuracy, "If true, compute "
                    "accuracy values as well as objective functions");
+    opts->Register("pdf-classes", &pdf_classes, "pdf classes to calculate accuracy: "
+        "colon-separated list of integers, e.g. 0,1,2:3,4,5,6,7,8");
+
     // register the optimization options with the prefix "optimization".
     ParseOptions optimization_opts("optimization", opts);
     optimize_config.Register(&optimization_opts);
@@ -115,6 +121,8 @@ class NnetComputeProb {
   // this is only for diagnostics.
   int32 num_minibatches_processed_;
 
+  std::vector< std::vector<int> > pdfid_classes_;
+
   unordered_map<std::string, SimpleObjectiveInfo, StringHasher> objf_info_;
 
   unordered_map<std::string, SimpleObjectiveInfo, StringHasher> accuracy_info_;
@@ -152,7 +160,9 @@ class NnetComputeProb {
 void ComputeAccuracy(const GeneralMatrix &supervision,
                      const CuMatrixBase<BaseFloat> &nnet_output,
                      BaseFloat *tot_weight,
-                     BaseFloat *tot_accuracy);
+                     BaseFloat *tot_accuracy,
+                     const std::vector< std::vector<int> > &pdfids_classes = std::vector< std::vector<int> >(),
+                     double *tot_classes_accuracy= NULL);
 
 
 } // namespace nnet3

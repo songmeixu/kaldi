@@ -35,6 +35,19 @@ NnetComputeProb::NnetComputeProb(const NnetComputeProbOptions &config,
     bool is_gradient = true;  // force simple update
     SetZero(is_gradient, deriv_nnet_);
   }
+
+  if (!config_.pdf_classes.empty()) {
+    std::cout << config_.pdf_classes << std::endl;
+    std::vector<int> pdf_ids;
+    std::vector<std::string> classes = SplitStrings(config_.pdf_classes, ':');
+    for (int i = 0; i < classes.size(); ++i) {
+      if (!SplitStringToIntegers(classes[i], ",", false, &pdf_ids)) {
+        KALDI_ERR << "Bad --skip-dims option (should be colon-separated list of "
+                  << "integers)";
+      }
+      pdfid_classes_.push_back(pdf_ids);
+    }
+  }
 }
 
 const Nnet &NnetComputeProb::GetDeriv() const {
@@ -104,11 +117,17 @@ void NnetComputeProb::ProcessOutputs(const NnetExample &eg,
       }
       if (obj_type == kLinear && config_.compute_accuracy) {
         BaseFloat tot_weight, tot_accuracy;
+        double *class_accuracy = new double[2*(pdfid_classes_.size()+1)]();
         ComputeAccuracy(io.features, output,
-                        &tot_weight, &tot_accuracy);
+                        &tot_weight, &tot_accuracy, pdfid_classes_, class_accuracy);
         SimpleObjectiveInfo &totals = accuracy_info_[io.name];
         totals.tot_weight += tot_weight;
         totals.tot_objective += tot_accuracy;
+        if (totals.tot_class_accuracy == NULL)
+          totals.tot_class_accuracy = new double[2*(pdfid_classes_.size()+1)]();
+        for (int c = 0; c < 2 * (pdfid_classes_.size() + 1); ++c) {
+          totals.tot_class_accuracy[c] += class_accuracy[c];
+        }
       }
       num_minibatches_processed_++;
     }
@@ -150,13 +169,39 @@ bool NnetComputeProb::PrintTotalStats() const {
       // already have set it to true if we got any data.
     }
   }
+  { // print pdf-id class accuracies
+    if (!pdfid_classes_.empty()) {
+      iter = accuracy_info_.begin();
+      end = accuracy_info_.end();
+      for (; iter != end; ++iter) {
+        const std::string &name = iter->first;
+        const SimpleObjectiveInfo &info = iter->second;
+
+        for (int c = 0; c < pdfid_classes_.size(); ++c) {
+          double accuracy = info.tot_class_accuracy[2 * c + 1] == 0 ? 0 :
+                            (info.tot_class_accuracy[2 * c] / info.tot_class_accuracy[2 * c + 1]);
+          KALDI_LOG << "class " << c + 1 << " accuracy is "
+                    << accuracy
+                    << " total classes num is "
+                    << info.tot_class_accuracy[2 * c + 1];
+        }
+        KALDI_LOG << "total classes accuracy is "
+                  << (info.tot_class_accuracy[2 * pdfid_classes_.size()] /
+                      info.tot_class_accuracy[2 * pdfid_classes_.size() + 1])
+                  << " total classes num is "
+                  << info.tot_class_accuracy[2 * pdfid_classes_.size() + 1];
+      }
+    }
+  }
   return ans;
 }
 
 void ComputeAccuracy(const GeneralMatrix &supervision,
                      const CuMatrixBase<BaseFloat> &nnet_output,
                      BaseFloat *tot_weight_out,
-                     BaseFloat *tot_accuracy_out) {
+                     BaseFloat *tot_accuracy_out,
+                     const std::vector< std::vector<int> > &pdfid_classes,
+                     double *tot_classes_accuracy) {
   int32 num_rows = nnet_output.NumRows(),
       num_cols = nnet_output.NumCols();
   KALDI_ASSERT(supervision.NumRows() == num_rows &&
@@ -214,8 +259,27 @@ void ComputeAccuracy(const GeneralMatrix &supervision,
         row.Max(&best_index);
         KALDI_ASSERT(best_index < num_cols);
         tot_weight += row_sum;
-        if (best_index == best_index_cpu[r])
+        if (best_index == best_index_cpu[r]) {
           tot_accuracy += row_sum;
+          if (!pdfid_classes.empty()) {
+            int32 ref_pdf_id = best_index, hyp_pdf_id = best_index_cpu[r];
+            for (int c = 0; c < pdfid_classes.size(); ++c) {
+              // find ref_pdf_id
+              if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), ref_pdf_id)
+                  != pdfid_classes[c].end()) {
+                tot_classes_accuracy[2*c+1] += row_sum;
+                tot_classes_accuracy[2*pdfid_classes.size()+1] += row_sum;
+                // find hyp_pdf_id
+                if (std::find(pdfid_classes[c].begin(), pdfid_classes[c].end(), hyp_pdf_id)
+                    != pdfid_classes[c].end()) {
+                  tot_classes_accuracy[2*c] += row_sum;
+                  tot_classes_accuracy[2*pdfid_classes.size()] += row_sum;
+                }
+                break;
+              }
+            }
+          }
+        }
       }
       break;
     }
