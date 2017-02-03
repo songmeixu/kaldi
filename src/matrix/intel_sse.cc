@@ -117,7 +117,7 @@ void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<F
   }
 }
 
-void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, const Matrix<FPWeight16> &res) {
+void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, Matrix<FPWeight16> &res) {
   res.Resize(a.NumRows(), a.NumCols());
   for (int row = 0; row < a.NumRows(); row++) {
     FPWeight16 *ia = (FPWeight16 *) a.RowData(row);
