@@ -99,6 +99,14 @@ class Matrix {
     return *(_data + r * _rcols + c);
   }
 
+  inline const T& operator() (int r, int c) {
+    KALDI_PARANOID_ASSERT(static_cast<UnsignedMatrixIndexT>(r) <
+        static_cast<UnsignedMatrixIndexT>(_rows) &&
+        static_cast<UnsignedMatrixIndexT>(c) <
+            static_cast<UnsignedMatrixIndexT>(_cols));
+    return *(_data + r * _rcols + c);
+  }
+
   const Matrix<T> &operator=(const Matrix<T> &b) {
     if (this == &b)
       return *this;
