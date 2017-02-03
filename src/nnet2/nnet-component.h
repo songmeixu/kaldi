@@ -1077,6 +1077,10 @@ class AffineComponentFixedPoint: public Component {
     return bias_abs_max_ / mq_mag_;
   }
 
+  const FixedPoint::Matrix<FixedPoint::FPWeight> &FixedWeight() const { return linear_params_fp_; }
+
+  const FixedPoint::Matrix<FixedPoint::FPBias> &FixedBias() const { return bias_params_fp_; }
+
  protected:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
 

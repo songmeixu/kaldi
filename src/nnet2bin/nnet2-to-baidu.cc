@@ -10,6 +10,7 @@
 #include "hmm/transition-model.h"
 #include "nnet2/am-nnet.h"
 #include "nnet2/nnet-compute.h"
+#include "matrix/intel_sse.h"
 
 using namespace std;
 using namespace kaldi;
@@ -18,66 +19,94 @@ using namespace kaldi::nnet2;
 typedef kaldi::int32 int32;
 typedef kaldi::int64 int64;
 
-class BaiduNet : AmNnet {
+class BaiduNet {
  public:
+  enum Activation {
+    Linear = 0,
+    Sigmoid = 1
+  };
   int m_nLayer;
   int m_nTotalParamNum;
   vector<int> m_LayerDim;
   vector<BaseFloat> params_;
   bool is_svd;
   vector<int> m_svdDim;
-  bool is_fixed;
-  int32 fixed_bits;
-  vector<float> m_LayerScales;
+  bool m_is_fixed_;
+  int32 m_fixed_bits_;
+  vector<float> m_fixed_weight_scales_;
+  vector<float> m_fixed_bias_scales_;
+  vector< vector<FPWeight> > m_fixed_weight_;
+  vector< vector<FPBias> > m_fixed_bias_;
+  vector<Activation> m_activation_;
 
   BaiduNet() :
       m_nLayer(0),
       m_nTotalParamNum(0),
       is_svd(false),
-      is_fixed(false),
-      fixed_bits(32) {}
-
-  explicit BaiduNet(const Nnet &nnet): nnet_(nnet) {
-    nnet_.NumUpdatableComponents();
-  }
+      m_is_fixed_(false),
+      m_fixed_bits_(8) {}
 
   void Write(std::ostream &os, bool binary = true) const {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
+    assert(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
     if (binary) {
-      os.write(reinterpret_cast<const char*>(&()), sizeof(int));
+      os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
       for (int l = 0; l < m_nLayer; ++l) {
+        // 1. print activation
+        os.write(reinterpret_cast<const char*>(&m_activation_[l]), sizeof(int));
+
+        // 2. print weight
         // print shape
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l]), sizeof(int));
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
         // print scale
         if (is_fixed) {
-          os.write(reinterpret_cast<const char*>(&m_LayerScales[l]), sizeof(int));
+          os.write(reinterpret_cast<const char*>(&m_fixed_weight_scales_[l]), sizeof(float));
         }
-        os.write(reinterpret_cast<const char*>(params_.data()), sizeof(BaseFloat) * params_.size());
+        // print weight-param
+        os.write(reinterpret_cast<const char*>(m_fixed_weight_[l].data()), sizeof(FPWeight) * m_fixed_weight_[l].size());
+
+        // 3. print bias
+        // print shape
+        int r = 1;
+        os.write(reinterpret_cast<const char*>(&r), sizeof(int));
+        os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
+        // print scale
+        if (is_fixed) {
+          os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
+        }
+        // print bias-param
+        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_.size());
       }
     } else {
     }
     if (!os.good())
       KALDI_ERR << "Failed to write baidu-net.";
   }
+
+  bool AddToParams(AffineComponent &ac, int32 layer_idx, bool bias = true);
 };
 
-bool AddToParams(BaiduNet &nnet, AffineComponent &ac, bool bias = true) {
-  CuMatrix<BaseFloat> weight = ac.LinearParams();
+bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool with_bias = true) {
+  assert(layer_idx < m_nLayer);
+  FixedPoint::Matrix<FixedPoint::FPWeight> weight = ac.FixedWeight();
+  FixedPoint::Matrix<FixedPoint::FPBias> bias = ac.FixedBias();
 //  weight.Transpose();
 
   if (!nnet.is_fixed) {
     for (int r = 0; r < weight.NumRows(); ++r) {
       for (int c = 0; c < weight.NumCols(); ++c) {
-        nnet.params_.push_back((BaseFloat) weight(r, c));
+        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
       }
     }
-    if (bias) {
+    m_fixed_weight_scales_.push_back(ac.GetWeightScale());
+    if (with_bias) {
       for (int d = 0; d < ac.BiasParams().Dim(); ++d) {
-        nnet.params_.push_back(ac.BiasParams()(d));
+        m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
       }
+      m_fixed_bias_scales_.push_back(ac.GetBiasScale());
     }
   } else {
   }
@@ -131,6 +160,9 @@ int main (int argc, const char *argv[]) {
 
   // 2. transfer to baidu
   int nComponent = am_nnet.GetNnet().NumComponents();
+  out_net.m_nLayer = am_nnet.GetNnet().NumUpdatableComponents();
+  out_net.m_fixed_weight_.resize(out_net.m_nLayer);
+  out_net.m_fixed_bias_.resize(out_net.m_nLayer);
   int layer_id = 0;
   for (int i = 0; i < nComponent; ++i) {
     kaldi::nnet2::Component &component = am_nnet.GetNnet().GetComponent(i);
@@ -141,24 +173,34 @@ int main (int argc, const char *argv[]) {
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
       AddToParams(out_net, acpo);
-      if (out_net.m_nLayer == 0) {
+      if (layer_id == 0) {
         out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
-        ++out_net.m_nLayer;
       }
       out_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
-      ++out_net.m_nLayer;
       out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentLRScalePreconditionedOnline") {
       kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &> (component);
-      if (out_net.m_nLayer == 0) {
+      if (layer_id == 0) {
         out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
-        ++out_net.m_nLayer;
       }
       out_net.is_svd = true;
       AddToParams(out_net, acpo, false);
       out_net.m_svdDim.push_back(acpo.LinearParams().NumRows());
       out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
+    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentFixedPoint") {
+      kaldi::nnet2::AffineComponentFixedPoint &acfp = dynamic_cast<kaldi::nnet2::AffineComponentFixedPoint &> (component);
+      AddToParams(acfp, layer_id);
+      if (layer_id == 0) {
+        out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
+      }
+      out_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
+      out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
+      ++layer_id;
+    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "SigmoidComponent") {
+      out_net.m_activation_.push_back(BaiduNet::Sigmoid);
+    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "SoftmaxComponent") {
+      out_net.m_activation_.push_back(BaiduNet::Linear);
     }
   }
   Output ko(nnet_wxfilename, binary_write);
