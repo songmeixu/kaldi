@@ -29,9 +29,9 @@ inline double round(double d) {
 }
 
 typedef unsigned char FPAct;
+typedef int8 FPBias;
 typedef int8 FPWeight;
 typedef int16 FPWeight16;
-typedef int8 FPBias;
 
 template<typename T>
 T row_abs_max(T *start, const int cnt) {
@@ -522,16 +522,14 @@ void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16>
 
 void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
-void matrix_times
-    (Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
+void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
 
 // for SVD [5/20/2014 anhaox]
 void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPWeight16> &res);
 
 void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
-void matrix_times
-    (Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
+void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
 
 template<typename T>
 void apply_log_softmax(T *start_a, T *result, const int &cnt) {
