@@ -71,10 +71,10 @@ void EvaluateComputationRequest(
   ComputationGraphBuilder builder(nnet, request, &graph);
   builder.Compute();
   builder.GetComputableInfo(is_computable);
-  if (GetVerboseLevel() >= 2) {
+  if (GetVerboseLevel() >= 4) {
     std::ostringstream graph_pretty;
     graph.Print(graph_pretty, nnet.GetNodeNames());
-    KALDI_VLOG(2) << "Graph is " << graph_pretty.str();
+    KALDI_VLOG(4) << "Graph is " << graph_pretty.str();
   }
 }
 
@@ -615,6 +615,31 @@ void ReadEditConfig(std::istream &edit_config_is, Nnet *nnet) {
       if (outputs_remaining == 0)
         KALDI_ERR << "All outputs were removed.";
       nnet->RemoveSomeNodes(nodes_to_remove);
+    } else if (directive == "set-dropout-proportion") {
+      std::string name_pattern = "*";
+      // name_pattern defaults to '*' if none is given.  This pattern
+      // matches names of components, not nodes.
+      config_line.GetValue("name", &name_pattern);
+      BaseFloat proportion = -1;
+      if (!config_line.GetValue("proportion", &proportion)) {
+        KALDI_ERR << "In edits-config, expected proportion to be set in line: "
+                  << config_line.WholeLine();
+      }
+      DropoutComponent *dropout_component = NULL;
+      int32 num_dropout_proportions_set = 0;
+      for (int32 c = 0; c < nnet->NumComponents(); c++) {
+        if (NameMatchesPattern(nnet->GetComponentName(c).c_str(),
+                               name_pattern.c_str()) &&
+            (dropout_component =
+             dynamic_cast<DropoutComponent*>(nnet->GetComponent(c)))) {
+          if (dropout_component != NULL) {
+            dropout_component->SetDropoutProportion(proportion);
+            num_dropout_proportions_set++;
+          }
+        }
+      }
+      KALDI_LOG << "Set dropout proportions for "
+                << num_dropout_proportions_set << " components.";
     } else {
       KALDI_ERR << "Directive '" << directive << "' is not currently "
           "supported (reading edit-config).";
