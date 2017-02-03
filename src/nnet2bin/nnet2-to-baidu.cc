@@ -64,7 +64,7 @@ class BaiduNet {
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l]), sizeof(int));
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
         // print scale
-        if (is_fixed) {
+        if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_weight_scales_[l]), sizeof(float));
         }
         // print weight-param
@@ -76,7 +76,7 @@ class BaiduNet {
         os.write(reinterpret_cast<const char*>(&r), sizeof(int));
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
         // print scale
-        if (is_fixed) {
+        if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
         }
         // print bias-param
@@ -88,7 +88,7 @@ class BaiduNet {
       KALDI_ERR << "Failed to write baidu-net.";
   }
 
-  bool AddToParams(AffineComponent &ac, int32 layer_idx, bool bias = true);
+  bool AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool bias = true);
 };
 
 bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool with_bias = true) {
@@ -97,7 +97,7 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool 
   FixedPoint::Matrix<FixedPoint::FPBias> bias = ac.FixedBias();
 //  weight.Transpose();
 
-  if (!nnet.is_fixed) {
+  if (!m_is_fixed_) {
     for (int r = 0; r < weight.NumRows(); ++r) {
       for (int c = 0; c < weight.NumCols(); ++c) {
         m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
@@ -132,16 +132,11 @@ int main (int argc, const char *argv[]) {
 
   ParseOptions po(usage);
   po.Register("binary", &binary_write, "Read/Write in binary mode");
-  po.Register("fixed-bits", &fixed_bits, "Fixed-point quantization in this bits");
 
   po.Read(argc, argv);
 
-  if (fixed_bits > 0) {
-    fixed_write = true;
-    out_net.is_fixed = true;
-    out_net.fixed_bits = fixed_bits;
-    KALDI_LOG << "Using fixed-bits: " << fixed_bits << " in Fixed-point quantization";
-  }
+  fixed_write = true;
+  out_net.m_is_fixed_ = true;
 
   if (po.NumArgs() < 2 || po.NumArgs() > 3) {
     po.PrintUsage();
