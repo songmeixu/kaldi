@@ -74,45 +74,45 @@ void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt,
 
 void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              Matrix<FPAct> &act,
-                             Matrix<FPBias> &res) {
+                             Matrix<FPWeight16> &res) {
   res.Resize(act.NumRows(), w.NumRows());
   for (int i = 0; i < w.NumRows(); i++) {
     FPWeight *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
 
       FPAct *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
-      vector_product<FPWeight, FPAct, FPBias>(pw, pact, pres[i], w.NumCols());
+      FPWeight16 *pres = res.RowData(j);
+      vector_product<FPWeight, FPAct, FPWeight16>(pw, pact, pres[i], w.NumCols());
     }
   }
 }
 
 void matrix_times(Matrix<FPWeight> &w,
                   Matrix<FPWeight> &act,
-                  Matrix<FPBias> &res) {
+                  Matrix<FPWeight16> &res) {
   res.Resize(act.NumRows(), w.NumRows());
   for (int i = 0; i < w.NumRows(); i++) {
     FPWeight *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
 
       FPWeight *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
-      vector_product<FPWeight, FPWeight, FPBias>(pw, pact, pres[i], w.NumCols());
+      FPWeight16 *pres = res.RowData(j);
+      vector_product<FPWeight, FPWeight, FPWeight16>(pw, pact, pres[i], w.NumCols());
     }
   }
 }
 
 // for SVD [5/20/2014 anhaox]
-void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPBias> &res) {
+void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPWeight16> &res) {
   res.Resize(act.NumRows(), w.NumRows());
   for (int i = 0; i < w.NumRows(); i++) {
     FPWeight16 *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
       const FPWeight16 *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
-      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
+      FPWeight16 *pres = res.RowData(j);
+      vector_product<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.NumCols());
 //      dotprod_sse(pw, pact, pres+i, w.NumCols()); // slow than vector_product
-      //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
+      //vector_product_256<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.cols());
     }
   }
 }
@@ -185,76 +185,76 @@ void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const 
   }
 }
 
-void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPBias> &res, const int *calc_pos) {
+void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPWeight16> &res, const int *calc_pos) {
   //res.resize( act.rows(), w.rows() ); // do not fresh the _result_fp32, because the result of last calc may still be there
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
       FPAct *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
+      FPWeight16 *pres = res.RowData(j);
       if (pres[i] != 0) continue;
-      vector_product<FPWeight, FPAct, FPBias>(pw, pact, pres[i], w.NumCols());
+      vector_product<FPWeight, FPAct, FPWeight16>(pw, pact, pres[i], w.NumCols());
     }
   }
 }
 
 void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              Matrix<FPAct> &act,
-                             Matrix<FPBias> &res,
+                             Matrix<FPWeight16> &res,
                              const int *calc_pos,
                              const int nFrameNum) {
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight *pw = w.RowData(i);
     FPAct *pact = act.RowData(nFrameNum);
-    FPBias *pres = res.RowData(nFrameNum);
+    FPWeight16 *pres = res.RowData(nFrameNum);
     if (pres[i] != 0) continue;
-    vector_product<FPWeight, FPAct, FPBias>(pw, pact, pres[i], w.NumCols());
+    vector_product<FPWeight, FPAct, FPWeight16>(pw, pact, pres[i], w.NumCols());
   }
 }
 
-void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &res, const int *calc_pos) {
+void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos) {
   //res.resize( act.rows(), w.rows() ); // do not fresh the _result_fp32, because the result of last calc may still be there
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
       FPWeight *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
+      FPWeight16 *pres = res.RowData(j);
       if (pres[i] != 0) continue;
-      vector_product<FPWeight, FPWeight, FPBias>(pw, pact, pres[i], w.NumCols());
+      vector_product<FPWeight, FPWeight, FPWeight16>(pw, pact, pres[i], w.NumCols());
     }
   }
 }
 
 void matrix_times(Matrix<FPWeight> &w,
                   Matrix<FPWeight> &act,
-                  Matrix<FPBias> &res,
+                  Matrix<FPWeight16> &res,
                   const int *calc_pos,
                   const int nFrameNum) {
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight *pw = w.RowData(i);
     FPWeight *pact = act.RowData(nFrameNum);
-    FPBias *pres = res.RowData(nFrameNum);
+    FPWeight16 *pres = res.RowData(nFrameNum);
     if (pres[i] != 0) continue;
-    vector_product<FPWeight, FPWeight, FPBias>(pw, pact, pres[i], w.NumCols());
+    vector_product<FPWeight, FPWeight, FPWeight16>(pw, pact, pres[i], w.NumCols());
   }
 }
 
 // for SVD
-void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res, const int *calc_pos) {
+void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos) {
   //res.resize( act.rows(), w.rows() ); // do not fresh the _result_fp32, because the result of last calc may still be there
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight16 *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
       FPWeight16 *pact = act.RowData(j);
-      FPBias *pres = res.RowData(j);
+      FPWeight16 *pres = res.RowData(j);
       if (pres[i] != 0) continue;
-      vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
-      //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
+      vector_product<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.NumCols());
+      //vector_product_256<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.cols());
     }
   }
 }
@@ -262,17 +262,17 @@ void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias>
 // for SVD
 void matrix_times(Matrix<FPWeight16> &w,
                   Matrix<FPWeight16> &act,
-                  Matrix<FPBias> &res,
+                  Matrix<FPWeight16> &res,
                   const int *calc_pos,
                   const int nFrameNum) {
   for (int i = 0; i < w.NumRows(); i++) {
     if (calc_pos[i] <= 0) continue;
     FPWeight16 *pw = w.RowData(i);
     FPWeight16 *pact = act.RowData(nFrameNum);
-    FPBias *pres = res.RowData(nFrameNum);
+    FPWeight16 *pres = res.RowData(nFrameNum);
     if (pres[i] != 0) continue;
-    vector_product<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.NumCols());
-    //vector_product_256<FPWeight16, FPWeight16, FPBias>(pw, pact, pres[i], w.cols());
+    vector_product<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.NumCols());
+    //vector_product_256<FPWeight16, FPWeight16, FPWeight16>(pw, pact, pres[i], w.cols());
   }
 }
 

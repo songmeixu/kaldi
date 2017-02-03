@@ -30,8 +30,8 @@ inline double round(double d) {
 
 typedef unsigned char FPAct;
 typedef int8 FPWeight;
+typedef int16 FPWeight16;
 typedef int8 FPBias;
-typedef short FPWeight16;
 
 template<typename T>
 T row_abs_max(T *start, const int cnt) {
@@ -251,9 +251,9 @@ inline void vector_product<float>(const float *start_a,
 }
 
 //template<>
-//inline void vector_product<FPBias, FPBias, FPBias>(const FPBias *start_a,
-//                                                   const FPBias *start_b,
-//                                                   FPBias &result,
+//inline void vector_product<FPWeight16, FPWeight16, FPWeight16>(const FPWeight16 *start_a,
+//                                                   const FPWeight16 *start_b,
+//                                                   FPWeight16 &result,
 //                                                   const int &cnt) {
 //
 //  __m128i c;
@@ -278,9 +278,9 @@ inline void vector_product<float>(const float *start_a,
 //}
 
 template<>
-inline void vector_product<FPWeight, FPAct, FPBias>(const FPWeight *start_a,
+inline void vector_product<FPWeight, FPAct, FPWeight16>(const FPWeight *start_a,
                                                     const FPAct *start_b,
-                                                    FPBias &result,
+                                                    FPWeight16 &result,
                                                     const int &cnt) {
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
@@ -310,9 +310,9 @@ inline void vector_product<FPWeight, FPAct, FPBias>(const FPWeight *start_a,
 }
 
 template<>
-inline void vector_product<FPWeight, FPWeight, FPBias>(const FPWeight *start_a,
+inline void vector_product<FPWeight, FPWeight, FPWeight16>(const FPWeight *start_a,
                                                        const FPWeight *start_b,
-                                                       FPBias &result,
+                                                       FPWeight16 &result,
                                                        const int &cnt) {
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
@@ -347,9 +347,9 @@ inline void vector_product<FPWeight, FPWeight, FPBias>(const FPWeight *start_a,
 
 // for SVD
 template<>
-inline void vector_product<FPWeight16, FPWeight16, FPBias>(const FPWeight16 *start_a,
+inline void vector_product<FPWeight16, FPWeight16, FPWeight16>(const FPWeight16 *start_a,
                                                            const FPWeight16 *start_b,
-                                                           FPBias &result,
+                                                           FPWeight16 &result,
                                                            const int &cnt) {
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
@@ -379,7 +379,7 @@ inline void vector_product<FPWeight16, FPWeight16, FPBias>(const FPWeight16 *sta
 template<typename A, typename B, typename D>
 inline void vector_product_256(const A * start_a, const B * start_b, D & result, const int & cnt);
 template<>
-inline void vector_product_256<FPWeight16, FPWeight16, FPBias>(const FPWeight16 * start_a, const FPWeight16 * start_b, FPBias & result, const int & cnt)
+inline void vector_product_256<FPWeight16, FPWeight16, FPWeight16>(const FPWeight16 * start_a, const FPWeight16 * start_b, FPWeight16 & result, const int & cnt)
 {
 	__m256i c;
 	__m256i sum = _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 0);
@@ -506,30 +506,30 @@ void apply_sigmoid_int2float(int *start_a, float *result, const int &cnt, const 
 
 void apply_sigmoid_int2uchar(int *start_a, FPAct *result, const int &cnt, const float &mag);
 
-void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPBias> &res);
+void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPWeight16> &res);
 
-void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPBias> &res, const int *calc_pos);
+void matrix_times_uchar_char(Matrix<FPWeight> &w, Matrix<FPAct> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
 void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              Matrix<FPAct> &act,
-                             Matrix<FPBias> &res,
+                             Matrix<FPWeight16> &res,
                              const int *calc_pos,
                              const int nFrameNum);    // work for lazy [10/28/2013 Administrator]
 
-void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &res);
+void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res);
 
-void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &res, const int *calc_pos);
+void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
 void matrix_times
-    (Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPBias> &res, const int *calc_pos, const int nFrameNum);
+    (Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
 
 // for SVD [5/20/2014 anhaox]
-void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPBias> &res);
+void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPWeight16> &res);
 
-void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res, const int *calc_pos);
+void matrix_times(Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
 void matrix_times
-    (Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPBias> &res, const int *calc_pos, const int nFrameNum);
+    (Matrix<FPWeight16> &w, Matrix<FPWeight16> &act, Matrix<FPWeight16> &res, const int *calc_pos, const int nFrameNum);
 
 template<typename T>
 void apply_log_softmax(T *start_a, T *result, const int &cnt) {

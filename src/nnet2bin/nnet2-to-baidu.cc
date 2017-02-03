@@ -32,17 +32,21 @@ class BaiduNet : AmNnet {
 
   BaiduNet() :
       m_nLayer(0),
-      m_nTotalParamNum(0) ,
+      m_nTotalParamNum(0),
       is_svd(false),
       is_fixed(false),
       fixed_bits(32) {}
+
+  explicit BaiduNet(const Nnet &nnet): nnet_(nnet) {
+    nnet_.NumUpdatableComponents();
+  }
 
   void Write(std::ostream &os, bool binary = true) const {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
     if (binary) {
-      os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
+      os.write(reinterpret_cast<const char*>(&()), sizeof(int));
       for (int l = 0; l < m_nLayer; ++l) {
         // print shape
         os.write(reinterpret_cast<const char*>(&m_LayerDim[l]), sizeof(int));
@@ -76,7 +80,6 @@ bool AddToParams(BaiduNet &nnet, AffineComponent &ac, bool bias = true) {
       }
     }
   } else {
-    weight.
   }
 
   return true;
