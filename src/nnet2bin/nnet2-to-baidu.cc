@@ -100,13 +100,13 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool 
   if (!m_is_fixed_) {
     for (int r = 0; r < weight.NumRows(); ++r) {
       for (int c = 0; c < weight.NumCols(); ++c) {
-        m_fixed_weight_[layer_idx].push_back((FPWeight) ac.FixedWeight()(r, c));
+        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
       }
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
     if (with_bias) {
       for (int d = 0; d < ac.OutputDim(); ++d) {
-        m_fixed_bias_[layer_idx].push_back((FPBias) ac.FixedBias()(0, d));
+        m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
       }
       m_fixed_bias_scales_.push_back(ac.GetBiasScale());
     }
