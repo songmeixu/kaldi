@@ -421,6 +421,23 @@ void matrix_dot_divide(Matrix<T> &start, const T &divider, Matrix<T> &res) {
   }
 }
 
+template<typename T>
+void matrix_plus_vector(Matrix<T> &a, const T &b, Matrix<T> &res) {
+  res.Resize(a.NumRows(), a.NumCols());
+  for (int row = 0; row < a.NumRows(); row++) {
+    T *ia = (T *) a.RowData(row);
+    const T *ie = (T *) (a.RowData(row) + a.NumCols());
+    T *ib = (T *) b.Data();
+    T *ires = (T *) res.RowData(row);
+    while (ia < ie) {
+      *ires = *ia + *ib;
+      ia++;
+      ib++;
+      ires++;
+    }
+  }
+}
+
 void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res);
 
 void matrix_plus_vector(Matrix<int> &a, const Matrix<int> &b, Matrix<int> &res);

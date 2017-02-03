@@ -149,7 +149,6 @@ void matrix_plus_vector(Matrix<int> &a, const Matrix<int> &b, Matrix<int> &res) 
       ires++;
     }
   }
-
 }
 
 void matrix_plus_vector(Matrix<int> &a, Matrix<int> &b, Matrix<int> &res, const int *calc_pos) {
