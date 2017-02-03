@@ -19,6 +19,8 @@ using namespace kaldi::nnet2;
 typedef kaldi::int32 int32;
 typedef kaldi::int64 int64;
 
+using namespace FixedPoint;
+
 class BaiduNet {
  public:
   enum Activation {
