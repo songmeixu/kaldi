@@ -421,22 +421,7 @@ void matrix_dot_divide(Matrix<T> &start, const T &divider, Matrix<T> &res) {
   }
 }
 
-template<typename T>
-void matrix_plus_vector(Matrix<T> &a, const T &b, Matrix<T> &res) {
-  res.Resize(a.NumRows(), a.NumCols());
-  for (int row = 0; row < a.NumRows(); row++) {
-    T *ia = (T *) a.RowData(row);
-    const T *ie = (T *) (a.RowData(row) + a.NumCols());
-    T *ib = (T *) b.Data();
-    T *ires = (T *) res.RowData(row);
-    while (ia < ie) {
-      *ires = *ia + *ib;
-      ia++;
-      ib++;
-      ires++;
-    }
-  }
-}
+void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, const Matrix<FPWeight16> &res);
 
 void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res);
 
@@ -580,26 +565,26 @@ void apply_log_softmax_int2float(int *start_a, float *result, const int &cnt,
 /// attention
 /// when calling this, Matrix b should be transposed
 /// the result is also transposed
-template<typename T>
-void matrix_times(Matrix<T> &a, Matrix<T> &b, Matrix<T> &res) {
-  if (a._cols != b._cols) {
-    std::cout << "matrix dim not right" << std::endl;
-    return;
-  }
-  res.Resize(b._rows, a._rows);
-  int a_step = a.Stride(), b_step = b.Stride(), res_step = res.Stride();
-  const T *a_start = a.Data(), *b_start = b.Data();
-  T *res_start = res.Data();
-  for (int j = 0; j < b._rows; j++) {
-    const T *a_tmp = a_start;
-    for (int i = 0; i < a._rows; i++) {
-      vector_product<T>(a_tmp, b_start, res_start[i], b._cols);
-      a_tmp += a_step;
-    }
-    b_start += b_step;
-    res_start += res_step;
-  }
-}
+//template<typename T>
+//void matrix_times(Matrix<T> &a, Matrix<T> &b, Matrix<T> &res) {
+//  if (a._cols != b._cols) {
+//    std::cout << "matrix dim not right" << std::endl;
+//    return;
+//  }
+//  res.Resize(b._rows, a._rows);
+//  int a_step = a.Stride(), b_step = b.Stride(), res_step = res.Stride();
+//  const T *a_start = a.Data(), *b_start = b.Data();
+//  T *res_start = res.Data();
+//  for (int j = 0; j < b._rows; j++) {
+//    const T *a_tmp = a_start;
+//    for (int i = 0; i < a._rows; i++) {
+//      vector_product<T>(a_tmp, b_start, res_start[i], b._cols);
+//      a_tmp += a_step;
+//    }
+//    b_start += b_step;
+//    res_start += res_step;
+//  }
+//}
 
 template<typename T>
 void transpose(Matrix<T> &from, Matrix<T> &to) {

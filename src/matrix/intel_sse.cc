@@ -117,6 +117,22 @@ void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<F
   }
 }
 
+void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, const Matrix<FPWeight16> &res) {
+  res.Resize(a.NumRows(), a.NumCols());
+  for (int row = 0; row < a.NumRows(); row++) {
+    FPWeight16 *ia = (FPWeight16 *) a.RowData(row);
+    const FPWeight16 *ie = (FPWeight16 *) (a.RowData(row) + a.NumCols());
+    FPBias *ib = (FPBias *) b.Data();
+    FPWeight16 *ires = (FPWeight16 *) res.RowData(row);
+    while (ia < ie) {
+      *ires = *ia + *ib;
+      ia++;
+      ib++;
+      ires++;
+    }
+  }
+}
+
 void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res) {
   res.Resize(a.NumRows(), a.NumCols());
   for (int row = 0; row < a.NumRows(); row++) {
