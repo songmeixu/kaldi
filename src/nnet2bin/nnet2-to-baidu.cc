@@ -157,7 +157,7 @@ int main (int argc, const char *argv[]) {
 
   // 2. transfer to baidu
   int nComponent = am_nnet.GetNnet().NumComponents();
-  out_net.m_nLayer = am_nnet.GetNnet().NumUpdatableComponents();
+  out_net.m_nLayer = (nComponent - 1) / 2;
   out_net.m_fixed_weight_.resize(out_net.m_nLayer);
   out_net.m_fixed_bias_.resize(out_net.m_nLayer);
   int layer_id = 0;
