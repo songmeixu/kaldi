@@ -31,7 +31,7 @@ inline double round(double d) {
 typedef unsigned char FPAct;
 typedef int8 FPWeight;
 typedef int8 FPBias;
-//typedef short FPWeight;
+typedef short FPWeight16;
 
 template<typename T>
 T row_abs_max(T *start, const int cnt) {
