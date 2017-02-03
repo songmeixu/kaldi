@@ -61,8 +61,8 @@ class BaiduNet {
 
         // 2. print weight
         // print shape
-        os.write(reinterpret_cast<const char*>(&m_LayerDim[l]), sizeof(int));
-        os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
+        os.write(reinterpret_cast<const char*>(&(int64)m_LayerDim[l]), sizeof(int64));
+        os.write(reinterpret_cast<const char*>(&(int64)m_LayerDim[l+1]), sizeof(int64));
         // print scale
         if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_weight_scales_[l]), sizeof(float));
@@ -72,9 +72,9 @@ class BaiduNet {
 
         // 3. print bias
         // print shape
-        int r = 1;
-        os.write(reinterpret_cast<const char*>(&r), sizeof(int));
-        os.write(reinterpret_cast<const char*>(&m_LayerDim[l+1]), sizeof(int));
+        int64 r = 1;
+        os.write(reinterpret_cast<const char*>(&r), sizeof(int64));
+        os.write(reinterpret_cast<const char*>(&(int64)m_LayerDim[l+1]), sizeof(int64));
         // print scale
         if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
