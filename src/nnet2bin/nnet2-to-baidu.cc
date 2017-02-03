@@ -93,11 +93,13 @@ class BaiduNet {
 
 bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool with_bias) {
   assert(layer_idx < m_nLayer);
+  Matrix<signed char> &weight = ac.FixedWeight();
+  Matrix<signed char> &bias = ac.FixedBias();
 //  weight.Transpose();
 
   if (!m_is_fixed_) {
-    for (int r = 0; r < ac.FixedWeight().NumRows(); ++r) {
-      for (int c = 0; c < ac.FixedWeight().NumCols(); ++c) {
+    for (int r = 0; r < weight.NumRows(); ++r) {
+      for (int c = 0; c < weight.NumCols(); ++c) {
         m_fixed_weight_[layer_idx].push_back((FPWeight) ac.FixedWeight()(r, c));
       }
     }
@@ -187,10 +189,10 @@ int main (int argc, const char *argv[]) {
       kaldi::nnet2::AffineComponentFixedPoint &acfp = dynamic_cast<kaldi::nnet2::AffineComponentFixedPoint &> (component);
       AddToParams(acfp, layer_id);
       if (layer_id == 0) {
-        out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
+        out_net.m_LayerDim.push_back(acfp.InputDim());
       }
-      out_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
-      out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
+      out_net.m_LayerDim.push_back(acfp.OutputDim());
+      out_net.m_nTotalParamNum += acfp.OutputDim() * acfp.InputDim() + acfp.OutputDim();
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "SigmoidComponent") {
       out_net.m_activation_.push_back(BaiduNet::Sigmoid);
