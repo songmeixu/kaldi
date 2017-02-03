@@ -421,7 +421,7 @@ void matrix_dot_divide(Matrix<T> &start, const T &divider, Matrix<T> &res) {
   }
 }
 
-void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, const Matrix<FPWeight16> &res);
+void matrix_plus_vector(const Matrix<FPWeight16> &a, const Matrix<FPBias> &b, Matrix<FPWeight16> &res);
 
 void matrix_plus_vector(Matrix<float> &a, Matrix<float> &b, Matrix<float> &res);
 
