@@ -28,7 +28,7 @@ BINFILES = nnet-am-info nnet-init \
    cuda-compiled nnet-replace-last-layers nnet-am-switch-preconditioning \
    nnet1-to-raw-nnet raw-nnet-copy nnet-relabel-egs nnet-am-reinitialize \
    nnet2-boost-silence nnet2-to-mars nnet-am-limit-rank-each \
-   nnet-get-egs-wo-last-frame nnet-get-egs-last-frame
+   nnet-get-egs-wo-last-frame nnet-get-egs-last-frame nnet2-to-baidu
 
 OBJFILES =
 
