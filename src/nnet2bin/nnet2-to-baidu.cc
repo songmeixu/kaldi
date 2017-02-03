@@ -91,10 +91,10 @@ class BaiduNet {
   bool AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool bias = true);
 };
 
-bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool with_bias = true) {
+bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int32 layer_idx, bool with_bias) {
   assert(layer_idx < m_nLayer);
-  FixedPoint::Matrix<FixedPoint::FPWeight> weight = ac.FixedWeight();
-  FixedPoint::Matrix<FixedPoint::FPBias> bias = ac.FixedBias();
+  FixedPoint::Matrix<FixedPoint::FPWeight> &weight = ac.FixedWeight();
+  FixedPoint::Matrix<FixedPoint::FPBias> &bias = ac.FixedBias();
 //  weight.Transpose();
 
   if (!m_is_fixed_) {
