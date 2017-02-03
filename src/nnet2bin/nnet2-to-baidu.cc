@@ -52,7 +52,8 @@ class BaiduNet {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
-    assert(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
+    printf("%d %d %d", m_activation_.size(), m_fixed_weight_.size(), m_fixed_bias_scales_.size());
+    KALDI_ASSERT(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
     if (binary) {
       os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
       for (int l = 0; l < m_nLayer; ++l) {
