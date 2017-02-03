@@ -169,7 +169,7 @@ int main (int argc, const char *argv[]) {
       ++layer_id;
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
       kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
-      AddToParams(out_net, acpo);
+//      AddToParams(out_net, acpo);
       if (layer_id == 0) {
         out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
       }
@@ -182,7 +182,7 @@ int main (int argc, const char *argv[]) {
         out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
       }
       out_net.is_svd = true;
-      AddToParams(out_net, acpo, false);
+//      AddToParams(out_net, acpo, false);
       out_net.m_svdDim.push_back(acpo.LinearParams().NumRows());
       out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentFixedPoint") {
