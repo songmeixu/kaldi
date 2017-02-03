@@ -1724,8 +1724,8 @@ AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloa
   KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
       bias_params.Dim() != 0);
   magnitude_ = linear_params.Mat().LargestAbsElem();
-  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight16>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
-  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_ * mq_mag_);
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_);
 }
 
 std::string AffineComponentFixedPoint::Info() const {
@@ -1745,7 +1745,7 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   out_info.CheckSize(*out);
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
 
-  FixedPoint::Matrix<FixedPoint::FPWeight16> in_fp;
+  FixedPoint::Matrix<FixedPoint::FPWeight> in_fp;
   FixedPoint::Matrix<FixedPoint::FPBias> out_fp;
   BaseFloat dq_mag_;  // magnitude for de-quantization
   in_fp.Resize(in.NumRows(), in.NumCols());

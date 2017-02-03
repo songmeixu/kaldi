@@ -29,9 +29,9 @@ inline double round(double d) {
 }
 
 typedef unsigned char FPAct;
-typedef char FPWeight;
-typedef int FPBias;
-typedef short FPWeight16;
+typedef int8 FPWeight;
+typedef int8 FPBias;
+//typedef short FPWeight;
 
 template<typename T>
 T row_abs_max(T *start, const int cnt) {
@@ -148,6 +148,28 @@ void linear_quantize(const kaldi::Matrix<From> &from, Matrix<To> &to,
   }
 }
 
+
+//template<typename From, typename To>
+//void linear_quantize(const kaldi::MatrixBase<From> &from, Matrix<To> &to,
+//                     float magnitude_a = (std::numeric_limits<From>::max)(),
+//                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+//  to.Resize(from.NumRows(), from.NumCols());
+//  for (int row = 0; row < from.NumRows(); row++) {
+//    const From *fs = from.RowData(row);
+//    const From *fe = from.RowData(row) + from.NumCols();
+//    To *ts = to.RowData(row);
+//    // so from.NumCols() must be 4x dims
+//    while (fs < fe) {
+//      ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
+//      ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
+//      ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
+//      ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
+//      fs += 4;
+//      ts += 4;
+//    }
+//  }
+//}
+
 template<typename From, typename To>
 void linear_quantize(const kaldi::MatrixBase<From> &from, Matrix<To> &to,
                      float magnitude_a = (std::numeric_limits<From>::max)(),
@@ -159,14 +181,29 @@ void linear_quantize(const kaldi::MatrixBase<From> &from, Matrix<To> &to,
     To *ts = to.RowData(row);
     while (fs < fe) {
       ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
-      ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
-      ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
-      ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
-      fs += 4;
-      ts += 4;
+      fs += 1;
+      ts += 1;
     }
   }
 }
+
+//template<typename From, typename To>
+//void linear_quantize(const kaldi::VectorBase<From> &from, Matrix<To> &to,
+//                     float magnitude_a = (std::numeric_limits<From>::max)(),
+//                     float magnitude_b = (std::numeric_limits<To>::max)()) {
+//  to.Resize(1, from.Dim());
+//  const From *fs = from.Data();
+//  const From *fe = from.Data() + from.Dim();
+//  To *ts = to.Data();
+//  while (fs < fe) {
+//    ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
+//    ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
+//    ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
+//    ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
+//    fs += 4;
+//    ts += 4;
+//  }
+//}
 
 template<typename From, typename To>
 void linear_quantize(const kaldi::VectorBase<From> &from, Matrix<To> &to,
@@ -178,11 +215,8 @@ void linear_quantize(const kaldi::VectorBase<From> &from, Matrix<To> &to,
   To *ts = to.Data();
   while (fs < fe) {
     ts[0] = (To) round(fs[0] / magnitude_a * magnitude_b);
-    ts[1] = (To) round(fs[1] / magnitude_a * magnitude_b);
-    ts[2] = (To) round(fs[2] / magnitude_a * magnitude_b);
-    ts[3] = (To) round(fs[3] / magnitude_a * magnitude_b);
-    fs += 4;
-    ts += 4;
+    fs += 1;
+    ts += 1;
   }
 }
 
