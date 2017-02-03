@@ -88,7 +88,7 @@ class BaiduNet {
       KALDI_ERR << "Failed to write baidu-net.";
   }
 
-  bool AddToParams(AffineComponentFixedPoint &ac, int layer_idx, bool bias = true);
+  bool AddToParams(AffineComponentFixedPoint &ac, int layer_idx, bool with_bias = true);
 };
 
 bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx, bool with_bias) {
@@ -187,7 +187,7 @@ int main (int argc, const char *argv[]) {
       out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
     } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentFixedPoint") {
       AffineComponentFixedPoint &acfp = dynamic_cast<AffineComponentFixedPoint &> (component);
-      AddToParams(acfp, layer_id);
+      out_net.AddToParams(acfp, layer_id);
       if (layer_id == 0) {
         out_net.m_LayerDim.push_back(acfp.InputDim());
       }
