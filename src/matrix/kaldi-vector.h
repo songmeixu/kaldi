@@ -295,6 +295,9 @@ class VectorBase {
   /// Returns the maximum value of any element, or -infinity for the empty vector.
   Real Max() const;
 
+  /// Returns the absolute maximum value of any element, or -infinity for the empty vector.
+  Real AbsMax() const;
+
   /// Returns the maximum value of any element, and the associated index.
   /// Error if vector is empty.
   Real Max(MatrixIndexT *index) const;

@@ -593,6 +593,24 @@ Real VectorBase<Real>::Max() const {
 }
 
 template<typename Real>
+Real VectorBase<Real>::AbsMax() const {
+  Real ans = - std::numeric_limits<Real>::infinity();
+  const Real *data = data_;
+  MatrixIndexT i, dim = dim_;
+  for (i = 0; i + 4 <= dim; i += 4) {
+    Real a1 = std::abs(data[i]), a2 = std::abs(data[i+1]), a3 = std::abs(data[i+2]), a4 = std::abs(data[i+3]);
+    if (a1 > ans || a2 > ans || a3 > ans || a4 > ans) {
+      Real b1 = (a1 > a2 ? a1 : a2), b2 = (a3 > a4 ? a3 : a4);
+      if (b1 > ans) ans = b1;
+      if (b2 > ans) ans = b2;
+    }
+  }
+  for (; i < dim; i++)
+    if (std::abs(data[i]) > ans) ans = abs(data[i]);
+  return ans;
+}
+
+template<typename Real>
 Real VectorBase<Real>::Max(MatrixIndexT *index_out) const {
   if (dim_ == 0) KALDI_ERR << "Empty vector";
   Real ans = - std::numeric_limits<Real>::infinity();

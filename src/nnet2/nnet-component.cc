@@ -1723,9 +1723,10 @@ AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloa
                                                      const int32 mq_mag): mq_mag_(mq_mag) {
   KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
       bias_params.Dim() != 0);
-  magnitude_ = linear_params.Mat().LargestAbsElem();
-  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight>(linear_params.Mat(), linear_params_fp_, magnitude_, mq_mag_);
-  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, magnitude_, mq_mag_);
+  weight_abs_max_ = linear_params.Mat().LargestAbsElem();
+  bias_abs_max_ = bias_params.Vec().AbsMax();
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight>(linear_params.Mat(), linear_params_fp_, weight_abs_max_, mq_mag_);
+  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, bias_abs_max_, mq_mag_);
 }
 
 std::string AffineComponentFixedPoint::Info() const {
@@ -1733,7 +1734,8 @@ std::string AffineComponentFixedPoint::Info() const {
   stream << Type() << ", input-dim=" << InputDim()
          << ", output-dim=" << OutputDim()
          << ", MQ=" << mq_mag_
-         << ", Mag=" << magnitude_;
+         << ", Weight Mag=" << weight_abs_max_
+         << ", Bias Mag=" << bias_abs_max_;
   return stream.str();
 }
 
@@ -1758,7 +1760,7 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   FixedPoint::transpose(out_fp, out_fp_T);
   FixedPoint::matrix_plus_vector(out_fp_T, bias_params_fp_, out_fp_T);
   FixedPoint::CommonMatrix2KaldiMatrix(out_fp_T, out->Mat());
-  out->Scale(magnitude_ / mq_mag_ / mq_mag_); // de-quantization
+  out->Scale(weight_abs_max_ / mq_mag_ / mq_mag_); // de-quantization
 }
 
 void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
@@ -1778,8 +1780,10 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   FixedPoint::KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
-  ExpectToken(is, binary, "<Mag>");
-  ReadBasicType(is, binary, &magnitude_);
+  ExpectToken(is, binary, "<Weight-Mag>");
+  ReadBasicType(is, binary, &weight_abs_max_);
+  ExpectToken(is, binary, "<Bias-Mag>");
+  ReadBasicType(is, binary, &bias_abs_max_);
   ExpectToken(is, binary, ostr_end.str());
 }
 
@@ -1798,8 +1802,10 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   temp.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);
-  WriteToken(os, binary, "<Mag>");
-  WriteBasicType(os, binary, magnitude_);
+  WriteToken(os, binary, "<Weight-Mag>");
+  WriteBasicType(os, binary, weight_abs_max_);
+  WriteToken(os, binary, "<Bias-Mag>");
+  WriteBasicType(os, binary, bias_abs_max_);
   WriteToken(os, binary, ostr_end.str());
 }
 
