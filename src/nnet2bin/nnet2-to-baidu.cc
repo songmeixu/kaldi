@@ -52,7 +52,8 @@ class BaiduNet {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
-    printf("%d %d %d", m_activation_.size(), m_fixed_weight_.size(), m_fixed_bias_scales_.size());
+    printf("%d %d %d %d\n", m_activation_.size(), m_fixed_weight_.size(),
+           m_fixed_bias_scales_.size(), m_fixed_weight_scales_.size());
     KALDI_ASSERT(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
     if (binary) {
       os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
@@ -89,28 +90,26 @@ class BaiduNet {
       KALDI_ERR << "Failed to write baidu-net.";
   }
 
-  bool AddToParams(AffineComponentFixedPoint &ac, int layer_idx, bool with_bias = true);
+  bool AddToParams(AffineComponentFixedPoint &ac, int layer_idx);
 };
 
-bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx, bool with_bias) {
+bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
   assert(layer_idx < m_nLayer);
   const FixedPoint::Matrix<FPWeight> &weight = ac.FixedWeight();
   const FixedPoint::Matrix<FPBias> &bias = ac.FixedBias();
 //  weight.Transpose();
 
-  if (!m_is_fixed_) {
+  if (m_is_fixed_) {
     for (int r = 0; r < weight.NumRows(); ++r) {
       for (int c = 0; c < weight.NumCols(); ++c) {
         m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
       }
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
-    if (with_bias) {
-      for (int d = 0; d < ac.OutputDim(); ++d) {
-        m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
-      }
-      m_fixed_bias_scales_.push_back(ac.GetBiasScale());
+    for (int d = 0; d < ac.OutputDim(); ++d) {
+      m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
     }
+    m_fixed_bias_scales_.push_back(ac.GetBiasScale());
   } else {
   }
 
