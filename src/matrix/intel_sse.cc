@@ -87,17 +87,16 @@ void matrix_times_uchar_char(Matrix<FPWeight> &w,
   }
 }
 
-void matrix_times(Matrix<FPWeight> &w,
-                  Matrix<FPWeight> &act,
-                  Matrix<FPWeight16> &res) {
+void matrix_times(const Matrix<int8> &w,
+                  const Matrix<int8> &act,
+                  Matrix<int16> &res) {
   res.Resize(act.NumRows(), w.NumRows());
   for (int i = 0; i < w.NumRows(); i++) {
-    FPWeight *pw = w.RowData(i);
+    const int8 *pw = w.RowData(i);
     for (int j = 0; j < act.NumRows(); j++) {
-
-      FPWeight *pact = act.RowData(j);
-      FPWeight16 *pres = res.RowData(j);
-      vector_product<FPWeight, FPWeight, FPWeight16>(pw, pact, pres[i], w.NumCols());
+      const int8 *pact = act.RowData(j);
+      int16 *pres = res.RowData(j);
+      vector_product<int8, int8, int16>(pw, pact, pres[i], w.NumCols());
     }
   }
 }

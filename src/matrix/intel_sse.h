@@ -518,7 +518,7 @@ void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              const int *calc_pos,
                              const int nFrameNum);    // work for lazy [10/28/2013 Administrator]
 
-void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res);
+void matrix_times(const Matrix<int8> &w, const Matrix<int8> &act, Matrix<int16> &res);
 
 void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
