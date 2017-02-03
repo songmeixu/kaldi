@@ -250,32 +250,32 @@ inline void vector_product<float>(const float *start_a,
   result = x.f[0];
 }
 
-template<>
-inline void vector_product<FPBias, FPBias, FPBias>(const FPBias *start_a,
-                                                   const FPBias *start_b,
-                                                   FPBias &result,
-                                                   const int &cnt) {
-
-  __m128i c;
-  __m128i sum = _mm_set_epi32(0, 0, 0, 0);
-  __m128i *a = (__m128i *) start_b;
-  const __m128i *e = (__m128i *) (start_b + cnt);
-  __m128i *b = (__m128i *) start_a;
-  while (a < e) {
-    c = _mm_mullo_epi32((*a), (*b));
-    sum = _mm_add_epi32(c, sum);
-    a++;
-    b++;
-  }
-  union u {
-    __m128i m;
-    int i[4];
-  } x;
-  sum = _mm_hadd_epi32(sum, sum);
-  sum = _mm_hadd_epi32(sum, sum);
-  x.m = sum;
-  result = x.i[0];
-}
+//template<>
+//inline void vector_product<FPBias, FPBias, FPBias>(const FPBias *start_a,
+//                                                   const FPBias *start_b,
+//                                                   FPBias &result,
+//                                                   const int &cnt) {
+//
+//  __m128i c;
+//  __m128i sum = _mm_set_epi32(0, 0, 0, 0);
+//  __m128i *a = (__m128i *) start_b;
+//  const __m128i *e = (__m128i *) (start_b + cnt);
+//  __m128i *b = (__m128i *) start_a;
+//  while (a < e) {
+//    c = _mm_mullo_epi32((*a), (*b));
+//    sum = _mm_add_epi32(c, sum);
+//    a++;
+//    b++;
+//  }
+//  union u {
+//    __m128i m;
+//    int i[4];
+//  } x;
+//  sum = _mm_hadd_epi32(sum, sum);
+//  sum = _mm_hadd_epi32(sum, sum);
+//  x.m = sum;
+//  result = x.i[0];
+//}
 
 template<>
 inline void vector_product<FPWeight, FPAct, FPBias>(const FPWeight *start_a,
