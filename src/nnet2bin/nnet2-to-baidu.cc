@@ -109,6 +109,7 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
       }
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
+    KALDI_LOG << "output-dim = " << ac.OutputDim();
     for (int d = 0; d < ac.OutputDim(); ++d) {
       m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
     }
