@@ -72,7 +72,7 @@ class BaiduNet {
         }
         // print weight-param
         KALDI_ASSERT(m_fixed_weight_[l].size() == row * col);
-//        os.write(reinterpret_cast<const char*>(m_fixed_weight_[l].data()), sizeof(FPWeight) * m_fixed_weight_[l].size());
+        os.write(reinterpret_cast<const char*>(m_fixed_weight_[l].data()), sizeof(FPWeight) * m_fixed_weight_[l].size());
 
         // 3. print bias
         // print shape
@@ -84,9 +84,8 @@ class BaiduNet {
           os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
         }
         // print bias-param
-        KALDI_LOG << "col = " << col << " bias-size = " << m_fixed_bias_.size();
-        KALDI_ASSERT(m_fixed_bias_.size() == col);
-//        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_.size());
+        KALDI_ASSERT(m_fixed_bias_[l].size() == col);
+        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_[l].size());
       }
     } else {
     }
@@ -104,6 +103,7 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
 //  weight.Transpose();
 
   if (m_is_fixed_) {
+    KALDI_LOG << "weight row = " << weight.NumRows() << "weight col = " << weight.NumCols();
     for (int r = 0; r < weight.NumRows(); ++r) {
       for (int c = 0; c < weight.NumCols(); ++c) {
         m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
