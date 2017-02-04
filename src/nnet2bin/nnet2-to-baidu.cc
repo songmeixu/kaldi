@@ -54,18 +54,18 @@ class BaiduNet {
     }
     KALDI_ASSERT(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
     if (binary) {
-      os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int));
-      int64 row, col;
+      os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int32));
+      uint64 row, col;
       for (int l = 0; l < m_nLayer; ++l) {
         // 1. print activation
-        os.write(reinterpret_cast<const char*>(&m_activation_[l]), sizeof(int));
+        os.write(reinterpret_cast<const char*>(&m_activation_[l]), sizeof(int32));
 
         // 2. print weight
         // print shape
         row = m_LayerDim[l];
         col = m_LayerDim[l+1];
-        os.write(reinterpret_cast<const char*>(&row), sizeof(int64));
-        os.write(reinterpret_cast<const char*>(&col), sizeof(int64));
+        os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
+        os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
         // print scale
         if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_weight_scales_[l]), sizeof(float));
@@ -76,8 +76,8 @@ class BaiduNet {
         // 3. print bias
         // print shape
         row = 1;
-        os.write(reinterpret_cast<const char*>(&row), sizeof(int64));
-        os.write(reinterpret_cast<const char*>(&col), sizeof(int64));
+        os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
+        os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
         // print scale
         if (m_is_fixed_) {
           os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
@@ -201,7 +201,7 @@ int main (int argc, const char *argv[]) {
       out_net.m_activation_.push_back(BaiduNet::Linear);
     }
   }
-  Output ko(nnet_wxfilename, binary_write);
+  Output ko(nnet_wxfilename, binary_write, false);
   out_net.Write(ko.Stream(), binary_write);
 
   // 3. output prior
