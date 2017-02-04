@@ -71,7 +71,8 @@ class BaiduNet {
           os.write(reinterpret_cast<const char*>(&m_fixed_weight_scales_[l]), sizeof(float));
         }
         // print weight-param
-        os.write(reinterpret_cast<const char*>(m_fixed_weight_[l].data()), sizeof(FPWeight) * m_fixed_weight_[l].size());
+        KALDI_ASSERT(m_fixed_weight_[l].size() == row * col);
+//        os.write(reinterpret_cast<const char*>(m_fixed_weight_[l].data()), sizeof(FPWeight) * m_fixed_weight_[l].size());
 
         // 3. print bias
         // print shape
@@ -83,7 +84,8 @@ class BaiduNet {
           os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
         }
         // print bias-param
-        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_.size());
+        KALDI_ASSERT(m_fixed_bias_.size() == col);
+//        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_.size());
       }
     } else {
     }
