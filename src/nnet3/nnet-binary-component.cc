@@ -51,7 +51,7 @@ void BinaryAffineComponent::Read(std::istream &is, bool binary) {
   bias_params_.Read(is, binary);
   ExpectToken(is, binary, "<IsGradient>");
   ReadBasicType(is, binary, &is_gradient_);
-  ExpectToken(is, binary, "</AffineComponent>");
+  ExpectToken(is, binary, "</BinaryAffineComponent>");
 }
 
 void BinaryAffineComponent::Write(std::ostream &os,
@@ -65,7 +65,7 @@ void BinaryAffineComponent::Write(std::ostream &os,
   bias_params_.Write(os, binary);
   WriteToken(os, binary, "<IsGradient>");
   WriteBasicType(os, binary, is_gradient_);
-  WriteToken(os, binary, "</AffineComponent>");
+  WriteToken(os, binary, "</BinaryAffineComponent>");
 }
 
 void BinaryAffineComponent::Init(int32 input_dim, int32 output_dim,

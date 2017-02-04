@@ -280,7 +280,20 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
                     ' component={0}.affine input={1}'
                     ''.format(self.name, descriptor_final_string))
             ans.append((config_name, line))
-            cur_node = '{0}.affine'.format(self.name)
+
+            # last add the binary activation node.
+            line = ('component name={0}.ba'
+                    ' type=BinaryActivitionComponent'
+                    ' dim={1}'
+                    .format(self.name, output_dim))
+            ans.append((config_name, line))
+
+            line = ('component-node name={0}.ba'
+                    ' component={0}.ba input={0}.affine'
+                    ''.format(self.name))
+            ans.append((config_name, line))
+
+            cur_node = '{0}.ba'.format(self.name)
 
             if presoftmax_scale_file is not '' and config_name == 'final':
                 # don't use the presoftmax-scale in 'ref.config' since that
