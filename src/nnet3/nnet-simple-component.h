@@ -244,8 +244,7 @@ class BatchNormComponent: public UpdatableComponent {
   }
 
   virtual int32 Properties() const {
-    return kSimpleComponent|kUpdatableComponent|
-        kBackpropNeedsInput|kBackpropAdds|kStoresStats;
+    return kSimpleComponent|kUpdatableComponent|kBackpropNeedsInput|kStoresStats|kBackpropAdds;
   }
 
   void Reset();

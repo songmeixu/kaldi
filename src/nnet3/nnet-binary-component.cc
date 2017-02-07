@@ -168,9 +168,6 @@ void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *ind
                                           CuMatrixBase<BaseFloat> *out) const {
 //  std::ofstream os("debug.txt", std::ios::app);
 //  in.Write(os, false);
-  mask.Resize(in.NumRows(), in.NumCols());
-  mask.CopyFromMat(in);
-  mask.CancelGradient();
 
   out->CopyFromMat(in);
   out->Binarize();
@@ -181,13 +178,15 @@ void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *ind
 
 void BinaryActivitionComponent::Backprop(const std::string &debug_info,
                                          const ComponentPrecomputedIndexes *indexes,
-                                         const CuMatrixBase<BaseFloat> &,
+                                         const CuMatrixBase<BaseFloat> &in_value,
                                          const CuMatrixBase<BaseFloat> &,
                                          const CuMatrixBase<BaseFloat> &out_deriv,
                                          Component *to_update, // may be NULL; may be identical
     // to "this" or different.
                                          CuMatrixBase<BaseFloat> *in_deriv) const {
   in_deriv->CopyFromMat(out_deriv);
+  CuMatrix<BaseFloat> mask(in_value);
+  mask.CancelGradient();
   in_deriv->MulElements(mask);
 
 //  std::ofstream os("debug.txt", std::ios::app);

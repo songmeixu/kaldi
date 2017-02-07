@@ -942,8 +942,6 @@ void SigmoidComponent::RepairGradients(
                          thresholds_vec);
 }
 
-
-
 void SigmoidComponent::StoreStats(const CuMatrixBase<BaseFloat> &out_value) {
   // only store stats about every other minibatch.
   if (RandInt(0, 1) == 0)
@@ -956,8 +954,6 @@ void SigmoidComponent::StoreStats(const CuMatrixBase<BaseFloat> &out_value) {
   temp_deriv.MulElements(out_value);
   StoreStatsInternal(out_value, &temp_deriv);
 }
-
-
 
 void NoOpComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
                                  const CuMatrixBase<BaseFloat> &in,

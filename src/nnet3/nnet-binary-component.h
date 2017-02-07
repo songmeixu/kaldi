@@ -41,6 +41,10 @@ namespace nnet3 {
 class BinaryAffineComponent: public AffineComponent {
  public:
   virtual std::string Type() const { return "BinaryAffineComponent"; }
+  virtual int32 Properties() const {
+    return kSimpleComponent|kUpdatableComponent|
+        kBackpropNeedsInput|kBackpropAdds;
+  }
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
   // this constructor does not really initialize, use Init() or Read().
@@ -83,11 +87,11 @@ class BinaryAffineComponent: public AffineComponent {
 class BinaryActivitionComponent: public NonlinearComponent {
  public:
   explicit BinaryActivitionComponent(const BinaryActivitionComponent &other):
-      NonlinearComponent(other), mask(other.mask) { }
+      NonlinearComponent(other) { }
   BinaryActivitionComponent() { }
   virtual std::string Type() const { return "BinaryActivitionComponent"; }
   virtual int32 Properties() const {
-    return kSimpleComponent|kStoresStats;
+    return kSimpleComponent|kBackpropNeedsInput;
   }
   virtual Component* Copy() const { return new BinaryActivitionComponent(*this); }
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
@@ -95,15 +99,13 @@ class BinaryActivitionComponent: public NonlinearComponent {
                          CuMatrixBase<BaseFloat> *out) const;
   virtual void Backprop(const std::string &debug_info,
                         const ComponentPrecomputedIndexes *indexes,
-                        const CuMatrixBase<BaseFloat> &, //in_value
+                        const CuMatrixBase<BaseFloat> &in_value, //in_value
                         const CuMatrixBase<BaseFloat> &, // out_value,
                         const CuMatrixBase<BaseFloat> &out_deriv,
                         Component *to_update,
                         CuMatrixBase<BaseFloat> *in_deriv) const;
  private:
   BinaryActivitionComponent &operator = (const BinaryActivitionComponent &other); // Disallow.
-
-  mutable CuMatrix<BaseFloat> mask;
 };
 
 } // namespace nnet3
