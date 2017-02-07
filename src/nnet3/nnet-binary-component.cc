@@ -119,9 +119,15 @@ BinaryAffineComponent::BinaryAffineComponent(
 void BinaryAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
                                                      const CuMatrixBase<BaseFloat> &in,
                                                      CuMatrixBase<BaseFloat> *out) const {
+//  std::ofstream os("debug.txt", std::ios::app);
+  
   // No need for asserts as they'll happen within the matrix operations.
   w_b.CopyFromMat(Binarize(linear_params_));
-  out->AddMatMat(1.0, in, kNoTrans, w_b, kTrans, 1.0);
+  out->AddMatMat(1.0, in, kNoTrans, w_b, kTrans, 0.0);
+
+//  in.Write(os, false);
+//  w_b.Write(os, false);
+//  out->Write(os, false);
 }
 
 void BinaryAffineComponent::Backprop(const std::string &debug_info,
@@ -164,7 +170,18 @@ void BinaryAffineComponent::Update(
 void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
                                           const CuMatrixBase<BaseFloat> &in,
                                           CuMatrixBase<BaseFloat> *out) const {
-  out->CopyFromMat(Binarize(in));
+//  std::ofstream os("debug.txt", std::ios::app);
+//  in.Write(os, false);
+  
+  out->CopyFromMat(in);
+  out->Binarize();
+
+  mask.Resize(out->NumRows(), out->NumCols());
+  mask.CopyFromMat(*out);
+  mask.CancelGradient();
+
+//  in.Write(os, false);
+//  out->Write(os, false);
 }
 
 void BinaryActivitionComponent::Backprop(const std::string &debug_info,
@@ -176,7 +193,11 @@ void BinaryActivitionComponent::Backprop(const std::string &debug_info,
     // to "this" or different.
                                          CuMatrixBase<BaseFloat> *in_deriv) const {
   in_deriv->CopyFromMat(out_deriv);
-  in_deriv->CancelGradient();
+  in_deriv->MulElements(mask);
+
+//  std::ofstream os("debug.txt", std::ios::app);
+//  out_deriv.Write(os, false);
+//  in_deriv->Write(os, false);
 }
 
 } // namespace nnet3

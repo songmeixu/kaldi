@@ -101,6 +101,8 @@ class BinaryActivitionComponent: public NonlinearComponent {
                         CuMatrixBase<BaseFloat> *in_deriv) const;
  private:
   BinaryActivitionComponent &operator = (const BinaryActivitionComponent &other); // Disallow.
+
+  mutable CuMatrix<BaseFloat> mask;
 };
 
 } // namespace nnet3

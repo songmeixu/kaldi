@@ -2035,7 +2035,7 @@ void MatrixBase<Real>::CancelGradient() {
   for (MatrixIndexT i = 0; i < num_rows; i++) {
     Real *data = this->RowData(i);
     for (MatrixIndexT j = 0; j < num_cols; j++)
-      data[j] = (abs(data[j]) > 1.0 ? 0.0 : data[j]);
+      data[j] = (abs(data[j]) > 1.0 ? 0.0 : 1);
   }
 }
 

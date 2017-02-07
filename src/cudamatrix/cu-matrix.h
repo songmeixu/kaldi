@@ -380,6 +380,7 @@ class CuMatrixBase {
   /// See also Heaviside().
   void ApplyHeaviside();
   void CancelGradient();
+  void Binarize();
   void ApplyFloor(Real floor_val);
   void ApplyCeiling(Real ceiling_val);
   void ApplyExp();

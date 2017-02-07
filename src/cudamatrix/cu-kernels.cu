@@ -1647,7 +1647,7 @@ static void _cancel_gradient(Real* mat, MatrixDim d) {
   int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
   int index = i + j * d.stride;
   if (i < d.cols && j < d.rows)
-    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : mat[index]);
+    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : 1);
 }
 
 template<typename Real>

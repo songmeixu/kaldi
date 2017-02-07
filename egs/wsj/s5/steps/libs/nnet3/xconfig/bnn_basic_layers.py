@@ -173,7 +173,7 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
 
     def __init__(self, first_token, key_to_value, prev_names = None):
 
-        assert first_token == 'bnn-output-layer'
+        assert first_token in [ 'bnn-output-layer', 'bnn-bn-output-layer' ]
         XconfigLayerBase.__init__(self, first_token, key_to_value, prev_names)
 
     def set_default_configs(self):
@@ -281,19 +281,21 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
                     ''.format(self.name, descriptor_final_string))
             ans.append((config_name, line))
 
-            # last add the binary activation node.
-            line = ('component name={0}.ba'
-                    ' type=BinaryActivitionComponent'
-                    ' dim={1}'
-                    .format(self.name, output_dim))
-            ans.append((config_name, line))
+            cur_node = '{0}.affine'.format(self.name)
 
-            line = ('component-node name={0}.ba'
-                    ' component={0}.ba input={0}.affine'
-                    ''.format(self.name))
-            ans.append((config_name, line))
-
-            cur_node = '{0}.ba'.format(self.name)
+            # add the batchnorm node.
+            split_layer_name = self.layer_type.split('-')
+            assert split_layer_name[-1] == 'layer'
+            if split_layer_name[1] == 'bn':
+                line = ('component name={0}.bn'
+                        ' type=BatchNormComponent dim={1}'
+                        ''.format(self.name, output_dim))
+                ans.append((config_name, line))
+                line = ('component-node name={0}.bn'
+                        ' component={0}.bn input={1}'
+                        ''.format(self.name, cur_node))
+                ans.append((config_name, line))
+                cur_node = '{0}.bn'.format(self.name)
 
             if presoftmax_scale_file is not '' and config_name == 'final':
                 # don't use the presoftmax-scale in 'ref.config' since that

@@ -2267,6 +2267,13 @@ void CuMatrixBase<Real>::CancelGradient() {
 }
 
 template<typename Real>
+void CuMatrixBase<Real>::Binarize() {
+  this->ApplyHeaviside();
+  this->Scale(2.0);
+  this->Add(-1.0);
+}
+
+template<typename Real>
 void CuMatrixBase<Real>::Heaviside(const CuMatrixBase<Real> &src) {
   KALDI_ASSERT(SameDim(*this, src));
 #if HAVE_CUDA == 1
