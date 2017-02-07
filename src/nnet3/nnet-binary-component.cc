@@ -55,7 +55,7 @@ void BinaryAffineComponent::Read(std::istream &is, bool binary) {
 }
 
 void BinaryAffineComponent::Write(std::ostream &os,
-                                                 bool binary) const {
+                                  bool binary) const {
   WriteUpdatableCommon(os, binary);  // Write opening tag and learning rate
   WriteToken(os, binary, "<LinearParams>");
   linear_params_.Write(os, binary);
@@ -69,7 +69,7 @@ void BinaryAffineComponent::Write(std::ostream &os,
 }
 
 void BinaryAffineComponent::Init(int32 input_dim, int32 output_dim,
-                           BaseFloat param_stddev, BaseFloat bias_stddev) {
+                                 BaseFloat param_stddev, BaseFloat bias_stddev) {
   linear_params_.Resize(output_dim, input_dim);
   w_b.Resize(output_dim, input_dim);
   bias_params_.Resize(output_dim);
@@ -117,12 +117,13 @@ BinaryAffineComponent::BinaryAffineComponent(
 }
 
 void BinaryAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
-                                                     const CuMatrixBase<BaseFloat> &in,
-                                                     CuMatrixBase<BaseFloat> *out) const {
+                                      const CuMatrixBase<BaseFloat> &in,
+                                      CuMatrixBase<BaseFloat> *out) const {
 //  std::ofstream os("debug.txt", std::ios::app);
-  
+
   // No need for asserts as they'll happen within the matrix operations.
-  w_b.CopyFromMat(Binarize(linear_params_));
+  w_b.CopyFromMat(linear_params_);
+  w_b.Binarize();
   out->AddMatMat(1.0, in, kNoTrans, w_b, kTrans, 0.0);
 
 //  in.Write(os, false);
@@ -131,12 +132,12 @@ void BinaryAffineComponent::Propagate(const ComponentPrecomputedIndexes *indexes
 }
 
 void BinaryAffineComponent::Backprop(const std::string &debug_info,
-                                                    const ComponentPrecomputedIndexes *indexes,
-                                                    const CuMatrixBase<BaseFloat> &in_value,
-                                                    const CuMatrixBase<BaseFloat> &,
-                                                    const CuMatrixBase<BaseFloat> &out_deriv,
-                                                    Component *to_update_in,
-                                                    CuMatrixBase<BaseFloat> *in_deriv) const {
+                                     const ComponentPrecomputedIndexes *indexes,
+                                     const CuMatrixBase<BaseFloat> &in_value,
+                                     const CuMatrixBase<BaseFloat> &,
+                                     const CuMatrixBase<BaseFloat> &out_deriv,
+                                     Component *to_update_in,
+                                     CuMatrixBase<BaseFloat> *in_deriv) const {
   AffineComponent *to_update = dynamic_cast<AffineComponent*>(to_update_in);
 
   // Propagate the derivative back to the input.
@@ -172,7 +173,7 @@ void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *ind
                                           CuMatrixBase<BaseFloat> *out) const {
 //  std::ofstream os("debug.txt", std::ios::app);
 //  in.Write(os, false);
-  
+
   out->CopyFromMat(in);
   out->Binarize();
 
