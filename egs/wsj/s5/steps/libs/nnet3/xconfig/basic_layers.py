@@ -415,7 +415,7 @@ class XconfigOutputLayer(XconfigLayerBase):
     """This class is for lines like
     'output-layer name=output dim=4257 input=Append(input@-1, input@0, input@1, ReplaceIndex(ivector, t, 0))'
     By default this includes a log-softmax component.  The parameters are
-    initialized to zero, asthis is best for output layers.
+    initialized to zero, as this is best for output layers.
 
     Parameters of the class, and their defaults:
         input='[-1]'    :   Descriptor giving the input of the layer.

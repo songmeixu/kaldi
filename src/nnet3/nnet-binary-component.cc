@@ -36,11 +36,6 @@ CuMatrix<BaseFloat> Binarize(const CuMatrixBase<BaseFloat> &M) {
   return M_b;
 }
 
-//BinaryAffineComponent::BinaryAffineComponent():
-//    max_change_per_sample_(0.0),
-//    update_count_(0.0), active_scaling_count_(0.0),
-//    max_change_scale_stats_(0.0) { }
-
 void BinaryAffineComponent::Read(std::istream &is, bool binary) {
   ReadUpdatableCommon(is, binary);  // read opening tag and learning rate.
   ExpectToken(is, binary, "<LinearParams>");
@@ -173,13 +168,12 @@ void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *ind
                                           CuMatrixBase<BaseFloat> *out) const {
 //  std::ofstream os("debug.txt", std::ios::app);
 //  in.Write(os, false);
+  mask.Resize(in.NumRows(), in.NumCols());
+  mask.CopyFromMat(in);
+  mask.CancelGradient();
 
   out->CopyFromMat(in);
   out->Binarize();
-
-  mask.Resize(out->NumRows(), out->NumCols());
-  mask.CopyFromMat(*out);
-  mask.CancelGradient();
 
 //  in.Write(os, false);
 //  out->Write(os, false);

@@ -82,11 +82,12 @@ class BinaryAffineComponent: public AffineComponent {
 
 class BinaryActivitionComponent: public NonlinearComponent {
  public:
-  explicit BinaryActivitionComponent(const BinaryActivitionComponent &other): NonlinearComponent(other) { }
+  explicit BinaryActivitionComponent(const BinaryActivitionComponent &other):
+      NonlinearComponent(other), mask(other.mask) { }
   BinaryActivitionComponent() { }
   virtual std::string Type() const { return "BinaryActivitionComponent"; }
   virtual int32 Properties() const {
-    return kSimpleComponent|kLinearInInput|kPropagateInPlace;
+    return kSimpleComponent|kStoresStats;
   }
   virtual Component* Copy() const { return new BinaryActivitionComponent(*this); }
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
