@@ -276,6 +276,8 @@ class BatchNormComponent: public UpdatableComponent {
                         Component *to_update_in, // may be identical to "this".
                         CuMatrixBase<BaseFloat> *in_deriv) const;
 
+  void RestoreToUpdateNnet(BatchNormComponent *dst) const;
+
   virtual void PerturbParams(BaseFloat stddev) {}
 
   virtual void Scale(BaseFloat scale);

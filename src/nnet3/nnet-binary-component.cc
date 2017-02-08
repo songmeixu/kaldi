@@ -103,6 +103,8 @@ void BinaryAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
   KALDI_ASSERT(other != NULL);
   linear_params_.AddMat(alpha, other->linear_params_);
   bias_params_.AddVec(alpha, other->bias_params_);
+  linear_params_.ApplyCeiling(1.0);
+  linear_params_.ApplyFloor(-1.0);
 }
 
 BinaryAffineComponent::BinaryAffineComponent(
@@ -159,8 +161,6 @@ void BinaryAffineComponent::Update(
     const CuMatrixBase<BaseFloat> &out_deriv) {
   linear_params_.AddMatMat(learning_rate_, out_deriv, kTrans,
                            in_value, kNoTrans, 1.0);
-  linear_params_.ApplyCeiling(1.0);
-  linear_params_.ApplyFloor(-1.0);
 }
 
 void BinaryActivitionComponent::Propagate(const ComponentPrecomputedIndexes *indexes,

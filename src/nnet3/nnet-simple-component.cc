@@ -651,6 +651,11 @@ Component* BatchNormComponent::Copy() const {
   return ans;
 }
 
+void BatchNormComponent::RestoreToUpdateNnet(BatchNormComponent *dst) const {
+  dst->mean = mean;
+  dst->var = var;
+}
+
 BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) const {
   const BatchNormComponent *other =
       dynamic_cast<const BatchNormComponent*>(&other_in);
@@ -775,6 +780,8 @@ void BatchNormComponent::Backprop(const std::string &debug_info,
     return;
   BatchNormComponent *to_update = dynamic_cast<BatchNormComponent*>(to_update_in);
 //  in_deriv->Resize(out_deriv.NumRows(), InputDim());
+
+  RestoreToUpdateNnet(to_update);
 
   if (to_update != NULL) {
     // Next update the model (must do this 2nd so the derivatives we propagate
