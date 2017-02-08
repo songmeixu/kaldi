@@ -21,7 +21,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iomanip>
-#include "nnet3/nnet-binary-component.h";
+#include "nnet3/nnet-binary-component.h"
 #include "nnet3/nnet-parse.h"
 #include "cudamatrix/cu-math.h"
 

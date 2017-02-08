@@ -685,7 +685,7 @@ void BatchNormComponent::Scale(BaseFloat scale) {
   beta.Scale(scale);
 }
 
-void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in) {
+void BatchNormComponent::Add(BaseFloat alpha, const Component &other_in) {
   const BatchNormComponent *other =
       dynamic_cast<const BatchNormComponent*>(&other_in);
   KALDI_ASSERT(other != NULL);
