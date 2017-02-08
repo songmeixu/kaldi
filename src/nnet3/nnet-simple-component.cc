@@ -678,11 +678,6 @@ void BatchNormComponent::Reset() {
 void BatchNormComponent::Scale(BaseFloat scale) {
   gamma.Scale(scale);
   beta.Scale(scale);
-  a.Scale(scale);
-  b.Scale(scale);
-  tot_cnt *= scale;
-  tot_mean.Scale(scale);
-  tot_var.Scale(scale);
 }
 
 void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in) {
@@ -691,22 +686,12 @@ void BatchNormComponent::Add(BaseFloat alpha, const UpdatableComponent &other_in
   KALDI_ASSERT(other != NULL);
   gamma.AddVec(alpha, other->gamma);
   beta.AddVec(alpha, other->beta);
-  a.AddVec(alpha, other->a);
-  b.AddVec(alpha, other->b);
-
-  tot_mean.AddVec(alpha, other->tot_mean);
-  tot_var.AddVec(alpha, other->tot_var);
-  tot_cnt += alpha * other->tot_cnt;
 }
 
 void BatchNormComponent::SetZero(bool treat_as_gradient) {
   if (treat_as_gradient) {
     SetActualLearningRate(1.0);
   }
-  gamma.SetZero();
-  beta.SetZero();
-  a.SetZero();
-  b.SetZero();
   if (treat_as_gradient)
     is_gradient_ = true;
 }
@@ -840,13 +825,13 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   // beta
   CuVector<BaseFloat> l_beta(out_deriv.NumCols());
   l_beta.AddRowSumMat(1.0, out_deriv, 0.0);
-  beta.AddVec(learning_rate_, l_beta);
+  beta.AddVec(learning_rate_, l_beta, 0.0);
   // gamma
   CuVector<BaseFloat> l_gamma(out_deriv.NumCols());
   CuMatrix<BaseFloat> l_gamma_M(out_deriv);
   l_gamma_M.MulElements(x_new);
   l_gamma.AddRowSumMat(1.0, l_gamma_M, 0.0);
-  gamma.AddVec(learning_rate_, l_gamma);
+  gamma.AddVec(learning_rate_, l_gamma, 0.0);
 }
 
 void SigmoidComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
@@ -941,6 +926,7 @@ void SigmoidComponent::RepairGradients(
   in_deriv->AddVecToRows(self_repair_scale_ / repair_probability,
                          thresholds_vec);
 }
+
 
 void SigmoidComponent::StoreStats(const CuMatrixBase<BaseFloat> &out_value) {
   // only store stats about every other minibatch.
