@@ -540,7 +540,8 @@ BatchNormComponent::BatchNormComponent(const BatchNormComponent &component):
     tot_mean(component.tot_mean),
     tot_var(component.tot_var),
     tot_cnt(component.tot_cnt),
-    is_gradient_(component.is_gradient_) { }
+    is_gradient_(component.is_gradient_),
+    normalize_history(component.normalize_history) { }
 
 void BatchNormComponent::Init(BaseFloat learning_rate, int32 dim) {
   KALDI_ASSERT(dim > 0);
@@ -564,7 +565,8 @@ std::string BatchNormComponent::Info() const {
   std::stringstream stream;
   stream << Type() << ", input-dim=" << InputDim()
          << ", output-dim=" << OutputDim()
-         << ", learning-rate=" << LearningRate();
+         << ", learning-rate=" << LearningRate()
+         << ", normalize-history=" << normalize_history;
   return stream.str();
 }
 
@@ -572,6 +574,7 @@ void BatchNormComponent::InitFromConfig(ConfigLine *cfl) {
   int32 dim = -1;
   InitLearningRatesFromConfig(cfl);
   bool ok = cfl->GetValue("dim", &dim);
+  cfl->GetValue("norm-history", &normalize_history);
   if (!ok || cfl->HasUnusedValues() || dim <= 0)
     KALDI_ERR << "Invalid initializer for layer of type "
               << Type() << ": \"" << cfl->WholeLine() << "\"";
@@ -586,6 +589,8 @@ void BatchNormComponent::Read(std::istream &is, bool binary) {
   // of how ReadNew() works.
   ExpectOneOrTwoTokens(is, binary, ostr_beg.str(), "<LearningRate>");
   ReadBasicType(is, binary, &learning_rate_);
+  ExpectToken(is, binary, "<norm-history>");
+  ReadBasicType(is, binary, &normalize_history);
   ExpectToken(is, binary, "<gamma>");
   gamma.Read(is, binary);
   ExpectToken(is, binary, "<beta>");
@@ -616,6 +621,8 @@ void BatchNormComponent::Write(std::ostream &os, bool binary) const {
   WriteToken(os, binary, ostr_beg.str());
   WriteToken(os, binary, "<LearningRate>");
   WriteBasicType(os, binary, learning_rate_);
+  WriteToken(os, binary, "<norm-history>");
+  WriteBasicType(os, binary, normalize_history);
   WriteToken(os, binary, "<gamma>");
   gamma.Write(os, binary);
   WriteToken(os, binary, "<beta>");
@@ -648,6 +655,7 @@ Component* BatchNormComponent::Copy() const {
   ans->tot_var = tot_var;
   ans->tot_cnt = tot_cnt;
   ans->is_gradient_ = is_gradient_;
+  ans->normalize_history = normalize_history;
   return ans;
 }
 
@@ -662,7 +670,7 @@ BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) con
   return VecVec(gamma, other->gamma) + VecVec(beta, other->beta);
 }
 
-void BatchNormComponent::CalcFromTotal() {
+void BatchNormComponent::CalcFromTotal() const {
   mean.CopyFromVec(tot_mean);
   var.CopyFromVec(tot_var);
   mean.Scale(1.0 / tot_cnt);
@@ -702,7 +710,7 @@ void BatchNormComponent::SetZero(bool treat_as_gradient) {
 }
 
 int32 BatchNormComponent::NumParameters() const {
-  return 2 * OutputDim();
+  return 6 * OutputDim() + 1;
 }
 
 const BaseFloat BatchNormComponent::kNormFloor = pow(2.0, -66);
@@ -726,13 +734,14 @@ void BatchNormComponent::Propagate(const ComponentPrecomputedIndexes *indexes,
     var.AddVec(-1.0, mean2);
 
     ++tot_cnt;
-//    if (tot_cnt > 1000) {
-//      tot_mean.SetZero();
-//      tot_var.SetZero();
-//      tot_cnt = 1;
-//    }
+    if (tot_cnt > normalize_history) {
+      tot_mean.SetZero();
+      tot_var.SetZero();
+      tot_cnt = 1;
+    }
     tot_mean.AddVec(1.0, mean);
     tot_var.AddVec(1.0, var);
+    CalcFromTotal();
 
     var.ApplyFloor(kNormFloor);
     var.ApplyPow(-0.5);
@@ -839,6 +848,29 @@ void BatchNormComponent::Update(const CuMatrixBase<BaseFloat> &in_value,
   l_gamma_M.MulElements(x_new);
   l_gamma.AddRowSumMat(1.0, l_gamma_M, 0.0);
   gamma.AddVec(learning_rate_, l_gamma, 0.0);
+}
+
+void BatchNormComponent::Vectorize(VectorBase<BaseFloat> *params) const {
+  KALDI_ASSERT(params->Dim() == this->NumParameters());
+  // sequence: a, b, gamma, beta, tot_mean, tot_var, tot_cnt
+  params->Range(0, OutputDim()).CopyFromVec(a);
+  params->Range(OutputDim(), b.Dim()).CopyFromVec(b);
+  params->Range(OutputDim()*2, gamma.Dim()).CopyFromVec(gamma);
+  params->Range(OutputDim()*3, beta.Dim()).CopyFromVec(beta);
+  params->Range(OutputDim()*4, tot_mean.Dim()).CopyFromVec(tot_mean);
+  params->Range(OutputDim()*5, tot_var.Dim()).CopyFromVec(tot_var);
+  params->PushElement(tot_cnt);
+}
+
+void BatchNormComponent::UnVectorize(const VectorBase<BaseFloat> &params) {
+  KALDI_ASSERT(params.Dim() == this->NumParameters());
+  a.CopyFromVec(params.Range(0, a.Dim()));
+  b.CopyFromVec(params.Range(OutputDim(), b.Dim()));
+  gamma.CopyFromVec(params.Range(OutputDim()*2, gamma.Dim()));
+  beta.CopyFromVec(params.Range(OutputDim()*3, beta.Dim()));
+  tot_mean.CopyFromVec(params.Range(OutputDim()*4, tot_mean.Dim()));
+  tot_var.CopyFromVec(params.Range(OutputDim()*5, tot_var.Dim()));
+  tot_cnt = params(params.Dim()-1);
 }
 
 void SigmoidComponent::Propagate(const ComponentPrecomputedIndexes *indexes,

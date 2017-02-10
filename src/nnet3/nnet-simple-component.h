@@ -236,7 +236,7 @@ class BatchNormComponent: public UpdatableComponent {
 //#define OUT_DIST
  public:
   explicit BatchNormComponent(const BatchNormComponent &other);
-  BatchNormComponent(): is_dec_(false), is_gradient_(false) { }
+  BatchNormComponent(): is_dec_(false), is_gradient_(false), normalize_history(10) { }
 
   void SetDec(bool is_dec) {
     is_dec_ = is_dec;
@@ -289,7 +289,7 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual BaseFloat DotProduct(const UpdatableComponent &other) const;
 
-  void CalcFromTotal();
+  void CalcFromTotal() const;
 
   virtual int32 NumParameters() const;
 
@@ -298,6 +298,10 @@ class BatchNormComponent: public UpdatableComponent {
                       const CuMatrixBase<BaseFloat> &out_deriv,
                       CuMatrixBase<BaseFloat> *in_deriv);
 
+  virtual void Vectorize(VectorBase<BaseFloat> *params) const;
+
+  virtual void UnVectorize(const VectorBase<BaseFloat> &params);
+
  private:
   BatchNormComponent &operator = (const BatchNormComponent &other); // Disallow.
 
@@ -305,6 +309,8 @@ class BatchNormComponent: public UpdatableComponent {
 
   static const BaseFloat kNormFloor;
   static const BaseFloat epsion;
+
+  int32 normalize_history;
 
   mutable CuVector<BaseFloat> mean;
   mutable CuVector<BaseFloat> var;

@@ -175,6 +175,10 @@ class VectorBase {
   /// Invert all elements.
   void InvertElements();
 
+  /// Add one element at end.
+  template<typename Real>
+  void PushElement(const Real a);
+
   /// Add vector : *this = *this + alpha * rv (with casting between floats and
   /// doubles)
   template<typename OtherReal>

@@ -800,6 +800,15 @@ void VectorBase<Real>::InvertElements() {
 }
 
 template<typename Real>
+void VectorBase<Real>::PushElement(const Real a) {
+  Vector<Real> tmp(dim_+1, kUndefined);
+  memcpy(tmp.data_, this->data_, sizeof(Real)*this->dim_);
+  tmp.data_[dim_-1] = a;
+  std::swap(this->data_, tmp.data_);
+  std::swap(this->dim_, tmp.dim_);
+}
+
+template<typename Real>
 void VectorBase<Real>::ApplyLog() {
   for (MatrixIndexT i = 0; i < dim_; i++) {
     if (data_[i] < 0.0)
