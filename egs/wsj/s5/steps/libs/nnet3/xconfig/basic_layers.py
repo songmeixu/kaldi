@@ -630,7 +630,9 @@ class XconfigBasicLayer(XconfigLayerBase):
                         'max-change' : 0.75,
                         'self-repair-scale' : 1.0e-05,
                         'target-rms' : 1.0,
-                        'ng-affine-options' : ''}
+                        'ng-affine-options' : '',
+                        'norm-history' : 10,
+                      }
 
     def check_configs(self):
         if self.config['dim'] < 0:
@@ -694,6 +696,7 @@ class XconfigBasicLayer(XconfigLayerBase):
         target_rms = self.config['target-rms']
         max_change = self.config['max-change']
         ng_opt_str = self.config['ng-affine-options']
+        norm_history = self.config['norm-history']
 
         configs = []
         # First the affine node.
@@ -744,8 +747,8 @@ class XconfigBasicLayer(XconfigLayerBase):
 
             elif nonlinearity == 'bn':
                 line = ('component name={0}.{1}'
-                        ' type=BatchNormComponent dim={2}'
-                        ''.format(self.name, nonlinearity, output_dim))
+                        ' type=BatchNormComponent dim={2} norm-history={3}'
+                        ''.format(self.name, nonlinearity, output_dim, norm_history))
 
             else:
                 raise RuntimeError("Unknown nonlinearity type: {0}"

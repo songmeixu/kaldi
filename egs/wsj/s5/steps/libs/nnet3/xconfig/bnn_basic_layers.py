@@ -60,6 +60,7 @@ class XconfigBNNBasicLayer(XconfigBasicLayer):
         target_rms = self.config['target-rms']
         max_change = self.config['max-change']
         ng_opt_str = self.config['ng-affine-options']
+        norm_history = self.config['norm-history']
 
         configs = []
         # First the affine node.
@@ -110,8 +111,8 @@ class XconfigBNNBasicLayer(XconfigBasicLayer):
 
             elif nonlinearity == 'bn':
                 line = ('component name={0}.{1}'
-                        ' type=BatchNormComponent dim={2}'
-                        ''.format(self.name, nonlinearity, output_dim))
+                        ' type=BatchNormComponent dim={2} norm-history={3}'
+                        ''.format(self.name, nonlinearity, output_dim, norm_history))
 
             else:
                 raise RuntimeError("Unknown nonlinearity type: {0}"
@@ -194,7 +195,7 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
                        'max-change' : 1.5,
                        'param-stddev' : 0.0,
                        'bias-stddev' : 0.0,
-                       'output-delay' : 0
+                       'output-delay' : 0,
                        }
 
     def check_configs(self):
