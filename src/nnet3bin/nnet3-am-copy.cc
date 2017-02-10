@@ -52,6 +52,7 @@ int main(int argc, char *argv[]) {
     bool convert_repeated_to_block = false;
     BaseFloat scale = 1.0;
     std::string nnet_config, edits_config, edits_str;
+    bool batchnorm_dec = false;
 
     ParseOptions po(usage);
     po.Register("binary", &binary_write, "Write output in binary mode");
@@ -82,6 +83,7 @@ int main(int argc, char *argv[]) {
                 " are set to this value.");
     po.Register("scale", &scale, "The parameter matrices are scaled"
                 " by the specified value.");
+    po.Register("batchnorm-dec", &batchnorm_dec, "convert BatchNormComponent to dec state");
 
 
     po.Read(argc, argv);
@@ -120,6 +122,8 @@ int main(int argc, char *argv[]) {
 
     if (learning_rate >= 0)
       SetLearningRate(learning_rate, &(am_nnet.GetNnet()));
+
+    SetBatchNorm(batchnorm_dec, &(am_nnet.GetNnet()));
 
     if (!edits_config.empty()) {
       Input ki(edits_config);

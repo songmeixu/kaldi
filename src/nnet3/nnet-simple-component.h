@@ -240,7 +240,7 @@ class BatchNormComponent: public UpdatableComponent {
 
   void SetDec(bool is_dec) {
     is_dec_ = is_dec;
-    CalcFromTotal();
+//    CalcFromTotal();
   }
 
   virtual int32 Properties() const {

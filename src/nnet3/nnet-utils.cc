@@ -266,6 +266,16 @@ void SetLearningRate(BaseFloat learning_rate,
   }
 }
 
+void SetBatchNorm(bool is_dec, Nnet *nnet) {
+  for (int32 c = 0; c < nnet->NumComponents(); c++) {
+    BatchNormComponent *bc = dynamic_cast<BatchNormComponent*>(nnet->GetComponent(c));
+    if (bc!= NULL) {
+      bc->SetDec(is_dec);
+      c++;
+    }
+  }
+}
+
 void ScaleNnet(BaseFloat scale, Nnet *nnet) {
   if (scale == 1.0) return;
   else if (scale == 0.0) {
