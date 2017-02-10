@@ -671,14 +671,14 @@ BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) con
 }
 
 void BatchNormComponent::CalcFromTotal() const {
-  mean.CopyFromVec(tot_mean);
-  var.CopyFromVec(tot_var);
-  mean.Scale(1.0 / tot_cnt);
-  var.Scale(512.0 / (511.0 * tot_cnt));
-  var.ApplyPow(-0.5);
+  CuVector<BaseFloat> m(tot_mean);
+  CuVector<BaseFloat> v(tot_var);
+  m.Scale(1.0 / tot_cnt);
+  v.Scale(512.0 / (511.0 * tot_cnt));
+  v.ApplyPow(-0.5);
 
-  a.AddVecVec(1.0, gamma, var, 0.0);
-  b.AddVecVec(-1.0, a, mean, 0.0);
+  a.AddVecVec(1.0, gamma, v, 0.0);
+  b.AddVecVec(-1.0, a, m, 0.0);
   b.AddVec(1.0, beta);
 }
 
