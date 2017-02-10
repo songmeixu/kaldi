@@ -267,13 +267,16 @@ void SetLearningRate(BaseFloat learning_rate,
 }
 
 void SetBatchNorm(bool is_dec, Nnet *nnet) {
+  int32 i = 0;
   for (int32 c = 0; c < nnet->NumComponents(); c++) {
     BatchNormComponent *bc = dynamic_cast<BatchNormComponent*>(nnet->GetComponent(c));
     if (bc!= NULL) {
       bc->SetDec(is_dec);
-      c++;
+      i++;
     }
   }
+  if (i > 0)
+    KALDI_LOG << "Convert " << i << " BatchNormComponent to dec state:" << is_dec;
 }
 
 void ScaleNnet(BaseFloat scale, Nnet *nnet) {
