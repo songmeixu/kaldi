@@ -54,8 +54,8 @@ class BaiduNet {
   }
 };
 
-bool AddToParams(BaiduNet &baidu_net, AffineComponent &ac, bool bias = true) {
-  CuMatrix<BaseFloat> weight = ac.LinearParams();
+bool AddToParams(BaiduNet &baidu_net, AffineComponent *ac, bool bias = true) {
+  CuMatrix<BaseFloat> weight = ac->LinearParams();
 //  weight.Transpose();
   for (int32 r = 0; r < weight.NumRows(); ++r) {
     for (int32 c = 0; c < weight.NumCols(); ++c) {
@@ -63,15 +63,15 @@ bool AddToParams(BaiduNet &baidu_net, AffineComponent &ac, bool bias = true) {
     }
   }
   if (bias) {
-    for (int32 d = 0; d < ac.BiasParams().Dim(); ++d) {
-      baidu_net.params_.push_back(ac.BiasParams()(d));
+    for (int32 d = 0; d < ac->BiasParams().Dim(); ++d) {
+      baidu_net.params_.push_back(ac->BiasParams()(d));
     }
   }
   return true;
 }
 
-bool AddToParams(BaiduNet &baidu_net, BinaryAffineComponent &ac, bool bias = false) {
-  CuMatrix<BaseFloat> weight = ac.BinaryLinearParams();
+bool AddToParams(BaiduNet &baidu_net, BinaryAffineComponent *ac, bool bias = false) {
+  CuMatrix<BaseFloat> weight = ac->BinaryLinearParams();
 //  weight.Transpose();
   for (int32 r = 0; r < weight.NumRows(); ++r) {
     for (int32 c = 0; c < weight.NumCols(); ++c) {
@@ -79,19 +79,19 @@ bool AddToParams(BaiduNet &baidu_net, BinaryAffineComponent &ac, bool bias = fal
     }
   }
   if (bias) {
-    for (int32 d = 0; d < ac.BiasParams().Dim(); ++d) {
-      baidu_net.params_.push_back(ac.BiasParams()(d));
+    for (int32 d = 0; d < ac->BiasParams().Dim(); ++d) {
+      baidu_net.params_.push_back(ac->BiasParams()(d));
     }
   }
   return true;
 }
 
-bool AddToParams(BaiduNet &baidu_net, BatchNormComponent &bnc) {
-  for (int32 d = 0; d < bnc.OutputDim().Dim(); ++d) {
-    baidu_net.params_.push_back(ac.A()(d));
+bool AddToParams(BaiduNet &baidu_net, BatchNormComponent *bnc) {
+  for (int32 d = 0; d < bnc->OutputDim(); ++d) {
+    baidu_net.params_.push_back(bnc->A()(d));
   }
-  for (int32 d = 0; d < bnc.OutputDim().Dim(); ++d) {
-    baidu_net.params_.push_back(ac.B()(d));
+  for (int32 d = 0; d < bnc->OutputDim(); ++d) {
+    baidu_net.params_.push_back(bnc->B()(d));
   }
   return true;
 }
@@ -132,36 +132,25 @@ int main (int argc, const char *argv[]) {
   int nComponent = am_nnet.GetNnet().NumComponents();
   int layer_id = 0;
   for (int32 i = 0; i < nComponent; ++i) {
-    Component &component = am_nnet.GetNnet().GetComponent(i);
-    if (component.Type() == "FixedAffineComponent") {
+    Component *component = am_nnet.GetNnet().GetComponent(i);
+    if (component->Type() == "FixedAffineComponent") {
 //      kaldi::nnet2::FixedAffineComponent fc = dynamic_cast<kaldi::nnet2::FixedAffineComponent &> (component);
       KALDI_ERR << "currently not support <FixedAffineComponent> in BaiduNet";
       ++layer_id;
-    } else if (component.Type() == "AffineComponentPreconditionedOnline") {
-      AffineComponentPreconditionedOnline &acpo = dynamic_cast<AffineComponentPreconditionedOnline &> (component);
-      AddToParams(baidu_net, acpo);
+    } else if (component->Type() == "BinaryAffineComponent") {
+      BinaryAffineComponent *bac = dynamic_cast<BinaryAffineComponent *> (component);
       if (baidu_net.m_nLayer == 0) {
-        baidu_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
-        ++baidu_net.m_nLayer;
-      }
-      baidu_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
-      ++baidu_net.m_nLayer;
-      baidu_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
-      ++layer_id;
-    } else if (component.Type() == "BinaryAffineComponent") {
-      BinaryAffineComponent &bac = dynamic_cast<BinaryAffineComponent &> (component);
-      if (baidu_net.m_nLayer == 0) {
-        baidu_net.m_LayerDim.push_back(bac.LinearParams().NumCols());
+        baidu_net.m_LayerDim.push_back(bac->LinearParams().NumCols());
         ++baidu_net.m_nLayer;
       }
       AddToParams(baidu_net, bac, false);
-      baidu_net.m_LayerDim.push_back(bac.BiasParams().Dim());
+      baidu_net.m_LayerDim.push_back(bac->BiasParams().Dim());
       ++baidu_net.m_nLayer;
-      baidu_net.m_nTotalParamNum += bac.LinearParams().NumRows() * bac.LinearParams().NumCols() + bac.BiasParams().Dim();
-    } else if (component.Type() == "BatchNormComponent") {
-      BatchNormComponent &bnc = dynamic_cast<BatchNormComponent &> (component);
+      baidu_net.m_nTotalParamNum += bac->LinearParams().NumRows() * bac->LinearParams().NumCols() + bac->BiasParams().Dim();
+    } else if (component->Type() == "BatchNormComponent") {
+      BatchNormComponent *bnc = dynamic_cast<BatchNormComponent *> (component);
       AddToParams(baidu_net, bnc);
-      baidu_net.m_nTotalParamNum += bnc.OutputDim()*2;
+      baidu_net.m_nTotalParamNum += bnc->OutputDim()*2;
     }
   }
   Output ko(nnet_wxfilename, binary_write);
