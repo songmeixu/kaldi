@@ -55,11 +55,23 @@ class BaiduNet {
 };
 
 bool AddToParams(BaiduNet &baidu_net, AffineComponent &ac, bool bias = true) {
-  CuMatrix<BaseFloat> weight;
-  if (dynamic_cast<BinaryAffineComponent *> (&ac) != NULL)
-    weight = ac.BinaryLinearParams();
-  else
-    weight = ac.LinearParams();
+  CuMatrix<BaseFloat> weight = ac.LinearParams();
+//  weight.Transpose();
+  for (int32 r = 0; r < weight.NumRows(); ++r) {
+    for (int32 c = 0; c < weight.NumCols(); ++c) {
+      baidu_net.params_.push_back((BaseFloat) weight(r,c));
+    }
+  }
+  if (bias) {
+    for (int32 d = 0; d < ac.BiasParams().Dim(); ++d) {
+      baidu_net.params_.push_back(ac.BiasParams()(d));
+    }
+  }
+  return true;
+}
+
+bool AddToParams(BaiduNet &baidu_net, BinaryAffineComponent &ac, bool bias = false) {
+  CuMatrix<BaseFloat> weight = ac.BinaryLinearParams();
 //  weight.Transpose();
   for (int32 r = 0; r < weight.NumRows(); ++r) {
     for (int32 c = 0; c < weight.NumCols(); ++c) {
@@ -136,16 +148,6 @@ int main (int argc, const char *argv[]) {
       ++baidu_net.m_nLayer;
       baidu_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
       ++layer_id;
-    } else if (component.Type() == "AffineComponentLRScalePreconditionedOnline") {
-      AffineComponentLRScalePreconditionedOnline &acpo = dynamic_cast<AffineComponentLRScalePreconditionedOnline &> (component);
-      if (baidu_net.m_nLayer == 0) {
-        baidu_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
-        ++baidu_net.m_nLayer;
-      }
-      baidu_net.is_svd = true;
-      AddToParams(baidu_net, acpo, false);
-      baidu_net.m_svdDim.push_back(acpo.LinearParams().NumRows());
-      baidu_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
     } else if (component.Type() == "BinaryAffineComponent") {
       BinaryAffineComponent &bac = dynamic_cast<BinaryAffineComponent &> (component);
       if (baidu_net.m_nLayer == 0) {
