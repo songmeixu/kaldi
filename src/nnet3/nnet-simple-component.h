@@ -293,6 +293,9 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual int32 NumParameters() const;
 
+  const CuVector<BaseFloat> &A() const { return a; }
+  const CuVector<BaseFloat> &B() const { return b; }
+
  protected:
   virtual void Update(const CuMatrixBase<BaseFloat> &in_value,
                       const CuMatrixBase<BaseFloat> &out_deriv,

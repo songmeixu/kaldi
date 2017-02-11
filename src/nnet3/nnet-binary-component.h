@@ -59,6 +59,8 @@ class BinaryAffineComponent: public AffineComponent {
   explicit BinaryAffineComponent(
       const BinaryAffineComponent &other);
 
+  const CuMatrix<BaseFloat> &BinaryLinearParams() const { return w_b; }
+
   virtual void Propagate(const ComponentPrecomputedIndexes *indexes,
                          const CuMatrixBase<BaseFloat> &in,
                          CuMatrixBase<BaseFloat> *out) const;
