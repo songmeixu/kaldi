@@ -859,7 +859,7 @@ void BatchNormComponent::Vectorize(VectorBase<BaseFloat> *params) const {
   params->Range(OutputDim()*3, beta.Dim()).CopyFromVec(beta);
   params->Range(OutputDim()*4, tot_mean.Dim()).CopyFromVec(tot_mean);
   params->Range(OutputDim()*5, tot_var.Dim()).CopyFromVec(tot_var);
-  params->PushElement(tot_cnt);
+  (*params)(params->Dim()-1) = tot_cnt;
 }
 
 void BatchNormComponent::UnVectorize(const VectorBase<BaseFloat> &params) {
