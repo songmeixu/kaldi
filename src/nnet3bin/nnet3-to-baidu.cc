@@ -146,7 +146,7 @@ int main (int argc, const char *argv[]) {
       AddToParams(baidu_net, bac, false);
       baidu_net.m_LayerDim.push_back(bac->BiasParams().Dim());
       ++baidu_net.m_nLayer;
-      baidu_net.m_nTotalParamNum += bac->LinearParams().NumRows() * bac->LinearParams().NumCols() + bac->BiasParams().Dim();
+      baidu_net.m_nTotalParamNum += bac->LinearParams().NumRows() * bac->LinearParams().NumCols();
     } else if (component->Type() == "BatchNormComponent") {
       BatchNormComponent *bnc = dynamic_cast<BatchNormComponent *> (component);
       AddToParams(baidu_net, bnc);
