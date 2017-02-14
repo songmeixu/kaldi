@@ -64,6 +64,7 @@ class BaiduNet {
         // print shape
         row = m_LayerDim[l];
         col = m_LayerDim[l+1];
+        KALDI_LOG << "weight row = " << row << " weight col = " << col;
         os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
         os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
         // print scale
@@ -77,6 +78,7 @@ class BaiduNet {
         // 3. print bias
         // print shape
         row = 1;
+        KALDI_LOG << "bias row = " << row << " bias col = " << col;
         os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
         os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
         // print scale
@@ -103,14 +105,12 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
 //  weight.Transpose();
 
   if (m_is_fixed_) {
-    KALDI_LOG << "weight row = " << weight.NumRows() << " weight col = " << weight.NumCols();
-    for (int r = 0; r < weight.NumRows(); ++r) {
-      for (int c = 0; c < weight.NumCols(); ++c) {
-        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
+    for (int c = 0; c < weight.NumCols(); ++c) {
+      for (int r = 0; r < weight.NumRows(); ++r) {
+        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(c, r));
       }
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
-    KALDI_LOG << "bias row = " << bias.NumRows() << " bias col = " << bias.NumCols();
     for (int d = 0; d < ac.OutputDim(); ++d) {
       m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
     }
