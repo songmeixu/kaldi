@@ -157,26 +157,16 @@ int main(int argc, char *argv[]) {
         num_err++;
       } else {
         const Posterior &pdf_post = pdf_post_reader.Value(key);
-
-        if (pdf_post.size() - feats.NumRows() == 1) {
-          Posterior pdf_post2 = pdf_post;
-          pdf_post2.pop_back();
-          ProcessFile(feats, pdf_post2, key,
-                      left_context, right_context, num_frames,
-                      const_feat_dim, &num_frames_written, &num_egs_written,
-                      &example_writer);
-        } else {
-          if (pdf_post.size() != feats.NumRows()) {
-            KALDI_WARN << "Posterior has wrong size " << pdf_post.size()
-                       << " versus " << feats.NumRows();
-            num_err++;
-            continue;
-          }
-          ProcessFile(feats, pdf_post, key,
-                      left_context, right_context, num_frames,
-                      const_feat_dim, &num_frames_written, &num_egs_written,
-                      &example_writer);
+        if (pdf_post.size() != feats.NumRows()) {
+          KALDI_WARN << "Posterior has wrong size " << pdf_post.size()
+                     << " versus " << feats.NumRows();
+          num_err++;
+          continue;
         }
+        ProcessFile(feats, pdf_post, key,
+                    left_context, right_context, num_frames,
+                    const_feat_dim, &num_frames_written, &num_egs_written,
+                    &example_writer);
         num_done++;
       }
     }
