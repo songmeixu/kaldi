@@ -68,7 +68,7 @@ $(BINFILES): $(LIBFILE) $(XDEPENDS)
 	$(MAKE) -C ${@D} ${@F}
 
 clean:
-	-rm -f *.o *.a *.so $(TESTFILES) $(BINFILES) $(TESTOUTPUTS) tmp* *.tmp *.testlog
+	-rm -f *.o *.a *.so *.dSYM $(TESTFILES) $(BINFILES) $(TESTOUTPUTS) tmp* *.tmp *.testlog
 
 distclean: clean
 	-rm -f .depend.mk
