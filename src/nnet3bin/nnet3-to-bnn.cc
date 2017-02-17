@@ -95,7 +95,7 @@ class BaiduNet {
 bool AddToParams(BaiduNet &baidu_net, BinaryAffineComponent *ac, bool bias = false) {
   CuMatrix<BaseFloat> weight = ac->BinaryLinearParams();
 //  weight.Transpose();
-  vector<uint> binary_params(weight.NumRows() * ceil(weight.NumCols()/32));
+  vector<uint> binary_params(weight.NumRows() * ceil((float)weight.NumCols()/32));
   for (int32 r = 0; r < weight.NumRows(); ++r) {
     for (int32 c = 0; c < weight.NumCols(); c += 32) {
       int size = (c+32) <= weight.NumCols() ? 32 : weight.NumCols() % 32;
@@ -168,7 +168,7 @@ int main (int argc, const char *argv[]) {
       AddToParams(baidu_net, bac, false);
       baidu_net.m_LayerDim.push_back(bac->BiasParams().Dim());
       ++baidu_net.m_nLayer;
-      baidu_net.m_nTotalParamNum += bac->LinearParams().NumRows() * ceil(bac->LinearParams().NumCols()/32);
+      baidu_net.m_nTotalParamNum += bac->LinearParams().NumRows() * ceil((float)bac->LinearParams().NumCols()/32);
     } else if (component->Type() == "BatchNormComponent") {
       BatchNormComponent *bnc = dynamic_cast<BatchNormComponent *> (component);
       AddToParams(baidu_net, bnc);
