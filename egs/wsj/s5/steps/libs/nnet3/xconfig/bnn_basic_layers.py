@@ -199,7 +199,7 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
                        }
 
     def set_derived_configs(self):
-        super(XconfigLayerBase, self).set_derived_configs()
+        super(XconfigBNNOutputLayer, self).set_derived_configs()
         if self.config['param-stddev'] < 0:
             self.config['param-stddev'] = 1.0 / math.sqrt(self.descriptors['input']['dim'])
 
