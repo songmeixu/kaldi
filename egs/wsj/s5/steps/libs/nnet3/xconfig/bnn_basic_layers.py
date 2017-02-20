@@ -6,6 +6,10 @@
 and some basic layer definitions.
 """
 
+from __future__ import print_function
+import math
+import re
+import sys
 import libs.nnet3.xconfig.utils as xutils
 from libs.nnet3.xconfig.basic_layers import XconfigBasicLayer
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
