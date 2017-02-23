@@ -83,7 +83,7 @@ fi
 
 #total, cv, train number of speakers
 N=$(cat $srcdir/spk2utt | wc -l)
-N_spk_cv=$(echo "$N * $cv_spk_percent / 100" | bc -l)
+N_spk_cv=$(echo "($N * $cv_spk_percent) / 100" | bc)
 N_spk_trn=$((N - N_spk_cv))
 
 mkdir -p $cvdir $trndir
