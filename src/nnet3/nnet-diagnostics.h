@@ -46,7 +46,7 @@ struct NnetComputeProbOptions {
   bool debug_computation;
   bool compute_deriv;
   bool compute_accuracy;
-  string pdf_classes;
+  std::string pdf_classes;
   NnetOptimizeOptions optimize_config;
   NnetComputeOptions compute_config;
   CachingOptimizingCompilerOptions compiler_config;
