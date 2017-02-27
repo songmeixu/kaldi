@@ -105,9 +105,9 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
 //  weight.Transpose();
 
   if (m_is_fixed_) {
-    for (int c = 0; c < weight.NumCols(); ++c) {
-      for (int r = 0; r < weight.NumRows(); ++r) {
-        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(c, r));
+    for (int r = 0; r < weight.NumRows(); ++r) {
+      for (int c = 0; c < weight.NumCols(); ++c) {
+        m_fixed_weight_[layer_idx].push_back((FPWeight) weight(r, c));
       }
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
