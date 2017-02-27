@@ -815,6 +815,7 @@ MATHLIB='ATLAS'
 ATLASROOT=`rel2abs ../tools/ATLAS/`
 FSTROOT=`rel2abs ../tools/openfst`
 EigenROOT=`rel2abs ../tools/eigen`
+echo "EigenROOT = $EigenROOT" >> kaldi.mk
 
 # Save the command line to include in kaldi.mk
 cmd_line="$0 $@"
