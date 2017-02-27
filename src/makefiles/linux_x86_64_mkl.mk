@@ -21,6 +21,9 @@ endif
 ifndef MKLROOT
 $(error MKLROOT not defined.)
 endif
+ifndef EigenROOT
+$(error EigenROOT not defined.)
+endif
 
 MKLLIB ?= $(MKLROOT)/lib/em64t
 
