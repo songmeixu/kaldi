@@ -32,6 +32,7 @@
 #include "nnet2/nnet-precondition-online.h"
 #include "matrix/intel_sse.h"
 
+#include <map>
 #include <iostream>
 
 namespace kaldi {
