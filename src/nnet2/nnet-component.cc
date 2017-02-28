@@ -1755,12 +1755,16 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
 
   FixedPoint::linear_quantize(in.Mat(), in_fp, dq_mag_, mq_mag_);
   FixedPoint::matrix_times(in_fp, linear_params_fp_, out_fp);
-  FixedPoint::linear_quantize(out_fp, out_fp, 1.0, dq_mag_); // de-quantization
   FixedPoint::Matrix<FixedPoint::FPWeight16> out_fp_T;
   FixedPoint::transpose(out_fp, out_fp_T);
-  FixedPoint::matrix_plus_vector(out_fp_T, bias_params_fp_, out_fp_T);
   FixedPoint::CommonMatrix2KaldiMatrix(out_fp_T, out->Mat());
-  out->Scale(weight_abs_max_ / mq_mag_ / mq_mag_); // de-quantization
+  out->Scale(weight_abs_max_ * dq_mag_ / mq_mag_ / mq_mag_); // de-quantization
+  
+  CuMatrix<BaseFloat> bias;
+  bias.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
+  FixedPoint::CommonMatrix2KaldiMatrix(bias_params_fp_, bias.Mat());
+  bias.Scale(bias_abs_max_ / mq_mag_);
+  out->AddVecToRows(1.0, bias.Row(0));
 }
 
 void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
