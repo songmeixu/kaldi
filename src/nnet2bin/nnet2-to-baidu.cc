@@ -36,9 +36,8 @@ class BaiduNet {
   bool m_is_fixed_;
   int32 m_fixed_bits_;
   vector<float> m_fixed_weight_scales_;
-  vector<float> m_fixed_bias_scales_;
   vector< vector<FPWeight> > m_fixed_weight_;
-  vector< vector<FPBias> > m_fixed_bias_;
+  vector< vector<BaseFloat> > bias_;
   vector<Activation> m_activation_;
 
   BaiduNet() :
@@ -52,7 +51,7 @@ class BaiduNet {
     if (!os.good()) {
       KALDI_ERR << "Failed to write vector to stream: stream not good";
     }
-    KALDI_ASSERT(m_activation_.size() == m_fixed_weight_.size() && m_fixed_bias_scales_.size() == m_fixed_weight_.size());
+    KALDI_ASSERT(m_activation_.size() == m_fixed_weight_.size() && bias_.size() == m_fixed_weight_.size());
     if (binary) {
       os.write(reinterpret_cast<const char*>(&m_nLayer), sizeof(int32));
       uint64 row, col;
@@ -81,13 +80,9 @@ class BaiduNet {
         KALDI_LOG << "bias row = " << row << " bias col = " << col;
         os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
         os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
-        // print scale
-        if (m_is_fixed_) {
-          os.write(reinterpret_cast<const char*>(&m_fixed_bias_scales_[l]), sizeof(float));
-        }
         // print bias-param
-        KALDI_ASSERT(m_fixed_bias_[l].size() == col);
-        os.write(reinterpret_cast<const char*>(m_fixed_bias_[l].data()), sizeof(FPBias) * m_fixed_bias_[l].size());
+        KALDI_ASSERT(bias_[l].size() == col);
+        os.write(reinterpret_cast<const char*>(bias_[l].data()), sizeof(BaseFloat) * bias_[l].size());
       }
     } else {
     }
@@ -101,7 +96,7 @@ class BaiduNet {
 bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
   assert(layer_idx < m_nLayer);
   const FixedPoint::Matrix<FPWeight> &weight = ac.FixedWeight();
-  const FixedPoint::Matrix<FPBias> &bias = ac.FixedBias();
+  const CuVector<BaseFloat> &bias = ac.BiasParams();
 //  weight.Transpose();
 
   if (m_is_fixed_) {
@@ -112,9 +107,8 @@ bool BaiduNet::AddToParams(AffineComponentFixedPoint &ac, int layer_idx) {
     }
     m_fixed_weight_scales_.push_back(ac.GetWeightScale());
     for (int d = 0; d < ac.OutputDim(); ++d) {
-      m_fixed_bias_[layer_idx].push_back((FPBias) bias(0, d));
+      bias_[layer_idx].push_back((BaseFloat) bias(d));
     }
-    m_fixed_bias_scales_.push_back(ac.GetBiasScale());
   } else {
   }
 
@@ -164,7 +158,7 @@ int main (int argc, const char *argv[]) {
   int nComponent = am_nnet.GetNnet().NumComponents();
   out_net.m_nLayer = (nComponent - 1) / 2;
   out_net.m_fixed_weight_.resize(out_net.m_nLayer);
-  out_net.m_fixed_bias_.resize(out_net.m_nLayer);
+  out_net.bias_.resize(out_net.m_nLayer);
   int layer_id = 0;
   for (int i = 0; i < nComponent; ++i) {
     kaldi::nnet2::Component &component = am_nnet.GetNnet().GetComponent(i);

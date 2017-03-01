@@ -1724,9 +1724,8 @@ AffineComponentFixedPoint::AffineComponentFixedPoint(const CuMatrixBase<BaseFloa
   KALDI_ASSERT(linear_params.NumRows() == bias_params.Dim()&&
       bias_params.Dim() != 0);
   weight_abs_max_ = linear_params.Mat().LargestAbsElem();
-  bias_abs_max_ = bias_params.Vec().AbsMax();
   FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPWeight>(linear_params.Mat(), linear_params_fp_, weight_abs_max_, mq_mag_);
-  FixedPoint::linear_quantize<BaseFloat, FixedPoint::FPBias>(bias_params.Vec(), bias_params_fp_, bias_abs_max_, mq_mag_);
+  bias_params_ = bias_params;
 }
 
 std::string AffineComponentFixedPoint::Info() const {
@@ -1734,8 +1733,7 @@ std::string AffineComponentFixedPoint::Info() const {
   stream << Type() << ", input-dim=" << InputDim()
          << ", output-dim=" << OutputDim()
          << ", MQ=" << mq_mag_
-         << ", Weight Mag=" << weight_abs_max_
-         << ", Bias Mag=" << bias_abs_max_;
+         << ", Weight Mag=" << weight_abs_max_;
   return stream.str();
 }
 
@@ -1759,12 +1757,7 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   FixedPoint::transpose(out_fp, out_fp_T);
   FixedPoint::CommonMatrix2KaldiMatrix(out_fp_T, out->Mat());
   out->Scale(weight_abs_max_ * dq_mag_ / mq_mag_ / mq_mag_); // de-quantization
-  
-  CuMatrix<BaseFloat> bias;
-  bias.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
-  FixedPoint::CommonMatrix2KaldiMatrix(bias_params_fp_, bias.Mat());
-  bias.Scale(bias_abs_max_ / mq_mag_);
-  out->AddVecToRows(1.0, bias.Row(0));
+  out->AddVecToRows(1.0, bias_params_);
 }
 
 void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
@@ -1779,15 +1772,11 @@ void AffineComponentFixedPoint::Read(std::istream &is, bool binary) {
   linear_params_fp_.Resize(temp.NumRows(), temp.NumCols());
   FixedPoint::KaldiMatrix2CommonMatrix(temp, linear_params_fp_);
   ExpectToken(is, binary, "<BiasParams>");
-  temp.Read(is, binary);
-  bias_params_fp_.Resize(temp.NumRows(), temp.NumCols());
-  FixedPoint::KaldiMatrix2CommonMatrix(temp, bias_params_fp_);
+  bias_params_.Read(is, binary);
   ExpectToken(is, binary, "<MQ>");
   ReadBasicType(is, binary, &mq_mag_);
   ExpectToken(is, binary, "<Weight-Mag>");
   ReadBasicType(is, binary, &weight_abs_max_);
-  ExpectToken(is, binary, "<Bias-Mag>");
-  ReadBasicType(is, binary, &bias_abs_max_);
   ExpectToken(is, binary, ostr_end.str());
 }
 
@@ -1801,15 +1790,11 @@ void AffineComponentFixedPoint::Write(std::ostream &os, bool binary) const {
   FixedPoint::CommonMatrix2KaldiMatrix(linear_params_fp_, temp);
   temp.Write(os, binary);
   WriteToken(os, binary, "<BiasParams>");
-  temp.Resize(bias_params_fp_.NumRows(), bias_params_fp_.NumCols());
-  FixedPoint::CommonMatrix2KaldiMatrix(bias_params_fp_, temp);
-  temp.Write(os, binary);
+  bias_params_.Write(os, binary);
   WriteToken(os, binary, "<MQ>");
   WriteBasicType(os, binary, mq_mag_);
   WriteToken(os, binary, "<Weight-Mag>");
   WriteBasicType(os, binary, weight_abs_max_);
-  WriteToken(os, binary, "<Bias-Mag>");
-  WriteBasicType(os, binary, bias_abs_max_);
   WriteToken(os, binary, ostr_end.str());
 }
 

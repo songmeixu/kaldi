@@ -1074,22 +1074,17 @@ class AffineComponentFixedPoint: public Component {
     return weight_abs_max_ / mq_mag_;
   }
 
-  BaseFloat GetBiasScale() {
-    return bias_abs_max_ / mq_mag_;
-  }
-
   const FixedPoint::Matrix<FixedPoint::FPWeight> &FixedWeight() const { return linear_params_fp_; }
 
-  const FixedPoint::Matrix<FixedPoint::FPBias> &FixedBias() const { return bias_params_fp_; }
+  const CuVector<BaseFloat> &BiasParams() { return bias_params_; }
 
  protected:
   KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
 
   FixedPoint::Matrix<FixedPoint::FPWeight> linear_params_fp_;
-  FixedPoint::Matrix<FixedPoint::FPBias> bias_params_fp_;
+  CuVector<BaseFloat> bias_params_;
   int32 mq_mag_; // magnitude of model quantization: 127 or 1023
   BaseFloat weight_abs_max_;
-  BaseFloat bias_abs_max_;
 };
 
 // This is an idea Dan is trying out, a little bit like
