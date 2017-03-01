@@ -1746,14 +1746,14 @@ void AffineComponentFixedPoint::Propagate(const ChunkInfo &in_info,
   KALDI_ASSERT(in_info.NumChunks() == out_info.NumChunks());
 
   FixedPoint::Matrix<FixedPoint::FPWeight> in_fp;
-  FixedPoint::Matrix<FixedPoint::FPWeight16> out_fp;
+  FixedPoint::Matrix<FixedPoint::FP32> out_fp;
   BaseFloat dq_mag_;  // magnitude for de-quantization
   in_fp.Resize(in.NumRows(), in.NumCols());
   dq_mag_ = in.Mat().LargestAbsElem();
 
   FixedPoint::linear_quantize(in.Mat(), in_fp, dq_mag_, mq_mag_);
   FixedPoint::matrix_times(in_fp, linear_params_fp_, out_fp);
-  FixedPoint::Matrix<FixedPoint::FPWeight16> out_fp_T;
+  FixedPoint::Matrix<FixedPoint::FP32> out_fp_T;
   FixedPoint::transpose(out_fp, out_fp_T);
   FixedPoint::CommonMatrix2KaldiMatrix(out_fp_T, out->Mat());
   out->Scale(weight_abs_max_ * dq_mag_ / mq_mag_ / mq_mag_); // de-quantization

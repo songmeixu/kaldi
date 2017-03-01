@@ -101,6 +101,20 @@ void matrix_times(const Matrix<int8> &w,
   }
 }
 
+void matrix_times(const Matrix<int8> &w,
+                  const Matrix<int8> &act,
+                  Matrix<int32> &res) {
+  res.Resize(act.NumRows(), w.NumRows());
+  for (int i = 0; i < w.NumRows(); i++) {
+    const int8 *pw = w.RowData(i);
+    for (int j = 0; j < act.NumRows(); j++) {
+      const int8 *pact = act.RowData(j);
+      int32 *pres = res.RowData(j);
+      vector_product<int8, int8, int32>(pw, pact, pres[i], w.NumCols());
+    }
+  }
+}
+
 // for SVD [5/20/2014 anhaox]
 void matrix_times(Matrix<FPWeight16> &w, const Matrix<FPWeight16> &act, Matrix<FPWeight16> &res) {
   res.Resize(act.NumRows(), w.NumRows());

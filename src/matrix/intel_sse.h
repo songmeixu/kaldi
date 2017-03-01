@@ -32,6 +32,7 @@ typedef unsigned char FPAct;
 typedef int8 FPBias;
 typedef int8 FPWeight;
 typedef int16 FPWeight16;
+typedef int32 FP32;
 
 template<typename T>
 T row_abs_max(T *start, const int cnt) {
@@ -252,9 +253,9 @@ inline void vector_product<float>(const float *start_a,
 
 template<>
 inline void vector_product<FPWeight16, FPWeight16, FPWeight16>(const FPWeight16 *start_a,
-                                                   const FPWeight16 *start_b,
-                                                   FPWeight16 &result,
-                                                   const int &cnt) {
+                                                               const FPWeight16 *start_b,
+                                                               FPWeight16 &result,
+                                                               const int &cnt) {
 
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
@@ -279,9 +280,9 @@ inline void vector_product<FPWeight16, FPWeight16, FPWeight16>(const FPWeight16 
 
 template<>
 inline void vector_product<FPWeight, FPAct, FPWeight16>(const FPWeight *start_a,
-                                                    const FPAct *start_b,
-                                                    FPWeight16 &result,
-                                                    const int &cnt) {
+                                                        const FPAct *start_b,
+                                                        FPWeight16 &result,
+                                                        const int &cnt) {
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
   __m128i lo;
@@ -311,9 +312,45 @@ inline void vector_product<FPWeight, FPAct, FPWeight16>(const FPWeight *start_a,
 
 template<>
 inline void vector_product<FPWeight, FPWeight, FPWeight16>(const FPWeight *start_a,
-                                                       const FPWeight *start_b,
-                                                       FPWeight16 &result,
-                                                       const int &cnt) {
+                                                           const FPWeight *start_b,
+                                                           FPWeight16 &result,
+                                                           const int &cnt) {
+  __m128i c;
+  __m128i sum = _mm_set_epi32(0, 0, 0, 0);
+  __m128i lo;
+  __m128i hi;
+  __m128i a_abs;
+  __m128i b_sign;
+  __m128i *a = (__m128i *) start_b;  // act
+  const __m128i *e = (__m128i *) (start_b + cnt);
+  __m128i *b = (__m128i *) start_a;  // weight
+
+  while (a < e) {
+    //c = _mm_maddubs_epi16( _mm_stream_load_si128(a), _mm_stream_load_si128(b) );
+    b_sign = _mm_sign_epi8(*b, *a);
+    a_abs = _mm_abs_epi8(*a);
+    c = _mm_maddubs_epi16(a_abs, b_sign);
+    lo = _mm_cvtepi16_epi32(c);
+    hi = _mm_cvtepi16_epi32(_mm_shuffle_epi32(c, 0x4e));
+    sum = _mm_add_epi32(_mm_add_epi32(lo, hi), sum);
+    a++;
+    b++;
+  }
+  union u {
+    __m128i m;
+    int i[4];
+  } x;
+  sum = _mm_hadd_epi32(sum, sum);
+  sum = _mm_hadd_epi32(sum, sum);
+  x.m = sum;
+  result = x.i[0];
+}
+
+template<>
+inline void vector_product<FPWeight, FPWeight, FP32>(const FPWeight *start_a,
+                                                     const FPWeight *start_b,
+                                                     FP32 &result,
+                                                     const int &cnt) {
   __m128i c;
   __m128i sum = _mm_set_epi32(0, 0, 0, 0);
   __m128i lo;
@@ -519,6 +556,8 @@ void matrix_times_uchar_char(Matrix<FPWeight> &w,
                              const int nFrameNum);    // work for lazy [10/28/2013 Administrator]
 
 void matrix_times(const Matrix<int8> &w, const Matrix<int8> &act, Matrix<int16> &res);
+
+void matrix_times(const Matrix<int8> &w, const Matrix<int8> &act, Matrix<int32> &res);
 
 void matrix_times(Matrix<FPWeight> &w, Matrix<FPWeight> &act, Matrix<FPWeight16> &res, const int *calc_pos);
 
