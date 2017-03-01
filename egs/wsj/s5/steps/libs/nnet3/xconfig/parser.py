@@ -33,7 +33,6 @@ config_to_layer = {
         'affine-layer' : xlayers.XconfigAffineLayer,
         'lstm-layer' : xlayers.XconfigLstmLayer,
         'lstmp-layer' : xlayers.XconfigLstmpLayer,
-        'lstmpc-layer' : xlayers.XconfigLstmpcLayer,
         'fast-lstm-layer' : xlayers.XconfigFastLstmLayer,
         'fast-lstmp-layer' : xlayers.XconfigFastLstmpLayer,
         'conv-layer' : xlayers.XconfigConvLayer,
