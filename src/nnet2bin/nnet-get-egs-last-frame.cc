@@ -45,7 +45,7 @@ static void ProcessFile(const MatrixBase<BaseFloat> &feats,
   KALDI_ASSERT(num_frames > 0);
   int32 basic_feat_dim = feat_dim - const_feat_dim;
 
-  for (int32 t = feats.NumRows() - 1; t < feats.NumRows(); t += num_frames) {
+  for (int32 t = feats.NumRows() - 2; t < feats.NumRows() - 1; t += num_frames) {
     int32 this_num_frames = std::min(num_frames,
                                      feats.NumRows() - t);
 
