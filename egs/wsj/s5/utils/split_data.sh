@@ -81,7 +81,7 @@ if [ ! -d $s1 ]; then
   need_to_split=true
 else
   need_to_split=false
-  for f in utt2spk spk2utt spk2warp feats.scp text wav.scp cmvn.scp spk2gender \
+  for f in utt2spk spk2utt spk2warp feats.scp ali.scp text wav.scp cmvn.scp spk2gender \
     vad.scp segments reco2file_and_channel utt2lang; do
     if [[ -f $data/$f && ( ! -f $s1/$f || $s1/$f -ot $data/$f ) ]]; then
       need_to_split=true
