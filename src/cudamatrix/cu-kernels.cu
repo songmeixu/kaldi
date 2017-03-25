@@ -3280,6 +3280,16 @@ static void _diff_lstm_nonlinearity(const int cell_dim, const int num_rows,
   }
 }
 
+template<typename Real>
+__global__
+static void _cancel_gradient(Real* mat, MatrixDim d) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
+  int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
+  int index = i + j * d.stride;
+  if (i < d.cols && j < d.rows)
+    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : mat[index]);
+}
+
 /***********************************************************************
  * ANSI-C wrappers of CUDA kernels
  */
@@ -4805,4 +4815,12 @@ void cudaD_diff_normalize_per_row(size_t Gr, size_t Bl, double *id,
                                   bool add_log_stddev) {
   _diff_normalize_per_row<<<Gr, Bl>>>(id, id_stride, iv, iv_dim, od, od_stride,
                                       target_rms, add_log_stddev);
+}
+
+void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
+}
+
+void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }

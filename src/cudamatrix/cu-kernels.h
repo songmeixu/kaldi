@@ -1313,6 +1313,14 @@ inline void cuda_vec_sum(int Gr, int Bl, float* v, float* value, int dim,
   cudaF_vec_sum(Gr, Bl, v, value, dim, inc);
 }
 
+inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim dim) {
+  cudaD_cancel_gradient(Gr, Bl, mat, dim);
+}
+
+inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim dim) {
+  cudaF_cancel_gradient(Gr, Bl, mat, dim);
+}
+
 } // namespace kaldi
 
 #endif // HAVE_CUDA

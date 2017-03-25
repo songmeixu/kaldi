@@ -666,6 +666,9 @@ void cudaF_vec_soft_max(int Gr, int Bl, float* v, int dim);
 void cudaD_vec_sum(int Gr, int Bl, double* v, double* value, int dim, int inc);
 void cudaF_vec_sum(int Gr, int Bl, float* v, float* value, int dim, int inc);
 
+void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d);
+void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d);
+
 } // extern "C"
 
 #endif // HAVE_CUDA
