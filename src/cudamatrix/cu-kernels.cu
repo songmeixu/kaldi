@@ -36,26 +36,26 @@
 template<typename Real>
 __device__
 static Real _sum_reduce(Real buffer[]) {
-  // Total number of active threads
-  int32_cuda nTotalThreads = blockDim.x;
-  __syncthreads();
-  // perform tree-based reduction (sum)
-  while (nTotalThreads > 1) {
-    int32_cuda halfPoint = ((1 + nTotalThreads) >> 1); // divide by two
-    // only the first half of the threads will be active.
-    if (threadIdx.x >= halfPoint) { // was <
-      // Get the shared value stored by another thread
-      Real temp = 0.0;
-      if (threadIdx.x < nTotalThreads) { // was +halfPoint
-        temp = buffer[threadIdx.x]; // was +halfPoint
-      }
-      buffer[threadIdx.x - halfPoint] += temp;
-    }
-    __syncthreads();
-    nTotalThreads = ((1 + nTotalThreads) >> 1); // divide by two.
-  }
-  // the result
-  return buffer[0];
+// Total number of active threads
+int32_cuda nTotalThreads = blockDim.x;
+__syncthreads();
+// perform tree-based reduction (sum)
+while (nTotalThreads > 1) {
+int32_cuda halfPoint = ((1 + nTotalThreads) >> 1); // divide by two
+// only the first half of the threads will be active.
+if (threadIdx.x >= halfPoint) { // was <
+// Get the shared value stored by another thread
+Real temp = 0.0;
+if (threadIdx.x < nTotalThreads) { // was +halfPoint
+temp = buffer[threadIdx.x]; // was +halfPoint
+}
+buffer[threadIdx.x - halfPoint] += temp;
+}
+__syncthreads();
+nTotalThreads = ((1 + nTotalThreads) >> 1); // divide by two.
+}
+// the result
+return buffer[0];
 }
 
 /***********************************************************************
@@ -469,7 +469,7 @@ void _diff_group_pnorm(Real *id, const Real *iv, const Real *ov, const Real* od,
         Real iv_ij_sign = (iv_ij >= 0 ? 1 : -1);
         ans =
             ov_ij <= 0.0 ?
-                0.0 : (iv_ij_sign * (abs(iv_ij) == ov_ij ? 1.0 : 0.0));
+            0.0 : (iv_ij_sign * (abs(iv_ij) == ov_ij ? 1.0 : 0.0));
       } else {
         const int ov_index = src_j + i * ov_stride;
         Real ov_ij = ov[ov_index];
@@ -527,8 +527,7 @@ static void _div_rows_vec(Real* mat, const Real* vec_div, MatrixDim d) {
     const int32_cuda start = i * d.stride;
     const Real scale = Real(1) / vec_div[i];
     const int32_cuda grid_stride = blockDim.x * gridDim.x;
-    for (int32_cuda j = blockIdx.x * blockDim.x + threadIdx.x; j < d.cols; j +=
-        grid_stride) {
+    for (int32_cuda j = blockIdx.x * blockDim.x + threadIdx.x; j < d.cols; j += grid_stride) {
       mat[start + j] *= scale;
     }
   }
@@ -963,7 +962,7 @@ static void _add_diag_mat_mat_MTN(const Real alpha, const Real* M,
   // Tree reduce to 2x warpSize / TileDim elements per column.
 # pragma unroll
   for (int shift = CU1DBLOCK / 2; shift > warpSize && shift >= TileDim;
-      shift >>= 1) {
+       shift >>= 1) {
     if (tid < shift) {
       ssum[tid] += ssum[tid + shift];
     }
@@ -1041,7 +1040,7 @@ static void _add_diag_mat_mat_MN(const Real alpha, const Real* M,
   // Tree reduce to 2x warpSize / TileDim elements per column.
 # pragma unroll
   for (int shift = CU1DBLOCK / 2; shift > warpSize && shift >= TileDim;
-      shift >>= 1) {
+       shift >>= 1) {
     if (tid < shift) {
       smem.sum[tid] += smem.sum[tid + shift];
     }
@@ -1226,19 +1225,19 @@ enum EnumTransformReduce {
 template<EnumTransformReduce TransReduceType, typename Real>
 struct TransReduceOp {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return Real(0);
   }
 };
@@ -1246,19 +1245,19 @@ struct TransReduceOp {
 template<typename Real>
 struct TransReduceOp<SUM, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return x;
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return a + b;
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1266,19 +1265,19 @@ struct TransReduceOp<SUM, Real> {
 template<typename Real>
 struct TransReduceOp<MAX, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return sizeof(Real) == sizeof(float) ? -CUDART_INF_F : -CUDART_INF;
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return x;
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return fmax(a, b);
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1286,19 +1285,19 @@ struct TransReduceOp<MAX, Real> {
 template<typename Real>
 struct TransReduceOp<MIN, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return sizeof(Real) == sizeof(float) ? CUDART_INF_F : CUDART_INF;
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return x;
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return min(a, b);
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1306,19 +1305,19 @@ struct TransReduceOp<MIN, Real> {
 template<typename Real>
 struct TransReduceOp<LINFNORM, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return abs(x);
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return fmax(a, b);
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1326,19 +1325,19 @@ struct TransReduceOp<LINFNORM, Real> {
 template<typename Real>
 struct TransReduceOp<L2NORM, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return x * x;
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return a + b;
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return sqrt(x);
   }
 };
@@ -1346,19 +1345,19 @@ struct TransReduceOp<L2NORM, Real> {
 template<typename Real>
 struct TransReduceOp<L1NORM, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return abs(x);
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return a + b;
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1366,19 +1365,19 @@ struct TransReduceOp<L1NORM, Real> {
 template<typename Real>
 struct TransReduceOp<L0NORM, Real> {
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return Real(x == Real(0) ? 0 : 1);
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return a + b;
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return x;
   }
 };
@@ -1392,19 +1391,19 @@ struct TransReduceOp<LPNORM, Real> {
   }
 
   __forceinline__
-  __device__ Real InitValue() const {
+      __device__ Real InitValue() const {
     return Real(0);
   }
   __forceinline__
-  __device__ Real Transform(const Real& x) const {
+      __device__ Real Transform(const Real& x) const {
     return pow(abs(x), power_);
   }
   __forceinline__
-  __device__ Real Reduce(const Real& a, const Real& b) const {
+      __device__ Real Reduce(const Real& a, const Real& b) const {
     return a + b;
   }
   __forceinline__
-  __device__ Real PostReduce(const Real& x, const Real& output) const {
+      __device__ Real PostReduce(const Real& x, const Real& output) const {
     return pow(x, Real(1) / power_);
   }
 };
@@ -1656,16 +1655,6 @@ static void _apply_heaviside(Real* mat, MatrixDim d) {
 
 template<typename Real>
 __global__
-static void _cancel_gradient(Real* mat, MatrixDim d) {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
-  int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
-  int index = i + j * d.stride;
-  if (i < d.cols && j < d.rows)
-    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : 1);
-}
-
-template<typename Real>
-__global__
 static void _apply_floor(Real* mat, Real floor_val, MatrixDim d) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
   int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
@@ -1848,7 +1837,7 @@ static void _add_mat_blockmat_trans(Real *data, MatrixDim dim,
   // BT means B transposed.
   int BT_row_start = cu_data.col_offset, BT_col_start = cu_data.row_offset,
       BT_num_rows = cu_data.matrix_dim.cols, BT_num_cols =
-          cu_data.matrix_dim.rows, BT_col_stride = cu_data.matrix_dim.stride;
+      cu_data.matrix_dim.rows, BT_col_stride = cu_data.matrix_dim.stride;
   // Cast from void;
   const Real *B_data = static_cast<Real*>(cu_data.matrix_data);
   // we avoided a bunch of hassle by doing this (relates to Ansi-C requirement).
@@ -1884,8 +1873,8 @@ static void _add_mat_blockmat(Real *data, MatrixDim dim, const Real *A_data,
 
   int B_row_start = block_data.row_offset, B_col_start = block_data.col_offset,
       B_num_rows = block_data.matrix_dim.rows, B_num_cols =
-          block_data.matrix_dim.cols, B_row_stride =
-          block_data.matrix_dim.stride;
+      block_data.matrix_dim.cols, B_row_stride =
+      block_data.matrix_dim.stride;
   // Cast from void;
   const Real *B_data = static_cast<Real*>(block_data.matrix_data);
   // we avoided a bunch of hassle by doing this (relates to Ansi-C requirement).
@@ -1968,7 +1957,7 @@ static void _blockadd_mat_blockmat_trans(Real *data, MatrixDim dim,
   // BT means B transposed.
   int BT_row_start = cu_data.col_offset, BT_col_start = cu_data.row_offset,
       BT_num_rows = cu_data.matrix_dim.cols, BT_num_cols =
-          cu_data.matrix_dim.rows, BT_col_stride = cu_data.matrix_dim.stride;
+      cu_data.matrix_dim.rows, BT_col_stride = cu_data.matrix_dim.stride;
   // Cast from void;
   const Real *B_data = static_cast<Real*>(cu_data.matrix_data);
   // we avoided a bunch of hassle by doing this (relates to Ansi-C requirement).
@@ -2048,7 +2037,7 @@ static void _group_pnorm(Real *y, const Real *x, MatrixDim d, int src_stride,
     int src_begin_index = i * group_size + j * src_stride;
     int src_end_index = src_begin_index + group_size;
     for (int src_index = src_begin_index; src_index < src_end_index;
-        src_index++) {
+         src_index++) {
       tmp += pow(std::abs(x[src_index]), power);
     }
     tmp = pow(tmp, Real(1.0 / power));
@@ -2057,7 +2046,7 @@ static void _group_pnorm(Real *y, const Real *x, MatrixDim d, int src_stride,
     } else {
       Real max_value = x[src_begin_index], min_value = max_value;
       for (int src_index = src_begin_index + 1; src_index < src_end_index;
-          src_index++) {
+           src_index++) {
         if (x[src_index] > max_value)
           max_value = x[src_index];
         if (x[src_index] < min_value)
@@ -2070,7 +2059,7 @@ static void _group_pnorm(Real *y, const Real *x, MatrixDim d, int src_stride,
         y[dst_index] = 0.0;
       } else {
         for (int src_index = src_begin_index; src_index < src_end_index;
-            src_index++) {
+             src_index++) {
           Real x_scaled = x[src_index] / max_abs_value;
           tmp += pow(std::abs(x_scaled), Real(power));
         }
@@ -2667,7 +2656,7 @@ static void _find_row_max_id(const Real* mat, Real* vec_val, int32_cuda* vec_id,
   // Parallel reduce
 #pragma unroll
   for (int32_cuda num_working_threads = CU1DBLOCK / 2;
-      num_working_threads >= warpSize; num_working_threads >>= 1) {
+       num_working_threads >= warpSize; num_working_threads >>= 1) {
     __syncthreads();
     if (tid < num_working_threads) {
       if (smax[tid + num_working_threads] > smax[tid]) {
@@ -2681,7 +2670,7 @@ static void _find_row_max_id(const Real* mat, Real* vec_val, int32_cuda* vec_id,
   if (tid < warpSize / 2) {
 #pragma unroll
     for (int32_cuda num_working_threads = warpSize / 2; num_working_threads > 0;
-        num_working_threads >>= 1) {
+         num_working_threads >>= 1) {
       if (smax[tid + num_working_threads] > smax[tid]) {
         smax[tid] = smax[tid + num_working_threads];
         sidx[tid] = sidx[tid + num_working_threads];
@@ -3358,14 +3347,6 @@ void cudaF_apply_pow_abs(dim3 Gr, dim3 Bl, float* mat, float power,
 
 void cudaF_apply_heaviside(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
   _apply_heaviside<<<Gr,Bl>>>(mat, d);
-}
-
-void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
-  _cancel_gradient<<<Gr,Bl>>>(mat, d);
-}
-
-void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
-  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
 
 void cudaF_copy_cols(dim3 Gr, dim3 Bl, float* dst, const float* src,
@@ -4806,7 +4787,7 @@ void cudaF_diff_normalize_per_row(size_t Gr, size_t Bl, float *id,
                                   int od_stride, float target_rms,
                                   bool add_log_stddev) {
   _diff_normalize_per_row<<<Gr, Bl>>>(id, id_stride, iv, iv_dim, od, od_stride,
-                                      target_rms, add_log_stddev);
+      target_rms, add_log_stddev);
 }
 void cudaD_diff_normalize_per_row(size_t Gr, size_t Bl, double *id,
                                   int id_stride, const double *iv,
@@ -4814,7 +4795,7 @@ void cudaD_diff_normalize_per_row(size_t Gr, size_t Bl, double *id,
                                   int od_stride, double target_rms,
                                   bool add_log_stddev) {
   _diff_normalize_per_row<<<Gr, Bl>>>(id, id_stride, iv, iv_dim, od, od_stride,
-                                      target_rms, add_log_stddev);
+      target_rms, add_log_stddev);
 }
 
 void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
