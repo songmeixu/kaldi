@@ -200,6 +200,7 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
                        'param-stddev' : 0.0,
                        'bias-stddev' : 0.0,
                        'output-delay' : 0,
+                       'norm-history' : 100000,
                        }
 
     def set_derived_configs(self):
@@ -267,6 +268,7 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
         bias_stddev = self.config['bias-stddev']
         output_delay = self.config['output-delay']
         max_change = self.config['max-change']
+        norm_history = self.config['norm-history']
 
         # note: ref.config is used only for getting the left-context and
         # right-context of the network;
@@ -298,8 +300,8 @@ class XconfigBNNOutputLayer(XconfigLayerBase):
             assert split_layer_name[-1] == 'layer'
             if split_layer_name[1] == 'bn':
                 line = ('component name={0}.bn'
-                        ' type=BatchNormComponent dim={1}'
-                        ''.format(self.name, output_dim))
+                        ' type=BatchNormComponent dim={1} norm-history={2}'
+                        ''.format(self.name, output_dim, norm_history))
                 ans.append((config_name, line))
                 line = ('component-node name={0}.bn'
                         ' component={0}.bn input={1}'

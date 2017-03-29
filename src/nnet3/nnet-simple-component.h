@@ -236,7 +236,7 @@ class BatchNormComponent: public UpdatableComponent {
 //#define OUT_DIST
  public:
   explicit BatchNormComponent(const BatchNormComponent &other);
-  BatchNormComponent(): is_dec_(false), is_gradient_(false), normalize_history(10) { }
+  BatchNormComponent(): is_dec_(false), is_gradient_(false), normalize_history(100000) { }
 
   void SetDec(bool is_dec) {
     is_dec_ = is_dec;

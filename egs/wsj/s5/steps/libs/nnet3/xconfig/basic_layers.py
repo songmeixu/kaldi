@@ -639,7 +639,7 @@ class XconfigBasicLayer(XconfigLayerBase):
                         'self-repair-scale' : 1.0e-05,
                         'target-rms' : 1.0,
                         'ng-affine-options' : '',
-                        'norm-history' : 10,
+                        'norm-history' : 100000,
                       }
 
     def check_configs(self):
