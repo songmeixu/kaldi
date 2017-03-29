@@ -624,6 +624,8 @@ Component* BatchNormComponent::Copy() const {
 void BatchNormComponent::RestoreToUpdateNnet(BatchNormComponent *dst) const {
   dst->mean = mean;
   dst->var = var;
+  dst->gamma = gamma;
+  dst->beta = beta;
 }
 
 BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) const {
@@ -652,6 +654,8 @@ void BatchNormComponent::Reset() {
 
 void BatchNormComponent::Scale(BaseFloat scale) {
   if (scale == 0.0) {
+    gamma.SetZero();
+    beta.SetZero();
   } else {
     gamma.Scale(scale);
     beta.Scale(scale);
