@@ -381,7 +381,7 @@ def compute_train_cv_probabilities(dir, iter, egs_dir, left_context,
                                    wait=False, background_process_handler=None,
                                    get_raw_nnet_from_am=True):
     if get_raw_nnet_from_am:
-        model = "nnet3-am-copy --raw=true {dir}/{iter}.mdl - |".format(
+        model = "nnet3-am-copy --raw=true --batchnorm-dec=true {dir}/{iter}.mdl - |".format(
                     dir=dir, iter=iter)
     else:
         model = "{dir}/{iter}.raw".format(dir=dir, iter=iter)
@@ -422,9 +422,9 @@ def compute_progress(dir, iter, egs_dir, left_context, right_context,
                      run_opts, background_process_handler=None, wait=False,
                      get_raw_nnet_from_am=True):
     if get_raw_nnet_from_am:
-        prev_model = "nnet3-am-copy --raw=true {0}/{1}.mdl - |".format(
+        prev_model = "nnet3-am-copy --raw=true --batchnorm-dec=true {0}/{1}.mdl - |".format(
                         dir, iter - 1)
-        model = "nnet3-am-copy --raw=true {0}/{1}.mdl - |".format(dir, iter)
+        model = "nnet3-am-copy --raw=true --batchnorm-dec=true {0}/{1}.mdl - |".format(dir, iter)
     else:
         prev_model = '{0}/{1}.raw'.format(dir, iter - 1)
         model = '{0}/{1}.raw'.format(dir, iter)
