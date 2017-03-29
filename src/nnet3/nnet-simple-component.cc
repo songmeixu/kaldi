@@ -652,7 +652,6 @@ void BatchNormComponent::Reset() {
 
 void BatchNormComponent::Scale(BaseFloat scale) {
   if (scale == 0.0) {
-    SetZero(false);
   } else {
     gamma.Scale(scale);
     beta.Scale(scale);
@@ -665,14 +664,6 @@ void BatchNormComponent::Add(BaseFloat alpha, const Component &other_in) {
   KALDI_ASSERT(other != NULL);
   gamma.AddVec(alpha, other->gamma);
   beta.AddVec(alpha, other->beta);
-}
-
-void BatchNormComponent::SetZero(bool treat_as_gradient) {
-  if (treat_as_gradient) {
-    SetActualLearningRate(1.0);
-  }
-  if (treat_as_gradient)
-    is_gradient_ = true;
 }
 
 int32 BatchNormComponent::NumParameters() const {

@@ -282,7 +282,6 @@ class BatchNormComponent: public UpdatableComponent {
 
   virtual void Scale(BaseFloat scale);
   virtual void Add(BaseFloat alpha, const Component &other);
-  virtual void SetZero(bool treat_as_gradient);
 
   virtual void Read(std::istream &is, bool binary);
   virtual void Write(std::ostream &os, bool binary) const;
