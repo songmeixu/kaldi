@@ -93,8 +93,14 @@ Component* BinaryAffineComponent::Copy() const {
 }
 
 void BinaryAffineComponent::Scale(BaseFloat scale) {
-  linear_params_.Scale(scale);
-  bias_params_.Scale(scale);
+  if (scale == 0.0) {
+    // If scale == 0.0 we call SetZero() which will get rid of NaN's and inf's.
+    linear_params_.SetZero();
+    bias_params_.SetZero();
+  } else {
+    linear_params_.Scale(scale);
+    bias_params_.Scale(scale);
+  }
 }
 
 void BinaryAffineComponent::Add(BaseFloat alpha, const Component &other_in) {
