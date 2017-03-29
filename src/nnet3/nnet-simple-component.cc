@@ -662,6 +662,8 @@ Component* BatchNormComponent::Copy() const {
 void BatchNormComponent::RestoreToUpdateNnet(BatchNormComponent *dst) const {
   dst->mean = mean;
   dst->var = var;
+  dst->gamma = gamma;
+  dst->beta = beta;
 }
 
 BaseFloat BatchNormComponent::DotProduct(const UpdatableComponent &other_in) const {
@@ -707,6 +709,8 @@ void BatchNormComponent::SetZero(bool treat_as_gradient) {
   }
   if (treat_as_gradient)
     is_gradient_ = true;
+  gamma.SetZero();
+  beta.SetZero();
 }
 
 int32 BatchNormComponent::NumParameters() const {
