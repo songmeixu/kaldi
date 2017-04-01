@@ -161,6 +161,8 @@ void cudaF_apply_floor(dim3 Gr, dim3 Bl, float* mat, float floor_val,
                        MatrixDim d);
 void cudaD_apply_heaviside(dim3 Gr, dim3 Bl, double* mat, MatrixDim d);
 void cudaF_apply_heaviside(dim3 Gr, dim3 Bl, float* mat, MatrixDim d);
+void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d);
+void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d);
 void cudaD_apply_log(dim3 Gr, dim3 Bl, double *mat, MatrixDim d);
 void cudaF_apply_log(dim3 Gr, dim3 Bl, float *mat, MatrixDim d);
 void cudaD_apply_pow_abs(dim3 Gr, dim3 Bl, double* mat, double power,
@@ -665,9 +667,6 @@ void cudaD_vec_soft_max(int Gr, int Bl, double* v, int dim);
 void cudaF_vec_soft_max(int Gr, int Bl, float* v, int dim);
 void cudaD_vec_sum(int Gr, int Bl, double* v, double* value, int dim, int inc);
 void cudaF_vec_sum(int Gr, int Bl, float* v, float* value, int dim, int inc);
-
-void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d);
-void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d);
 
 } // extern "C"
 

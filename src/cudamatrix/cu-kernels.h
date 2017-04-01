@@ -290,6 +290,12 @@ inline void cuda_apply_heaviside(dim3 Gr, dim3 Bl, double* mat, MatrixDim dim) {
 inline void cuda_apply_heaviside(dim3 Gr, dim3 Bl, float* mat, MatrixDim dim) {
   cudaF_apply_heaviside(Gr, Bl, mat, dim);
 }
+inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim dim) {
+  cudaD_cancel_gradient(Gr, Bl, mat, dim);
+}
+inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim dim) {
+  cudaF_cancel_gradient(Gr, Bl, mat, dim);
+}
 inline void cuda_apply_log(dim3 Gr, dim3 Bl, double *mat, MatrixDim d) {
   cudaD_apply_log(Gr, Bl, mat, d);
 }
@@ -1311,14 +1317,6 @@ inline void cuda_vec_sum(int Gr, int Bl, double* v, double* value, int dim,
 inline void cuda_vec_sum(int Gr, int Bl, float* v, float* value, int dim,
                          int inc) {
   cudaF_vec_sum(Gr, Bl, v, value, dim, inc);
-}
-
-inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim dim) {
-  cudaD_cancel_gradient(Gr, Bl, mat, dim);
-}
-
-inline void cuda_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim dim) {
-  cudaF_cancel_gradient(Gr, Bl, mat, dim);
 }
 
 } // namespace kaldi

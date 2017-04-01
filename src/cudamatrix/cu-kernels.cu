@@ -1655,6 +1655,16 @@ static void _apply_heaviside(Real* mat, MatrixDim d) {
 
 template<typename Real>
 __global__
+static void _cancel_gradient(Real* mat, MatrixDim d) {
+  int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
+  int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
+  int index = i + j * d.stride;
+  if (i < d.cols && j < d.rows)
+    mat[index] = (std::abs(mat[index]) > 1.0 ? 0.0 : 1.0);
+}
+
+template<typename Real>
+__global__
 static void _apply_floor(Real* mat, Real floor_val, MatrixDim d) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
   int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
@@ -3269,16 +3279,6 @@ static void _diff_lstm_nonlinearity(const int cell_dim, const int num_rows,
   }
 }
 
-template<typename Real>
-__global__
-static void _cancel_gradient(Real* mat, MatrixDim d) {
-  int i = blockIdx.x * blockDim.x + threadIdx.x;  // col index
-  int j = blockIdx.y * blockDim.y + threadIdx.y;  // row index
-  int index = i + j * d.stride;
-  if (i < d.cols && j < d.rows)
-    mat[index] = (abs(mat[index]) > 1.0 ? 0.0 : mat[index]);
-}
-
 /***********************************************************************
  * ANSI-C wrappers of CUDA kernels
  */
@@ -3347,6 +3347,10 @@ void cudaF_apply_pow_abs(dim3 Gr, dim3 Bl, float* mat, float power,
 
 void cudaF_apply_heaviside(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
   _apply_heaviside<<<Gr,Bl>>>(mat, d);
+}
+
+void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
 
 void cudaF_copy_cols(dim3 Gr, dim3 Bl, float* dst, const float* src,
@@ -3999,6 +4003,10 @@ void cudaD_apply_pow_abs(dim3 Gr, dim3 Bl, double* mat, double power,
 
 void cudaD_apply_heaviside(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
   _apply_heaviside<<<Gr,Bl>>>(mat, d);
+}
+
+void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
+  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
 
 void cudaD_copy_cols(dim3 Gr, dim3 Bl, double* dst, const double* src,
@@ -4796,12 +4804,4 @@ void cudaD_diff_normalize_per_row(size_t Gr, size_t Bl, double *id,
                                   bool add_log_stddev) {
   _diff_normalize_per_row<<<Gr, Bl>>>(id, id_stride, iv, iv_dim, od, od_stride,
       target_rms, add_log_stddev);
-}
-
-void cudaF_cancel_gradient(dim3 Gr, dim3 Bl, float* mat, MatrixDim d) {
-  _cancel_gradient<<<Gr,Bl>>>(mat, d);
-}
-
-void cudaD_cancel_gradient(dim3 Gr, dim3 Bl, double* mat, MatrixDim d) {
-  _cancel_gradient<<<Gr,Bl>>>(mat, d);
 }
