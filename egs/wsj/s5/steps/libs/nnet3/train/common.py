@@ -311,6 +311,8 @@ def verify_egs_dir(egs_dir, feat_dim, ivector_dim, ivector_extractor_id,
         egs_feat_dim = int(open('{0}/info/feat_dim'.format(
                                     egs_dir)).readline())
 
+        delta_order = int(open('{0}/delta_order'.format(egs_dir)).readline())
+
         egs_ivector_id = None
         try:
             egs_ivector_id = open('{0}/info/final.ie.id'.format(
@@ -338,7 +340,7 @@ def verify_egs_dir(egs_dir, feat_dim, ivector_dim, ivector_extractor_id,
         except:  # older scripts didn't write this, treat it as -1 in that case.
             egs_right_context_final = -1
 
-        if (feat_dim != egs_feat_dim) or (ivector_dim != egs_ivector_dim):
+        if (feat_dim * (delta_order + 1) != egs_feat_dim) or (ivector_dim != egs_ivector_dim):
             raise Exception("There is mismatch between featdim/ivector_dim of "
                             "the current experiment and the provided "
                             "egs directory")
