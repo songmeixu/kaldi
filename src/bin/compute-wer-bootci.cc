@@ -218,6 +218,11 @@ int main(int argc, char *argv[]) {
     BaseFloat mean_wer = 0.0, interval = 0.0,
               mean_wer2 = 0.0, interval2 = 0.0,
               p_improv = 0.0;
+              
+    if (edit_word_per_hyp.empty()) {
+        KALDI_ERR <<
+            "Haven't found even one corrensponging reference. please check \"<< ref_rspecifier << \"";
+    }
 
     GetBootstrapWERInterval(edit_word_per_hyp, replications,
             &mean_wer, &interval);
