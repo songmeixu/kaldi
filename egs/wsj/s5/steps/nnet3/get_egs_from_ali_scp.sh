@@ -98,7 +98,7 @@ dir=$3
 [ ! -z "$online_ivector_dir" ] && \
   extra_files="$online_ivector_dir/ivector_online.scp $online_ivector_dir/ivector_period"
 
-for f in $data/feats.scp $alidir/ali.1.gz $alidir/final.mdl $alidir/tree $extra_files; do
+for f in $data/feats.scp $alidir/tree $extra_files; do
   [ ! -f $f ] && echo "$0: no such file $f" && exit 1;
 done
 
@@ -109,7 +109,6 @@ mkdir -p $dir/log $dir/info
 cp $alidir/tree $dir
 
 num_ali_jobs=$(cat $alidir/num_jobs) || exit 1;
-
 
 num_utts=$(cat $data/utt2spk | wc -l)
 if ! [ $num_utts -gt $[$num_utts_subset*4] ]; then
@@ -154,8 +153,6 @@ if [ -f $transform_dir/raw_trans.1 ] && [ $feat_type == "raw" ]; then
       copy-feats "ark:cat $transform_dir/raw_trans.* |" "ark,scp:$dir/trans.ark,$dir/trans.scp"
   fi
 fi
-
-
 
 ## Set up features.
 echo "$0: feature type is $feat_type"
@@ -271,8 +268,9 @@ fi
 
 if [ $stage -le 2 ]; then
   echo "$0: copying data alignments"
-  for id in $(seq $num_ali_jobs); do gunzip -c $alidir/ali.$id.gz; done | \
-    copy-int-vector ark:- ark,scp:$dir/ali.ark,$dir/ali.scp || exit 1;
+  # for id in $(seq $num_ali_jobs); do gunzip -c $alidir/ali.$id.gz; done | \
+  #   copy-int-vector ark:- ark,scp:$dir/ali.ark,$dir/ali.scp || exit 1;
+  cp $data/ali.scp $dir/ali.scp
 fi
 
 egs_opts="--left-context=$left_context --right-context=$right_context --compress=$compress --num-frames=$frames_per_eg"
