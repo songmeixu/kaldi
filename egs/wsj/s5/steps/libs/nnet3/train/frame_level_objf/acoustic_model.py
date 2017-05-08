@@ -88,7 +88,7 @@ def prepare_initial_acoustic_model(dir, alidir, run_opts,
     # Convert to .mdl.
     common_lib.run_job(
         """{command} {dir}/log/init_mdl.log \
-                nnet3-am-init {alidir}/tree data/lang/topo {dir}/0.raw {dir}/0.mdl
+                nnet3-am-init {alidir}/tree {dir}/topo {dir}/0.raw {dir}/0.mdl
         """.format(command=run_opts.command,
                    dir=dir, alidir=alidir))
 
