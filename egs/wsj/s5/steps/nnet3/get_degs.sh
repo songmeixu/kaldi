@@ -80,6 +80,7 @@ num_threads=1
 # discriminative-get-supervision.
 determinize_before_split=true
 
+delta_order=0     # delta feature order
 
 # End configuration section.
 
@@ -148,10 +149,12 @@ echo "$0: feature type is $feat_type"
 
 
 cmvn_opts=$(cat $srcdir/cmvn_opts) || exit 1
+delta_order=$(cat $srcdir/delta_order)  || exit 1
 
 case $feat_type in
   delta) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- | add-deltas ark:- ark:- |";;
-  raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
+#  raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
+  raw) feats="ark,s,cs:add-deltas --delta-order=$delta_order scp:$sdata/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts $data/global.cmvn ark:- ark:- |"
    ;;
   lda) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- | splice-feats $splice_opts ark:- ark:- | transform-feats $srcdir/final.mat ark:- ark:- |"
     cp $srcdir/final.mat $dir
@@ -159,7 +162,7 @@ case $feat_type in
   *) echo "Invalid feature type $feat_type" && exit 1;
 esac
 
-cp $srcdir/{splice_opts,cmvn_opts} $dir 2>/dev/null || true
+cp $srcdir/{splice_opts,cmvn_opts,delta_order} $dir 2>/dev/null || true
 
 if [ ! -z "$transform_dir" ]; then
   echo "$0: using transforms from $transform_dir"

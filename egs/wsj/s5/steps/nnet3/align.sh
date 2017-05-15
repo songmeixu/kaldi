@@ -24,6 +24,7 @@ extra_left_context_initial=-1
 extra_right_context_final=-1
 online_ivector_dir=
 feat_type=  # you can set this to force it to use delta features.
+delta_order=0     # delta feature order
 # End configuration options.
 
 echo "$0 $@"  # Print the command line for logging
@@ -86,8 +87,12 @@ echo "$0: feature type is $feat_type"
 cmvn_opts=`cat $srcdir/cmvn_opts 2>/dev/null`
 cp $srcdir/cmvn_opts $dir 2>/dev/null
 
+delta_order=`cat $srcdir/delta_order 2>/dev/null`
+cp $srcdir/delta_order $dir 2>/dev/null
+
 case $feat_type in
-  raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
+  #raw) feats="ark,s,cs:apply-cmvn $cmvn_opts --utt2spk=ark:$sdata/JOB/utt2spk scp:$sdata/JOB/cmvn.scp scp:$sdata/JOB/feats.scp ark:- |"
+  raw) feats="ark,s,cs:add-deltas --delta-order=$delta_order scp:$sdata/JOB/feats.scp ark:- | apply-cmvn $cmvn_opts $data/global.cmvn ark:- ark:- |"
    ;;
   lda)
     splice_opts=`cat $srcdir/splice_opts 2>/dev/null`
