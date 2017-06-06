@@ -10,7 +10,7 @@
 #include "hmm/transition-model.h"
 #include "nnet2/am-nnet.h"
 #include "nnet2/nnet-compute.h"
-#include "matrix/intel_sse.h"
+//#include "matrix/intel_sse.h"
 
 using namespace std;
 using namespace kaldi;

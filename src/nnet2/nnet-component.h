@@ -30,7 +30,6 @@
 #include "cudamatrix/cu-matrix-lib.h"
 #include "thread/kaldi-mutex.h"
 #include "nnet2/nnet-precondition-online.h"
-#include "matrix/intel_sse.h"
 
 #include <map>
 #include <iostream>
@@ -1032,60 +1031,60 @@ class AffineComponent: public UpdatableComponent {
   bool is_gradient_; // If true, treat this as just a gradient.
 };
 
-class AffineComponentFixedPoint: public Component {
- public:
-  // The next constructor is used in converting from nnet1.
-  AffineComponentFixedPoint(const CuMatrixBase<BaseFloat> &linear_params,
-                            const CuVectorBase<BaseFloat> &bias_params,
-                            const int32 mq_mag = 1023);
-
-  virtual std::string Info() const;
-
-  AffineComponentFixedPoint() { } // use Init to really initialize.
-  virtual std::string Type() const { return "AffineComponentFixedPoint"; }
-
-  using Component::Propagate; // to avoid name hiding
-
-  virtual void Propagate(const ChunkInfo &in_info,
-                         const ChunkInfo &out_info,
-                         const CuMatrixBase<BaseFloat> &in,
-                         CuMatrixBase<BaseFloat> *out) const;
-
-  virtual void Backprop(const ChunkInfo &in_info,
-                        const ChunkInfo &out_info,
-                        const CuMatrixBase<BaseFloat> &in_value,
-                        const CuMatrixBase<BaseFloat> &out_value,
-                        const CuMatrixBase<BaseFloat> &out_deriv,
-                        Component *to_update, // may be identical to "this".
-                        CuMatrix<BaseFloat> *in_deriv) const {}
-
-  virtual int32 InputDim() const { return linear_params_fp_.NumCols(); }
-  virtual int32 OutputDim() const { return linear_params_fp_.NumRows(); }
-
-  virtual Component* Copy() const {}
-
-  virtual void InitFromString(std::string args) {}
-
-  virtual void Read(std::istream &is, bool binary);
-  virtual void Write(std::ostream &os, bool binary) const;
-  // This new function is used when mixing up:
-
-  BaseFloat GetWeightScale() {
-    return weight_abs_max_ / mq_mag_;
-  }
-
-  const FixedPoint::Matrix<FixedPoint::FPWeight> &FixedWeight() const { return linear_params_fp_; }
-
-  const CuVector<BaseFloat> &BiasParams() { return bias_params_; }
-
- protected:
-  KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
-
-  FixedPoint::Matrix<FixedPoint::FPWeight> linear_params_fp_;
-  CuVector<BaseFloat> bias_params_;
-  int32 mq_mag_; // magnitude of model quantization: 127 or 1023
-  BaseFloat weight_abs_max_;
-};
+//class AffineComponentFixedPoint: public Component {
+// public:
+//  // The next constructor is used in converting from nnet1.
+//  AffineComponentFixedPoint(const CuMatrixBase<BaseFloat> &linear_params,
+//                            const CuVectorBase<BaseFloat> &bias_params,
+//                            const int32 mq_mag = 1023);
+//
+//  virtual std::string Info() const;
+//
+//  AffineComponentFixedPoint() { } // use Init to really initialize.
+//  virtual std::string Type() const { return "AffineComponentFixedPoint"; }
+//
+//  using Component::Propagate; // to avoid name hiding
+//
+//  virtual void Propagate(const ChunkInfo &in_info,
+//                         const ChunkInfo &out_info,
+//                         const CuMatrixBase<BaseFloat> &in,
+//                         CuMatrixBase<BaseFloat> *out) const;
+//
+//  virtual void Backprop(const ChunkInfo &in_info,
+//                        const ChunkInfo &out_info,
+//                        const CuMatrixBase<BaseFloat> &in_value,
+//                        const CuMatrixBase<BaseFloat> &out_value,
+//                        const CuMatrixBase<BaseFloat> &out_deriv,
+//                        Component *to_update, // may be identical to "this".
+//                        CuMatrix<BaseFloat> *in_deriv) const {}
+//
+//  virtual int32 InputDim() const { return linear_params_fp_.NumCols(); }
+//  virtual int32 OutputDim() const { return linear_params_fp_.NumRows(); }
+//
+//  virtual Component* Copy() const {}
+//
+//  virtual void InitFromString(std::string args) {}
+//
+//  virtual void Read(std::istream &is, bool binary);
+//  virtual void Write(std::ostream &os, bool binary) const;
+//  // This new function is used when mixing up:
+//
+//  BaseFloat GetWeightScale() {
+//    return weight_abs_max_ / mq_mag_;
+//  }
+//
+//  const FixedPoint::Matrix<FixedPoint::FPWeight> &FixedWeight() const { return linear_params_fp_; }
+//
+//  const CuVector<BaseFloat> &BiasParams() { return bias_params_; }
+//
+// protected:
+//  KALDI_DISALLOW_COPY_AND_ASSIGN(AffineComponentFixedPoint);
+//
+//  FixedPoint::Matrix<FixedPoint::FPWeight> linear_params_fp_;
+//  CuVector<BaseFloat> bias_params_;
+//  int32 mq_mag_; // magnitude of model quantization: 127 or 1023
+//  BaseFloat weight_abs_max_;
+//};
 
 // This is an idea Dan is trying out, a little bit like
 // preconditioning the update with the Fisher matrix, but the

@@ -222,7 +222,7 @@ int main(int argc, char *argv[]) {
 
     if (remove_splice) am_nnet.GetNnet().RemoveSplice();
 
-    if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint(from_id, mq_mag);
+//    if (to_fixed_point) am_nnet.GetNnet().ToFixedPoint(from_id, mq_mag);
 
     if (to_learnrate_scale) am_nnet.GetNnet().ToLRScale(component_ids, bias_scale, weight_scale);
 

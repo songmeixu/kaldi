@@ -531,23 +531,23 @@ void Nnet::RemoveSplice() {
   Check();
 }
 
-void Nnet::ToFixedPoint(int32 from_id, int32 mq_mag) {
-  int32 convert = 0;
-  for (size_t i = 0; i < components_.size(); i++) {
-    AffineComponent *ac = dynamic_cast<AffineComponent*>(components_[i]);
-    if (ac != NULL) {
-      if (i < from_id) continue;
-      AffineComponentFixedPoint *acf = new AffineComponentFixedPoint(ac->LinearParams(), ac->BiasParams(), mq_mag);
-      delete components_[i];
-      components_[i] = acf;
-      convert++;
-    }
-  }
-  if (convert > 0)
-    KALDI_LOG << "Convert " << convert << " AffineComponent.";
-  SetIndexes();
-  Check();
-}
+//void Nnet::ToFixedPoint(int32 from_id, int32 mq_mag) {
+//  int32 convert = 0;
+//  for (size_t i = 0; i < components_.size(); i++) {
+//    AffineComponent *ac = dynamic_cast<AffineComponent*>(components_[i]);
+//    if (ac != NULL) {
+//      if (i < from_id) continue;
+//      AffineComponentFixedPoint *acf = new AffineComponentFixedPoint(ac->LinearParams(), ac->BiasParams(), mq_mag);
+//      delete components_[i];
+//      components_[i] = acf;
+//      convert++;
+//    }
+//  }
+//  if (convert > 0)
+//    KALDI_LOG << "Convert " << convert << " AffineComponent.";
+//  SetIndexes();
+//  Check();
+//}
 
 void Nnet::ToLRScale(const std::vector<int32> &component_ids, BaseFloat bias_scale, BaseFloat weight_scale) {
   int32 convert = 0;
