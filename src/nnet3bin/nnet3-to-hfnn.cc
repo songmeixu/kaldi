@@ -2,24 +2,19 @@
 // Created by songmeixu on 2017-02-03.
 //
 
-
 #include <fstream>
 #include <vector>
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
 #include "hmm/transition-model.h"
-#include "nnet2/am-nnet.h"
-#include "nnet2/nnet-compute.h"
-#include "matrix/intel_sse.h"
+#include "nnet3/am-nnet-simple.h"
+#include "nnet3/nnet-simple-component.h"
 
 using namespace std;
 using namespace kaldi;
 using namespace kaldi::nnet3;
 
-typedef kaldi::int32 int32;
-typedef kaldi::int64 int64;
-
-class BaiduNet {
+class BaiduHfnnNet {
  public:
   enum Activation {
     Linear = 0,
@@ -27,12 +22,12 @@ class BaiduNet {
   };
   int m_nLayer;
   int m_nTotalParamNum;
-  vector<int> m_LayerDim;
+  vector<int32> m_LayerDim;
   vector< vector<BaseFloat> > weight_;
   vector< vector<BaseFloat> > bias_;
   vector<Activation> m_activation_;
 
-  BaiduNet() :
+  BaiduHfnnNet() :
       m_nLayer(0),
       m_nTotalParamNum(0) { }
 
@@ -43,13 +38,13 @@ class BaiduNet {
     KALDI_ASSERT(m_activation_.size() == weight_.size() && bias_.size() == weight_.size());
     if (binary) {
       uint64 row, col;
-      for (int l = 0; l < m_nLayer; ++l) {
+      for (int32 l = 0; l < m_nLayer; ++l) {
         // 1. print activation
 
         // 2. print weight
         // print shape
-        row = m_LayerDim[l];
-        col = m_LayerDim[l+1];
+        row = (uint64) m_LayerDim[l];
+        col = (uint64) m_LayerDim[l+1];
         KALDI_LOG << "weight row = " << row << " weight col = " << col;
         os.write(reinterpret_cast<const char*>(&row), sizeof(uint64));
         os.write(reinterpret_cast<const char*>(&col), sizeof(uint64));
@@ -73,13 +68,13 @@ class BaiduNet {
       KALDI_ERR << "Failed to write baidu-net.";
   }
 
-  bool AddToParams(AffineComponent &ac, int layer_idx);
+  bool AddToParams(AffineComponent *ac, int layer_idx);
 };
 
-bool BaiduNet::AddToParams(AffineComponent &ac, int layer_idx) {
+bool BaiduHfnnNet::AddToParams(AffineComponent *ac, int layer_idx) {
   assert(layer_idx < m_nLayer);
-  const CuMatrix<BaseFloat> weight = ac.LinearParams();
-  const CuVector<BaseFloat> &bias = ac.BiasParams();
+  const CuMatrix<BaseFloat> weight = ac->LinearParams();
+  const CuVector<BaseFloat> &bias = ac->BiasParams();
 //  weight.Transpose();
 
   for (int c = 0; c < weight.NumCols(); ++c) {
@@ -87,7 +82,7 @@ bool BaiduNet::AddToParams(AffineComponent &ac, int layer_idx) {
       weight_[layer_idx].push_back(weight(r, c));
     }
   }
-  for (int d = 0; d < ac.OutputDim(); ++d) {
+  for (int d = 0; d < ac->OutputDim(); ++d) {
     bias_[layer_idx].push_back(bias(d));
   }
 
@@ -96,16 +91,15 @@ bool BaiduNet::AddToParams(AffineComponent &ac, int layer_idx) {
 
 int main (int argc, const char *argv[]) {
   const char *usage =
-      "convert nnet2 mdl to qihoo mars dnn\n"
+      "convert nnet3 mdl to baidu hfnn dnn\n"
           "\n"
-          "Usage:  nnet2-to-mars [options] <nnet-in> <nnet-out> [priors-out]\n";
+          "Usage:  nnet3-to-hfnn [options] <nnet-in> <nnet-out> [priors-out]\n";
 
   bool binary_write = true;
-  int32 fixed_bits = 0;
   kaldi::TransitionModel trans_model;
   AmNnetSimple am_nnet;
 
-  BaiduNet out_net;
+  BaiduHfnnNet out_hfnn_net;
 
   ParseOptions po(usage);
   po.Register("binary", &binary_write, "Read/Write in binary mode");
@@ -131,40 +125,36 @@ int main (int argc, const char *argv[]) {
 
   // 2. transfer to baidu
   int nComponent = am_nnet.GetNnet().NumComponents();
-  out_net.m_nLayer = (nComponent - 1) / 2;
-  out_net.weight_.resize(out_net.m_nLayer);
-  out_net.bias_.resize(out_net.m_nLayer);
+  out_hfnn_net.m_nLayer = nComponent / 2;
+  out_hfnn_net.weight_.resize((unsigned long) out_hfnn_net.m_nLayer);
+  out_hfnn_net.bias_.resize((unsigned long) out_hfnn_net.m_nLayer);
   int layer_id = 0;
   for (int i = 0; i < nComponent; ++i) {
-    kaldi::nnet2::Component &component = am_nnet.GetNnet().GetComponent(i);
-    if (component.Type() == "FixedAffineComponent") {
+    Component *component = am_nnet.GetNnet().GetComponent(i);
+    if (component->Type() == "FixedAffineComponent") {
 //      kaldi::nnet2::FixedAffineComponent fc = dynamic_cast<kaldi::nnet2::FixedAffineComponent &> (component);
       KALDI_ERR << "currently not support <FixedAffineComponent> in baidu";
       ++layer_id;
-    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentPreconditionedOnline") {
-      kaldi::nnet2::AffineComponentPreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentPreconditionedOnline &> (component);
-      out_net.AddToParams(acpo, layer_id);
+    } else if (component->Type() ==  "NaturalGradientAffineComponent") {
+      NaturalGradientAffineComponent *ngac =
+          dynamic_cast<NaturalGradientAffineComponent *> (component);
+      out_hfnn_net.AddToParams(ngac, layer_id);
       if (layer_id == 0) {
-        out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
+        out_hfnn_net.m_LayerDim.push_back(ngac->LinearParams().NumCols());
       }
-      out_net.m_LayerDim.push_back(acpo.BiasParams().Dim());
-      out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols() + acpo.BiasParams().Dim();
+      out_hfnn_net.m_LayerDim.push_back(ngac->BiasParams().Dim());
+      out_hfnn_net.m_nTotalParamNum +=
+          ngac->LinearParams().NumRows() * ngac->LinearParams().NumCols()
+              + ngac->BiasParams().Dim();
       ++layer_id;
-    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "AffineComponentLRScalePreconditionedOnline") {
-      kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &acpo = dynamic_cast<kaldi::nnet2::AffineComponentLRScalePreconditionedOnline &> (component);
-      if (layer_id == 0) {
-        out_net.m_LayerDim.push_back(acpo.LinearParams().NumCols());
-      }
-//      AddToParams(out_net, acpo, false);
-      out_net.m_nTotalParamNum += acpo.LinearParams().NumRows() * acpo.LinearParams().NumCols();
-    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "SigmoidComponent") {
-      out_net.m_activation_.push_back(BaiduNet::Sigmoid);
-    } else if (am_nnet.GetNnet().GetComponent(i).Type() == "SoftmaxComponent") {
-      out_net.m_activation_.push_back(BaiduNet::Linear);
+    } else if (component->Type() == "SigmoidComponent") {
+      out_hfnn_net.m_activation_.push_back(BaiduHfnnNet::Sigmoid);
+    } else if (component->Type() == "LogSoftmaxComponent") {
+      out_hfnn_net.m_activation_.push_back(BaiduHfnnNet::Linear);
     }
   }
   Output ko(nnet_wxfilename, binary_write, false);
-  out_net.Write(ko.Stream(), binary_write);
+  out_hfnn_net.Write(ko.Stream(), binary_write);
 
   // 3. output prior
   if (!prior_wxfilename.empty()) {
