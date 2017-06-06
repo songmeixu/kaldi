@@ -92,8 +92,6 @@ int main(int argc, char *argv[]) {
 
     Nnet nnet;
     ReadKaldiObject(nnet_rxfilename, &nnet);
-    SetBatchnormTestMode(true, &nnet);
-    SetDropoutTestMode(true, &nnet);
 
     RandomAccessBaseFloatMatrixReader online_ivector_reader(
         online_ivector_rspecifier);

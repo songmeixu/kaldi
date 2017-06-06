@@ -23,7 +23,6 @@
 #define KALDI_IVECTOR_IVECTOR_EXTRACTOR_H_
 
 #include <vector>
-#include <mutex>
 #include "base/kaldi-common.h"
 #include "matrix/matrix-lib.h"
 #include "gmm/model-common.h"
@@ -31,6 +30,7 @@
 #include "gmm/full-gmm.h"
 #include "itf/options-itf.h"
 #include "util/common-utils.h"
+#include "thread/kaldi-mutex.h"
 #include "hmm/posterior.h"
 
 namespace kaldi {
@@ -602,8 +602,9 @@ class IvectorExtractorStats {
   /// used to check convergence, etc.
   double tot_auxf_;
 
-  /// This mutex guards gamma_ and Y_ (for multi-threaded update)
-  std::mutex gamma_Y_lock_;
+  /// This mutex guards gamma_ and Y_ (for multi-threaded
+  /// update)
+  Mutex gamma_Y_lock_;
 
   /// Total occupation count for each Gaussian index (zeroth-order stats)
   Vector<double> gamma_;
@@ -613,7 +614,7 @@ class IvectorExtractorStats {
   std::vector<Matrix<double> > Y_;
 
   /// This mutex guards R_ (for multi-threaded update)
-  std::mutex R_lock_;
+  Mutex R_lock_;
 
   /// R_i, quadratic term for ivector subspace (M matrix)estimation.  This is a
   /// kind of scatter of ivectors of training speakers, weighted by count for
@@ -624,7 +625,7 @@ class IvectorExtractorStats {
 
   /// This mutex guards R_num_cached_, R_gamma_cache_, R_ivec_cache_ (for
   /// multi-threaded update)
-  std::mutex R_cache_lock_;
+  Mutex R_cache_lock_;
 
   /// To avoid too-frequent rank-1 update of R, which is slow, we cache some
   /// quantities here.
@@ -635,7 +636,7 @@ class IvectorExtractorStats {
   Matrix<double> R_ivec_scatter_cache_;
 
   /// This mutex guards Q_ and G_ (for multi-threaded update)
-  std::mutex weight_stats_lock_;
+  Mutex weight_stats_lock_;
 
   /// Q_ is like R_ (with same dimensions), except used for weight estimation;
   /// the scatter of ivectors is weighted by the coefficient of the quadratic
@@ -647,7 +648,7 @@ class IvectorExtractorStats {
   Matrix<double> G_;
 
   /// This mutex guards S_ (for multi-threaded update)
-  std::mutex variance_stats_lock_;
+  Mutex variance_stats_lock_;
 
   /// S_{i}, raw second-order stats per Gaussian which we will use to update the
   /// variances Sigma_inv_.
@@ -656,7 +657,7 @@ class IvectorExtractorStats {
 
   /// This mutex guards num_ivectors_, ivector_sum_ and ivector_scatter_ (for multi-threaded
   /// update)
-  std::mutex prior_stats_lock_;
+  Mutex prior_stats_lock_;
 
   /// Count of the number of iVectors we trained on.   Need for prior re-estimation.
   /// (make it double not int64 to more easily support weighting later.)

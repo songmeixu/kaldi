@@ -19,7 +19,7 @@
 
 #include "util/common-utils.h"
 #include "ivector/ivector-extractor.h"
-#include "util/kaldi-thread.h"
+#include "thread/kaldi-thread.h"
 
 int main(int argc, char *argv[]) {
   try {

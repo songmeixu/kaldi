@@ -12,7 +12,7 @@ TESTFILES = natural-gradient-online-test nnet-graph-test \
   nnet-compile-utils-test nnet-nnet-test nnet-utils-test \
   nnet-compile-test nnet-analyze-test nnet-compute-test \
   nnet-optimize-test nnet-derivative-test nnet-example-test \
-  nnet-common-test convolution-test
+  nnet-common-test
 
 OBJFILES = nnet-common.o nnet-compile.o nnet-component-itf.o \
   nnet-simple-component.o \
@@ -29,8 +29,7 @@ OBJFILES = nnet-common.o nnet-compile.o nnet-component-itf.o \
   nnet-discriminative-diagnostics.o \
   discriminative-training.o nnet-discriminative-training.o \
   nnet-compile-looped.o decodable-simple-looped.o \
-  decodable-online-looped.o nnet-binary-component.o convolution.o \
-  nnet-convolutional-component.o
+  decodable-online-looped.o nnet-binary-component.o
 
 
 LIBNAME = kaldi-nnet3
@@ -38,7 +37,7 @@ LIBNAME = kaldi-nnet3
 ADDLIBS = ../chain/kaldi-chain.a ../cudamatrix/kaldi-cudamatrix.a \
           ../lat/kaldi-lat.a ../fstext/kaldi-fstext.a ../hmm/kaldi-hmm.a \
           ../transform/kaldi-transform.a ../gmm/kaldi-gmm.a \
-          ../tree/kaldi-tree.a ../util/kaldi-util.a \
+          ../tree/kaldi-tree.a ../util/kaldi-util.a ../thread/kaldi-thread.a \
           ../matrix/kaldi-matrix.a ../base/kaldi-base.a
 
 include ../makefiles/default_rules.mk

@@ -12,7 +12,8 @@ lm_url=www.openslr.org/resources/11
 stage=0
 . utils/parse_options.sh
 
-set -euo pipefail
+# TODO(galv): Reconsider this
+set -euxo pipefail
 
 mkdir -p $data
 
@@ -193,6 +194,7 @@ if [ $stage -le 8 ]; then
       data/$test exp/tri3b/decode_{tgsmall,tglarge}_$test
   done
 fi
+
 
 # Train a chain model
 if [ $stage -le 9 ]; then

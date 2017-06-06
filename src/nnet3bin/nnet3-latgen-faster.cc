@@ -26,7 +26,6 @@
 #include "fstext/fstext-lib.h"
 #include "decoder/decoder-wrappers.h"
 #include "nnet3/nnet-am-decodable-simple.h"
-#include "nnet3/nnet-utils.h"
 #include "base/timer.h"
 
 
@@ -39,7 +38,7 @@ int main(int argc, char *argv[]) {
     using namespace kaldi::nnet3;
     typedef kaldi::int32 int32;
     using fst::SymbolTable;
-    using fst::Fst;
+    using fst::VectorFst;
     using fst::StdArc;
 
     const char *usage =
@@ -94,8 +93,6 @@ int main(int argc, char *argv[]) {
       Input ki(model_in_filename, &binary);
       trans_model.Read(ki.Stream(), binary);
       am_nnet.Read(ki.Stream(), binary);
-      SetBatchnormTestMode(true, &(am_nnet.GetNnet()));
-      SetDropoutTestMode(true, &(am_nnet.GetNnet()));
     }
 
     bool determinize = config.determinize_lattice;
@@ -132,7 +129,7 @@ int main(int argc, char *argv[]) {
       SequentialBaseFloatMatrixReader feature_reader(feature_rspecifier);
 
       // Input FST is just one FST, not a table of FSTs.
-      Fst<StdArc> *decode_fst = fst::ReadFstKaldiGeneric(fst_in_str);
+      VectorFst<StdArc> *decode_fst = fst::ReadFstKaldi(fst_in_str);
       timer.Reset();
 
       {

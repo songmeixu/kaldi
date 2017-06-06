@@ -22,7 +22,7 @@
 #include "util/common-utils.h"
 #include "gmm/am-diag-gmm.h"
 #include "online2/online-ivector-feature.h"
-#include "util/kaldi-thread.h"
+#include "thread/kaldi-task-sequence.h"
 
 int main(int argc, char *argv[]) {
   using namespace kaldi;

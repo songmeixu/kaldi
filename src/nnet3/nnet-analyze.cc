@@ -291,6 +291,9 @@ void ComputeCommandAttributes(
         else
           vars.RecordAccessForSubmatrix(c.arg4, kWriteAccess, &attr);
         break;
+      case kStoreStats:
+        vars.RecordAccessForSubmatrix(c.arg2, kReadAccess, &attr);
+        break;
       case kBackprop:
       case kBackpropNoModelUpdate:
         vars.RecordAccessForSubmatrix(c.arg3, kReadAccess, &attr);
@@ -377,7 +380,6 @@ void ComputeCommandAttributes(
         break;
       }
       case kNoOperation:
-      case kNoOperationPermanent:
       case kNoOperationMarker:
       case kNoOperationLabel:
       case kGotoLabel:
@@ -687,11 +689,6 @@ void ComputationChecker::CheckComputationIndexes() const {
   const std::vector<NnetComputation::SubMatrixInfo> &submatrices =
       computation_.submatrices;
 
-  // This maps from the memo-index > 0 to the Propagate command
-  // which created it.  When the corresponding Backprop command
-  // is encountered, we delete the map element.
-  std::unordered_map<int32, int32> memo_to_command;
-
   for (int32 command_index = 0; command_index < num_commands; command_index++) {
     const NnetComputation::Command &c = computation_.commands[command_index];
     switch (c.command_type) {
@@ -742,12 +739,19 @@ void ComputationChecker::CheckComputationIndexes() const {
         if (!(properties & kPropagateInPlace) &&
             c.arg3 == c.arg4)
           KALDI_ERR << "In-place propagation not supported for this component";
-        if (c.arg5 > 0) {
-          KALDI_ASSERT(memo_to_command.count(c.arg5) == 0 &&
-                       "Memo index re-used.");
-          memo_to_command[c.arg5] = command_index;
-        }
-        KALDI_ASSERT(c.arg6 == 0 || c.arg6 == 1);
+        break;
+      }
+      case kStoreStats: {
+        if (c.arg1 < 0 || c.arg1 >= nnet_.NumComponents())
+          KALDI_ERR << "Component index out of range";
+        const Component *component = nnet_.GetComponent(c.arg1);
+        int32 properties = component->Properties();
+        if (!(properties & kStoresStats))
+          KALDI_ERR << "StoreStats called on component that does not do it.";
+        if (c.arg2 < 1 || c.arg2 >= num_submatrices)
+          KALDI_ERR << "Invalid sub-matrix index in StoreStats";
+        if (submatrices[c.arg2].num_cols != component->OutputDim())
+          KALDI_ERR << "Dimension mismatch in StoreStats";
         break;
       }
       case kBackprop:
@@ -801,17 +805,6 @@ void ComputationChecker::CheckComputationIndexes() const {
         if ((properties & kSimpleComponent) && c.arg6 != 0 &&
             submatrices[c.arg5].num_rows != submatrices[c.arg6].num_rows)
           KALDI_ERR << "Num-rows mismatch in backprop input vs output.";
-        if (c.arg7 != 0) {
-          KALDI_ASSERT(c.arg7 > 0);
-          if (memo_to_command.count(c.arg7) == 0)
-            KALDI_ERR << "Memo-index " << c.arg7 << " not used for propagate.";
-          int32 propagate_command = memo_to_command[c.arg7];
-          memo_to_command.erase(c.arg7);
-          if (c.arg1 != computation_.commands[propagate_command].arg1)
-            KALDI_ERR << "Mismatch in component-node for memo index";
-          if (!(properties & kUsesMemo))
-            KALDI_ERR << "Component not expected to use a memo.";
-        }
         break;
       }
       case kMatrixCopy:
@@ -932,7 +925,6 @@ void ComputationChecker::CheckComputationIndexes() const {
         break;
       }
       case kNoOperation:
-      case kNoOperationPermanent:
       case kNoOperationMarker:
       case kNoOperationLabel:
         break;
@@ -949,11 +941,6 @@ void ComputationChecker::CheckComputationIndexes() const {
       default:
         KALDI_ERR << "Unknown command type.";
     }
-  }
-  if (!memo_to_command.empty()) {
-    KALDI_ERR << "Memo was used in command "
-              << memo_to_command.begin()->second
-              << " but never consumed.";
   }
 }
 
@@ -1280,13 +1267,12 @@ void Analyzer::Init(const Nnet &nnet, const NnetComputation &computation) {
                         &matrix_accesses);
 }
 
-void GetCommandsOfType(const NnetComputation &computation,
-                       CommandType t,
-                       std::vector<int32> *command_indexes) {
+void GetSegmentEnds(const NnetComputation &computation,
+                    std::vector<int32> *command_indexes) {
   int32 num_commands = computation.commands.size();
   command_indexes->clear();
   for (int32 c = 0; c < num_commands; c++)
-    if (computation.commands[c].command_type == t)
+    if (computation.commands[c].command_type == kNoOperationMarker)
       command_indexes->push_back(c);
 }
 

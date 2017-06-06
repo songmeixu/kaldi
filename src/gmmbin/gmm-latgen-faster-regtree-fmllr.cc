@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
     using namespace kaldi;
     typedef kaldi::int32 int32;
     using fst::SymbolTable;
-    using fst::Fst;
+    using fst::VectorFst;
     using fst::StdArc;
 
     const char *usage =
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     if (ClassifyRspecifier(fst_in_str, NULL, NULL) == kNoRspecifier) {
       SequentialBaseFloatMatrixReader feature_reader(feature_rspecifier);
       // Input FST is just one FST, not a table of FSTs.
-      Fst<StdArc> *decode_fst = fst::ReadFstKaldiGeneric(fst_in_str);
+      VectorFst<StdArc> *decode_fst = fst::ReadFstKaldi(fst_in_str);
       
       {
         LatticeFasterDecoder decoder(*decode_fst, config);

@@ -18,7 +18,7 @@
 // limitations under the License.
 
 #include "nnet2/nnet-limit-rank.h"
-#include "util/kaldi-thread.h"
+#include "thread/kaldi-task-sequence.h"
 
 namespace kaldi {
 namespace nnet2 {

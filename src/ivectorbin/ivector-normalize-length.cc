@@ -22,7 +22,7 @@
 #include "util/common-utils.h"
 #include "gmm/am-diag-gmm.h"
 #include "ivector/ivector-extractor.h"
-#include "util/kaldi-thread.h"
+#include "thread/kaldi-task-sequence.h"
 
 
 int main(int argc, char *argv[]) {

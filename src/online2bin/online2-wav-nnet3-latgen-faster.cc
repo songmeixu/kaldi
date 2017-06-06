@@ -26,8 +26,7 @@
 #include "online2/online-endpoint.h"
 #include "fstext/fstext-lib.h"
 #include "lat/lattice-functions.h"
-#include "util/kaldi-thread.h"
-#include "nnet3/nnet-utils.h"
+#include "thread/kaldi-thread.h"
 
 namespace kaldi {
 
@@ -161,8 +160,6 @@ int main(int argc, char *argv[]) {
       Input ki(nnet3_rxfilename, &binary);
       trans_model.Read(ki.Stream(), binary);
       am_nnet.Read(ki.Stream(), binary);
-      SetBatchnormTestMode(true, &(am_nnet.GetNnet()));
-      SetDropoutTestMode(true, &(am_nnet.GetNnet()));
     }
 
     // this object contains precomputed stuff that is used by all decodable
@@ -172,7 +169,7 @@ int main(int argc, char *argv[]) {
                                                         &am_nnet);
 
 
-    fst::Fst<fst::StdArc> *decode_fst = ReadFstKaldiGeneric(fst_rxfilename);
+    fst::Fst<fst::StdArc> *decode_fst = ReadFstKaldi(fst_rxfilename);
 
     fst::SymbolTable *word_syms = NULL;
     if (word_syms_rxfilename != "")

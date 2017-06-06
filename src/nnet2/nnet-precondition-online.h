@@ -21,11 +21,12 @@
 #ifndef KALDI_NNET2_NNET_PRECONDITION_ONLINE_H_
 #define KALDI_NNET2_NNET_PRECONDITION_ONLINE_H_
 
-#include <iostream>
-#include <mutex>
 #include "base/kaldi-common.h"
 #include "matrix/matrix-lib.h"
 #include "cudamatrix/cu-matrix-lib.h"
+#include "thread/kaldi-mutex.h"
+
+#include <iostream>
 
 namespace kaldi {
 namespace nnet2 {
@@ -560,11 +561,11 @@ class OnlinePreconditioner {
 
 
   // Used to prevent parameters being read or written in an inconsistent state.
-  std::mutex read_write_mutex_;
+  Mutex read_write_mutex_;
 
   // This mutex is used to control which thread gets to update the
   // parameters, in multi-threaded code.
-  std::mutex update_mutex_;
+  Mutex update_mutex_;
 };
 
 } // namespace nnet2

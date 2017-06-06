@@ -6,10 +6,8 @@
 
 """ This module has the implementations of different LSTM layers.
 """
-from __future__ import print_function
-import math
 import re
-import sys
+
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
 
 
@@ -61,7 +59,7 @@ class XconfigLstmLayer(XconfigLayerBase):
 
     def set_derived_configs(self):
         if self.config['cell-dim'] <= 0:
-            self.config['cell-dim'] = self.descriptors['input']['dim']
+            self.config['cell-dim'] = self.InputDim()
 
     def check_configs(self):
         key = 'cell-dim'
@@ -284,6 +282,9 @@ class XconfigLstmpLayer(XconfigLayerBase):
                        }
 
     def set_derived_configs(self):
+        if self.config['cell-dim'] <= 0:
+            self.config['cell-dim'] = self.InputDim()
+
         if self.config['recurrent-projection-dim'] <= 0:
             self.config['recurrent-projection-dim'] = self.config['cell-dim'] / 4
 
@@ -548,7 +549,7 @@ class XconfigFastLstmLayer(XconfigLayerBase):
 
     def set_derived_configs(self):
         if self.config['cell-dim'] <= 0:
-            self.config['cell-dim'] = self.descriptors['input']['dim']
+            self.config['cell-dim'] = self.InputDim()
 
     def check_configs(self):
         key = 'cell-dim'
@@ -720,6 +721,9 @@ class XconfigFastLstmpLayer(XconfigLayerBase):
                          }
 
     def set_derived_configs(self):
+        if self.config['cell-dim'] <= 0:
+            self.config['cell-dim'] = self.InputDim()
+
         if self.config['recurrent-projection-dim'] <= 0:
             self.config['recurrent-projection-dim'] = self.config['cell-dim'] / 4
 

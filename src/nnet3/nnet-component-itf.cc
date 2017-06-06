@@ -25,10 +25,8 @@
 #include "nnet3/nnet-simple-component.h"
 #include "nnet3/nnet-binary-component.h"
 #include "nnet3/nnet-general-component.h"
-#include "nnet3/nnet-convolutional-component.h"
 #include "nnet3/nnet-parse.h"
 #include "nnet3/nnet-computation-graph.h"
-
 
 // \file This file contains some more-generic component code: things in base classes.
 //       See nnet-component.cc for the code of the actual Components.
@@ -60,8 +58,6 @@ ComponentPrecomputedIndexes* ComponentPrecomputedIndexes::NewComponentPrecompute
     ans = new StatisticsPoolingComponentPrecomputedIndexes();
   } else if (cpi_type == "BackpropTruncationComponentPrecomputedIndexes") {
     ans = new BackpropTruncationComponentPrecomputedIndexes();
-  } else if (cpi_type == "TimeHeightConvolutionComponentPrecomputedIndexes") {
-    ans = new TimeHeightConvolutionComponent::PrecomputedIndexes();
   }
   if (ans != NULL) {
     KALDI_ASSERT(cpi_type == ans->Type());
@@ -100,6 +96,8 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new NormalizeComponent();
   } else if (component_type == "PnormComponent") {
     ans = new PnormComponent();
+  } else if (component_type == "SumReduceComponent") {
+    ans = new SumReduceComponent();
   } else if (component_type == "AffineComponent") {
     ans = new AffineComponent();
   } else if (component_type == "NaturalGradientAffineComponent") {
@@ -162,10 +160,6 @@ Component* Component::NewComponentOfType(const std::string &component_type) {
     ans = new BinaryAffineComponent();
   } else if (component_type == "BinaryActivitionComponent") {
     ans = new BinaryActivitionComponent();
-  } else if (component_type == "TimeHeightConvolutionComponent") {
-    ans = new TimeHeightConvolutionComponent();
-  } else if (component_type == "SumBlockComponent") {
-    ans = new SumBlockComponent();
   }
   if (ans != NULL) {
     KALDI_ASSERT(component_type == ans->Type());
@@ -213,8 +207,7 @@ void UpdatableComponent::InitLearningRatesFromConfig(ConfigLine *cfl) {
 }
 
 
-std::string UpdatableComponent::ReadUpdatableCommon(std::istream &is,
-                                                    bool binary) {
+void UpdatableComponent::ReadUpdatableCommon(std::istream &is, bool binary) {
   std::ostringstream opening_tag;
   opening_tag << '<' << this->Type() << '>';
   std::string token;
@@ -244,9 +237,9 @@ std::string UpdatableComponent::ReadUpdatableCommon(std::istream &is,
   }
   if (token == "<LearningRate>") {
     ReadBasicType(is, binary, &learning_rate_);
-    return "";
   } else {
-    return token;
+    KALDI_ERR << "Expected token <LearningRate>, got "
+              << token;
   }
 }
 
@@ -294,7 +287,7 @@ void NonlinearComponent::StoreStatsInternal(
   // Check we have the correct dimensions.
   if (value_sum_.Dim() != InputDim() ||
       (deriv != NULL && deriv_sum_.Dim() != InputDim())) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    mutex_.Lock();
     if (value_sum_.Dim() != InputDim()) {
       value_sum_.Resize(InputDim());
       count_ = 0.0;
@@ -304,6 +297,7 @@ void NonlinearComponent::StoreStatsInternal(
       count_ = 0.0;
       value_sum_.SetZero();
     }
+    mutex_.Unlock();
   }
   count_ += out_value.NumRows();
   CuVector<BaseFloat> temp(InputDim());

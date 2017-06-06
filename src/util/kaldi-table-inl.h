@@ -25,7 +25,6 @@
 
 #include <algorithm>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 #include <errno.h>
@@ -33,7 +32,8 @@
 #include "util/kaldi-holder.h"
 #include "util/text-utils.h"
 #include "util/stl-utils.h"  // for StringHasher.
-#include "util/kaldi-semaphore.h"
+#include "thread/kaldi-thread.h"
+#include "thread/kaldi-semaphore.h"
 
 
 namespace kaldi {
@@ -715,8 +715,18 @@ class SequentialTableReaderBackgroundImpl:
     KALDI_ASSERT(base_reader_ != NULL &&
                  base_reader_->IsOpen());  // or code error.
     {
-      thread_ = std::thread(SequentialTableReaderBackgroundImpl<Holder>::run,
-                            this);
+      pthread_attr_t pthread_attr;
+      pthread_attr_init(&pthread_attr);
+      int32 ret = pthread_create(
+          &thread_,
+          &pthread_attr,
+          SequentialTableReaderBackgroundImpl<Holder>::run,
+          static_cast<void*>(this));
+      if (ret != 0) {
+        const char *c = strerror(ret);
+        KALDI_WARN << "Error creating thread, errno was: " << c;
+        return false;
+      }
     }
 
     if (!base_reader_->Done())
@@ -765,8 +775,11 @@ class SequentialTableReaderBackgroundImpl:
       return;
     }
   }
-  static void run(SequentialTableReaderBackgroundImpl<Holder> *object) {
+  static void* run(void *object_in) {
+    SequentialTableReaderBackgroundImpl<Holder> *object =
+        reinterpret_cast<SequentialTableReaderBackgroundImpl<Holder>*>(object_in);
     object->RunInBackground();
+    return NULL;
   }
   virtual bool Done() const {
     return key_.empty();
@@ -814,7 +827,7 @@ class SequentialTableReaderBackgroundImpl:
   // note: we can be sure that Close() won't be called twice, as the TableReader
   // object will delete this object after calling Close.
   virtual bool Close() {
-    KALDI_ASSERT(base_reader_ != NULL && thread_.joinable());
+    KALDI_ASSERT(base_reader_ != NULL && KALDI_PTHREAD_PTR(thread_) != 0);
     // wait until the producer thread is idle.
     consumer_sem_.Wait();
     bool ans = true;
@@ -829,7 +842,10 @@ class SequentialTableReaderBackgroundImpl:
     base_reader_ = NULL;
     producer_sem_.Signal();
 
-    thread_.join();
+    if (pthread_join(thread_, NULL) != 0) {
+      KALDI_WARN << "Error rejoining thread.";
+      return false;
+    }
     return ans;
   }
   ~SequentialTableReaderBackgroundImpl() {
@@ -848,7 +864,7 @@ class SequentialTableReaderBackgroundImpl:
   // that the producer (background thread) waits on.
   Semaphore consumer_sem_;
   Semaphore producer_sem_;
-  std::thread thread_;
+  pthread_t thread_;
   SequentialTableReaderImplBase<Holder> *base_reader_;
 
 };
@@ -1466,8 +1482,8 @@ class TableWriterBothImpl: public TableWriterImplBase<Holder> {
 template<class Holder>
 TableWriter<Holder>::TableWriter(const std::string &wspecifier): impl_(NULL) {
   if (wspecifier != "" && !Open(wspecifier))
-    KALDI_ERR << "Failed to open table for writing with wspecifier: " << wspecifier
-              << ": errno (in case it's relevant) is: " << strerror(errno);
+    KALDI_ERR << "Failed to open for writing: " << wspecifier
+              << ": " << strerror(errno);
 }
 
 template<class Holder>

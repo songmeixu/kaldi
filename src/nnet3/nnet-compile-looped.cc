@@ -297,9 +297,8 @@ static bool CompileLoopedInternal(
   compiler.CreateComputation(compiler_opts, computation);
   optimize_opts.optimize_looped_computation = true;
 
-  int32 dont_really_care = MaxOutputTimeInRequest(request3);
   Optimize(optimize_opts, nnet,
-           dont_really_care, computation);
+           MaxOutputTimeInRequest(request3), computation);
 
   return computation->commands.size() != 0 &&
       computation->commands.back().command_type == kGotoLabel;

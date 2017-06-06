@@ -33,7 +33,7 @@
 #include "gmm/full-gmm.h"
 #include "itf/options-itf.h"
 #include "util/table-types.h"
-#include "util/kaldi-thread.h"
+#include "thread/kaldi-thread.h"
 
 namespace kaldi {
 /*

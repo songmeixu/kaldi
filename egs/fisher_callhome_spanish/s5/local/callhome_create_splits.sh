@@ -27,5 +27,6 @@ do
 
   utils/fix_data_dir.sh $data_dir/$dirName
   utils/validate_data_dir.sh $data_dir/$dirName
+  rm $data_dir/$dirName/*.tmp
 done
 

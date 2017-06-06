@@ -146,7 +146,6 @@ int main(int argc, char *argv[]) {
     typedef kaldi::int32 int32;
     using fst::SymbolTable;
     using fst::VectorFst;
-    using fst::Fst;
     using fst::StdArc;
     using fst::ReadFstKaldi;
 
@@ -194,13 +193,11 @@ int main(int argc, char *argv[]) {
       trans_model.Read(ki.Stream(), binary);
       am_gmm.Read(ki.Stream(), binary);
     }
-    
-    VectorFst<StdArc> *old_lm_fst = fst::CastOrConvertToVectorFst(
-        fst::ReadFstKaldiGeneric(old_lm_fst_rxfilename));
+
+    VectorFst<StdArc> *old_lm_fst = ReadFstKaldi(old_lm_fst_rxfilename);
     ApplyProbabilityScale(-1.0, old_lm_fst); // Negate old LM probs...
     
-    VectorFst<StdArc> *new_lm_fst = fst::CastOrConvertToVectorFst(
-        fst::ReadFstKaldiGeneric(new_lm_fst_rxfilename));
+    VectorFst<StdArc> *new_lm_fst = ReadFstKaldi(new_lm_fst_rxfilename);
 
     fst::BackoffDeterministicOnDemandFst<StdArc> old_lm_dfst(*old_lm_fst);
     fst::BackoffDeterministicOnDemandFst<StdArc> new_lm_dfst(*new_lm_fst);
@@ -234,7 +231,7 @@ int main(int argc, char *argv[]) {
     if (ClassifyRspecifier(fst_in_str, NULL, NULL) == kNoRspecifier) {
       SequentialBaseFloatMatrixReader feature_reader(feature_rspecifier);
       // Input FST is just one FST, not a table of FSTs.
-      Fst<StdArc> *decode_fst = fst::ReadFstKaldiGeneric(fst_in_str);
+      VectorFst<StdArc> *decode_fst = fst::ReadFstKaldi(fst_in_str);
 
       {
         LatticeBiglmFasterDecoder decoder(*decode_fst, config, &cache_dfst);

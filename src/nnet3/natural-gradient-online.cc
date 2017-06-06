@@ -63,6 +63,11 @@ void OnlineNaturalGradient::InitOrthonormalSpecial(CuMatrixBase<BaseFloat> *R) {
     }
   }
   R->AddElements(1.0, elems);
+  { // TODO: remove this testing code.
+    CuMatrix<BaseFloat> prod(num_rows, num_rows);
+    prod.AddMatMat(1.0, *R, kNoTrans, *R, kTrans, 0.0);
+    KALDI_ASSERT(prod.IsUnit());
+  }
 }
 
 
@@ -169,7 +174,7 @@ void OnlineNaturalGradient::PreconditionDirections(
     return;
   }
 
-  read_write_mutex_.lock();
+  read_write_mutex_.Lock();
   if (t_ == -1) // not initialized
     Init(*X_t);
 
@@ -184,7 +189,7 @@ void OnlineNaturalGradient::PreconditionDirections(
   WJKL_t.Range(0, R, 0, D).CopyFromMat(W_t_);
   BaseFloat rho_t(rho_t_);
   Vector<BaseFloat> d_t(d_t_);
-  read_write_mutex_.unlock();
+  read_write_mutex_.Unlock();
   PreconditionDirectionsInternal(t, rho_t, d_t, &WJKL_t, X_t, row_prod, scale);
 }
 
@@ -337,13 +342,13 @@ void OnlineNaturalGradient::PreconditionDirectionsInternal(
 
   H_t.AddMatMat(1.0, *X_t, kNoTrans, W_t, kTrans, 0.0);  // H_t = X_t W_t^T
 
-  bool locked = update_mutex_.try_lock();
+  bool locked = update_mutex_.TryLock();
   if (locked) {
     // Just hard-code it here that we do 10 updates before skipping any.
     const int num_initial_updates = 10;
     if (t_ > t || (num_updates_skipped_ < update_period_ - 1 &&
                    t_ >= num_initial_updates)) {
-      update_mutex_.unlock();
+      update_mutex_.Unlock();
       // We got the lock but we were already beaten to it by another thread, or
       // we don't want to update yet due to update_period_ > 1 (this saves
       // compute), so release the lock.
@@ -487,7 +492,7 @@ void OnlineNaturalGradient::PreconditionDirectionsInternal(
   }
 
   // Commit the new parameters.
-  read_write_mutex_.lock();
+  read_write_mutex_.Lock();
   KALDI_ASSERT(t_ == t);  // we already ensured this.
   t_ = t + 1;
   num_updates_skipped_ = 0;
@@ -498,8 +503,8 @@ void OnlineNaturalGradient::PreconditionDirectionsInternal(
   if (self_debug_)
     SelfTest();
 
-  read_write_mutex_.unlock();
-  update_mutex_.unlock();
+  read_write_mutex_.Unlock();
+  update_mutex_.Unlock();
 }
 
 BaseFloat OnlineNaturalGradient::Eta(int32 N) const {
