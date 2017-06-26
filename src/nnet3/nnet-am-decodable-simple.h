@@ -292,8 +292,9 @@ class DecodableAmNnetSimple: public DecodableInterface {
                         int32 online_ivector_period = 1,
                         CachingOptimizingCompiler *compiler = NULL);
 
-
   virtual BaseFloat LogLikelihood(int32 frame, int32 transition_id);
+
+  BaseFloat LogLikelihoodForPdfid(int32 frame, int32 pdf_id);
 
   virtual inline int32 NumFramesReady() const {
     return decodable_nnet_.NumFrames();

@@ -74,12 +74,17 @@ DecodableAmNnetSimple::DecodableAmNnetSimple(
 }
 
 
-
 BaseFloat DecodableAmNnetSimple::LogLikelihood(int32 frame,
                                                int32 transition_id) {
   int32 pdf_id = trans_model_.TransitionIdToPdf(transition_id);
   return decodable_nnet_.GetOutput(frame, pdf_id);
 }
+
+
+BaseFloat DecodableAmNnetSimple::LogLikelihoodForPdfid(int32 frame, int32 pdf_id) {
+  return decodable_nnet_.GetOutput(frame, pdf_id);
+}
+
 
 int32 DecodableNnetSimple::GetIvectorDim() const {
   if (ivector_ != NULL)
