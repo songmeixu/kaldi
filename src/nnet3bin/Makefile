@@ -18,7 +18,8 @@ BINFILES = nnet3-init nnet3-info nnet3-get-egs nnet3-copy-egs nnet3-subset-egs \
    nnet3-discriminative-compute-objf nnet3-discriminative-train \
    nnet3-discriminative-subset-egs \
    nnet3-discriminative-compute-from-egs nnet3-latgen-faster-looped \
-   nnet3-to-baidu nnet3-to-bnn nnet3-compute-likelihood
+   nnet3-to-baidu nnet3-to-bnn nnet3-compute-likelihood \
+   nnet3-latgen-faster-from-am-score
 
 OBJFILES =
 
