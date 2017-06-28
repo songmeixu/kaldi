@@ -259,7 +259,7 @@ def train(args, run_opts, background_process_handler):
     # we do this as it's a convenient way to get the stats for the 'lda-like'
     # transform.
 
-    if (args.stage <= -5):
+    if (args.stage <= -5) and os.path.exists(args.dir+"/configs/init.config"):
         logger.info("Initializing a basic network for estimating "
                     "preconditioning matrix")
         common_lib.run_job(
