@@ -136,7 +136,7 @@ class MelBanks {
   std::vector<int32> loChan;
 
   // fft index to triangle filter weight
-  std::vector<int32> loWt;
+  std::vector<float> loWt;
 
   int32 klo, khi;
 
