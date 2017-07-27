@@ -458,13 +458,13 @@ int FeatureClass::FFT_Cal(VectorBase<float> *v, bool invert) {
 
 /// EXPORT-> Realft: apply fft to real s
 int FeatureClass::Realft(VectorBase<float> *v) {
-  KALDI_ASSERT(v->Dim() > 0 && "[%s:%d] Illegal params passed into FFT.", __FILE__, __LINE__);
+  KALDI_ASSERT(v->Dim() > 0);
 
   int n = v->Dim() / 2;
   int n2 = n / 2;
   double theta = M_PI / n;
 
-  KALDI_ASSERT(FFT_Cal(v, false) != -1 && "[%s:%d] Fail to do FFT in Realft.", __FILE__, __LINE__);
+  KALDI_ASSERT(FFT_Cal(v, false) != -1);
 
   double x = sin(0.5 * theta);
   double yr2 = -2.0 * x * x;
