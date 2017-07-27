@@ -388,7 +388,7 @@ void ComplexFft(VectorBase<double> *v, bool forward, Vector<double> *tmp_in);
 
 /// baidu fft
 /// EXPORT-> FFT: apply fft/invfft to complex s
-int FeatureClass::FFT_Cal(VectorBase<float> *v, bool invert) {
+int FFT_Cal(VectorBase<float> *v, bool invert) {
   KALDI_ASSERT(v->Dim() > 0);
 
   int n = v->Dim();
@@ -457,7 +457,7 @@ int FeatureClass::FFT_Cal(VectorBase<float> *v, bool invert) {
 }
 
 /// EXPORT-> Realft: apply fft to real s
-int FeatureClass::Realft(VectorBase<float> *v) {
+int Realft(VectorBase<float> *v) {
   KALDI_ASSERT(v->Dim() > 0);
 
   int n = v->Dim() / 2;
