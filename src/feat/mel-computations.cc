@@ -195,7 +195,7 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
 
   std::ofstream out("chan_wt.txt");
   for (int k = 1; k <= num_fft_bins; ++k) {
-    std::cout << k << " " << loChan[k] << " " << loWt[k] << std::endl;
+    out << k << " " << loChan[k] << " " << loWt[k] << std::endl;
   }
   out.close();
 }
