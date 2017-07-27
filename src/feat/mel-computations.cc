@@ -146,14 +146,15 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
   klo = 2;
   khi = num_fft_bins; // apply lo/hi pass filtering
 
+  int sampPeriod = 1e7 / sample_freq;
   if (low_freq >= 0.0) {
-    klo = (int) ((float(low_freq * window_length_padded) / sample_freq) + 2.5);
+    klo = (int) ((low_freq * sampPeriod * 1.0e-7 * window_length_padded) + 2.5);
     if (klo < 2)
       klo = 2;
   }
 
   if (high_freq >= 0.0) {
-    khi = (int) ((float(high_freq * window_length_padded) / sample_freq) + 0.5);
+    khi = (int) ((high_freq * sampPeriod * 1.0e-7 * window_length_padded) + 0.5);
     if (khi > num_fft_bins)
       khi = num_fft_bins;
   }
