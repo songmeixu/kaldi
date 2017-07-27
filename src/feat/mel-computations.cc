@@ -147,13 +147,13 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
   khi = num_fft_bins; // apply lo/hi pass filtering
 
   if (low_freq >= 0.0) {
-    klo = (int) ((low_freq * sampPeriod * 1.0e-7 * window_length_padded) + 2.5);
+    klo = (int) ((low_freq * window_length_padded / sample_freq) + 2.5);
     if (klo < 2)
       klo = 2;
   }
 
   if (high_freq >= 0.0) {
-    khi = (int) ((high_freq * sampPeriod * 1.0e-7 * window_length_padded) + 0.5);
+    khi = (int) ((high_freq * window_length_padded / sample_freq) + 0.5);
     if (khi > num_fft_bins)
       khi = num_fft_bins;
   }
@@ -296,13 +296,13 @@ void MelBanks::Compute(const VectorBase<BaseFloat> &power_spectrum,
 //  }
 
   for (int32 k = klo; k <= khi; k++) {
-    float ek = power_spectrum[k-1];
+    float ek = power_spectrum(k-1);
     int32 bin = loChan[k];
     float t1 = loWt[k] * ek;
 
     if (bin > 0)
       (*mel_energies_out)(bin-1) += t1;
-    if (bin < info.numChans)
+    if (bin < num_bins)
       (*mel_energies_out)(bin) += ek - t1;
   }
 
