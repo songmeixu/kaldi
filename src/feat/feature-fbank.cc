@@ -85,10 +85,12 @@ void FbankComputer::Compute(BaseFloat signal_log_energy,
     signal_log_energy = Log(std::max(VecVec(*signal_frame, *signal_frame),
                                      std::numeric_limits<BaseFloat>::min()));
 
-  if (srfft_ != NULL)  // Compute FFT using split-radix algorithm.
-    srfft_->Compute(signal_frame->Data(), true);
-  else  // An alternative algorithm that works for non-powers-of-two.
-    RealFft(signal_frame, true);
+//  if (srfft_ != NULL)  // Compute FFT using split-radix algorithm.
+//    srfft_->Compute(signal_frame->Data(), true);
+//  else  // An alternative algorithm that works for non-powers-of-two.
+//    RealFft(signal_frame, true);
+
+  Realft(signal_frame);
 
   // Convert the FFT into a power spectrum.
   ComputePowerSpectrum(signal_frame);
@@ -109,7 +111,6 @@ void FbankComputer::Compute(BaseFloat signal_log_energy,
   if (opts_.use_log_fbank) {
     // Avoid log of zero (which should be prevented anyway by dithering).
     mel_energies.ApplyFloor(std::numeric_limits<BaseFloat>::epsilon());
-    // mel_energies.ApplyFloor(1.0);
     mel_energies.ApplyLog();  // take the log.
   }
 

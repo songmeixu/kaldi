@@ -386,6 +386,122 @@ void ComplexFft(VectorBase<float> *v, bool forward, Vector<float> *tmp_in);
 template
 void ComplexFft(VectorBase<double> *v, bool forward, Vector<double> *tmp_in);
 
+/// baidu fft
+/// EXPORT-> FFT: apply fft/invfft to complex s
+int FeatureClass::FFT_Cal(VectorBase<float> *v, bool invert) {
+  KALDI_ASSERT(v->Dim() > 0);
+
+  int n = v->Dim();
+  int nn = n / 2;
+  int j = 1;
+
+  float * s = v->Data() - 1;
+
+  for (int ii = 1; ii <= nn; ii++) {
+    int i = 2 * ii - 1;
+    if (j > i) {
+      double xre = s[j];
+      double xri = s[j + 1];
+      s[j] = s[i];
+      s[j + 1] = s[i + 1];
+      s[i] = xre;
+      s[i + 1] = xri;
+    }
+
+    int m = n / 2;
+    while (m >= 2 && j > m) {
+      j -= m;
+      m /= 2;
+    }
+
+    j += m;
+  }
+
+  int limit = 2;
+
+  while (limit < n) {
+    int inc = 2 * limit;
+    double theta = M_2PI / limit;
+
+    if (invert)
+      theta = -theta;
+
+    double x = sin(0.5 * theta);
+    double wpr = -2.0 * x * x;
+    double wpi = sin(theta);
+    double wr = 1.0;
+    double wi = 0.0;
+
+    for (int ii = 1; ii <= limit / 2; ii++) {
+      int m = 2 * ii - 1;
+      for (int jj = 0; jj <= (n - m) / inc; jj++) {
+        int i = m + jj * inc;
+        j = i + limit;
+        double xre = wr * s[j] - wi * s[j + 1];
+        double xri = wr * s[j + 1] + wi * s[j];
+        s[j] = s[i] - xre;
+        s[j + 1] = s[i + 1] - xri;
+        s[i] = s[i] + xre;
+        s[i + 1] = s[i + 1] + xri;
+      }
+      double wx = wr;
+      wr = wr * wpr - wi * wpi + wr;
+      wi = wi * wpr + wx * wpi + wi;
+    }
+    limit = inc;
+  }
+  if (invert)
+    for (int i = 1; i <= n; i++)
+      s[i] = s[i] / nn;
+  return 0;
+}
+
+/// EXPORT-> Realft: apply fft to real s
+int FeatureClass::Realft(VectorBase<float> *v) {
+  KALDI_ASSERT(v->Dim() > 0 && "[%s:%d] Illegal params passed into FFT.", __FILE__, __LINE__);
+
+  int n = v->Dim() / 2;
+  int n2 = n / 2;
+  double theta = M_PI / n;
+
+  KALDI_ASSERT(FFT_Cal(v, false) != -1 && "[%s:%d] Fail to do FFT in Realft.", __FILE__, __LINE__);
+
+  double x = sin(0.5 * theta);
+  double yr2 = -2.0 * x * x;
+  double yi2 = sin(theta);
+  double yr = 1.0 + yr2;
+  double yi = yi2;
+
+  float * s = v->Data() - 1;
+
+  for (int i = 2; i <= n2; i++) {
+    int i1 = i + i - 1;
+    int i2 = i1 + 1;
+    int i3 = n + n + 3 - i2;
+    int i4 = i3 + 1;
+
+    double wrs = yr;
+    double wis = yi;
+
+    double xr1 = (s[i1] + s[i3]) / 2.0;
+    double xi1 = (s[i2] - s[i4]) / 2.0;
+    double xr2 = (s[i2] + s[i4]) / 2.0;
+    double xi2 = (s[i3] - s[i1]) / 2.0;
+
+    s[i1] = xr1 + wrs * xr2 - wis * xi2;
+    s[i2] = xi1 + wrs * xi2 + wis * xr2;
+    s[i3] = xr1 - wrs * xr2 + wis * xi2;
+    s[i4] = -xi1 + wrs * xi2 + wis * xr2;
+    double yr0 = yr;
+    yr = yr * yr2 - yi * yi2 + yr;
+    yi = yi * yr2 + yr0 * yi2 + yi;
+  }
+
+  s[1] = s[1] + s[2];
+  s[2] = 0.0;
+
+  return 0;
+}
 
 // See the long comment below for the math behind this.
 template<typename Real> void RealFft (VectorBase<Real> *v, bool forward) {

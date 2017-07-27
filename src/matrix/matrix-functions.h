@@ -85,6 +85,13 @@ template<typename Real> void ComplexFt (const VectorBase<Real> &in,
 template<typename Real> void RealFft (VectorBase<Real> *v, bool forward);
 
 
+/// baidu fft
+/// EXPORT-> Realft: apply fft to real s
+int Realft(VectorBase<float> *v);
+
+/// EXPORT-> FFT: apply fft/invfft to complex s
+int FFT_Cal(VectorBase<float> *v, bool invert);
+
 /// RealFt has the same input and output format as RealFft above, but it is
 /// an inefficient implementation included for testing purposes.
 template<typename Real> void RealFftInefficient (VectorBase<Real> *v, bool forward);
