@@ -198,7 +198,7 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
     out << k << " " << loChan[k] << " " << loWt[k] << " " << MelScale((k - 1) * fft_bin_width) << std::endl;
   }
   for (int chan = 1; chan <= maxChan; ++chan) {
-    out << chan << " " << cf[chan] << std::end;
+    out << chan << " " << cf[chan] << std::endl;
   }
   out.close();
 }
