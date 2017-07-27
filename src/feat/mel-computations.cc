@@ -131,8 +131,8 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
     bins_[bin].second.CopyFromVec(this_bin.Range(first_index, size));
 
     // Replicate a bug in HTK, for testing purposes.
-    if (opts.htk_mode && bin == 0 && mel_low_freq != 0.0)
-      bins_[bin].second(0) = 0.0;
+//    if (opts.htk_mode && bin == 0 && mel_low_freq != 0.0)
+//      bins_[bin].second(0) = 0.0;
 
   }
   if (debug_) {
