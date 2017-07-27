@@ -141,6 +141,57 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
                 << ", vec = " << bins_[i].second;
     }
   }
+
+  // set lo and hi pass cut offs if any
+  klo = 2;
+  khi = num_fft_bins; // apply lo/hi pass filtering
+
+  if (low_freq >= 0.0) {
+    klo = (int) ((low_freq * sampPeriod * 1.0e-7 * window_length_padded) + 2.5);
+    if (klo < 2)
+      klo = 2;
+  }
+
+  if (high_freq >= 0.0) {
+    khi = (int) ((high_freq * sampPeriod * 1.0e-7 * window_length_padded) + 0.5);
+    if (khi > num_fft_bins)
+      khi = num_fft_bins;
+  }
+
+  // Create vector
+  int32 maxChan = num_bins + 1;
+  std::vector<float> cf(maxChan);
+  loChan.resize(num_fft_bins + 1);
+  loWt.resize(num_fft_bins + 1);
+
+  float ms = mel_high_freq - mel_low_freq;
+
+  for (int chan = 1; chan <= maxChan; chan++) {
+    cf[chan] = ((float) chan / (float) maxChan) * ms + mel_low_freq;
+  }
+
+  for (int k = 1, chan = 1; k <= num_fft_bins; ++k) {
+    float mel = MelScale(fft_bin_width * (k - 1));
+    if (k < klo || k > khi)
+      loChan[k] = -1;
+    else {
+      while (cf[chan] < mel && chan <= maxChan)
+        ++chan;
+      loChan[k] = chan - 1;
+    }
+  }
+
+  for (int k = 1; k <= num_fft_bins; k++) {
+    int chan = loChan[k];
+    if (k < klo || k > khi)
+      loWt[k] = 0.0;
+    else {
+      if (chan > 0)
+        loWt[k] = ((cf[chan + 1] - MelScale((k - 1) * fft_bin_width)) / (cf[chan + 1] - cf[chan]));
+      else
+        loWt[k] = (cf[1] - MelScale((k - 1) * fft_bin_width)) / (cf[1] - mel_low_freq);
+    }
+  }
 }
 
 MelBanks::MelBanks(const MelBanks &other):
@@ -230,18 +281,29 @@ void MelBanks::Compute(const VectorBase<BaseFloat> &power_spectrum,
   int32 num_bins = bins_.size();
   KALDI_ASSERT(mel_energies_out->Dim() == num_bins);
 
-  for (int32 i = 0; i < num_bins; i++) {
-    int32 offset = bins_[i].first;
-    const Vector<BaseFloat> &v(bins_[i].second);
-    BaseFloat energy = VecVec(v, power_spectrum.Range(offset, v.Dim()));
-    // HTK-like flooring- for testing purposes (we prefer dither)
-    if (htk_mode_ && energy < 1.0) energy = 1.0;
-    (*mel_energies_out)(i) = energy;
+//  for (int32 i = 0; i < num_bins; i++) {
+//    int32 offset = bins_[i].first;
+//    const Vector<BaseFloat> &v(bins_[i].second);
+//    BaseFloat energy = VecVec(v, power_spectrum.Range(offset, v.Dim()));
+//    // HTK-like flooring- for testing purposes (we prefer dither)
+//    if (htk_mode_ && energy < 1.0) energy = 1.0;
+//    (*mel_energies_out)(i) = energy;
+//
+//    // The following assert was added due to a problem with OpenBlas that
+//    // we had at one point (it was a bug in that library).  Just to detect
+//    // it early.
+//    KALDI_ASSERT(!KALDI_ISNAN((*mel_energies_out)(i)));
+//  }
 
-    // The following assert was added due to a problem with OpenBlas that
-    // we had at one point (it was a bug in that library).  Just to detect
-    // it early.
-    KALDI_ASSERT(!KALDI_ISNAN((*mel_energies_out)(i)));
+  for (int32 k = klo; k <= khi; k++) {
+    float ek = power_spectrum[k-1];
+    int32 bin = loChan[k];
+    float t1 = loWt[k] * ek;
+
+    if (bin > 0)
+      (*mel_energies_out)(bin-1) += t1;
+    if (bin < info.numChans)
+      (*mel_energies_out)(bin) += ek - t1;
   }
 
   if (debug_) {

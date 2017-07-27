@@ -132,6 +132,14 @@ class MelBanks {
   // (the first nonzero fft-bin), (the vector of weights).
   std::vector<std::pair<int32, Vector<BaseFloat> > > bins_;
 
+  // fft index to filter-bin index
+  std::vector<int32> loChan;
+
+  // fft index to triangle filter weight
+  std::vector<int32> loWt;
+
+  int32 klo, khi;
+
   bool debug_;
   bool htk_mode_;
 };
