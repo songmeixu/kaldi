@@ -92,13 +92,15 @@ void FbankComputer::Compute(BaseFloat signal_log_energy,
 
   Realft(signal_frame);
 
-  Output out("fft.txt", false);
-  signal_frame->Write(out, false);
 
   // Convert the FFT into a power spectrum.
   ComputePowerSpectrum(signal_frame);
   SubVector<BaseFloat> power_spectrum(*signal_frame, 0,
-                                      signal_frame->Dim() / 2 + 1);
+                                      signal_frame->Dim() / 2);
+
+  std::ofstream out("fft.txt", 'rta');
+  power_spectrum->Write(out, false);
+  out.close();
 
   // Use magnitude instead of power if requested.
   if (!opts_.use_power)
