@@ -192,6 +192,12 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
         loWt[k] = (cf[1] - MelScale((k - 1) * fft_bin_width)) / (cf[1] - mel_low_freq);
     }
   }
+
+  std::ofstream out("chan_wt.txt");
+  for (int k = 1; k <= num_fft_bins; ++k) {
+    std::cout << k << " " << loChan[k] << " " << lowt[k] << std::endl;
+  }
+  out.close();
 }
 
 MelBanks::MelBanks(const MelBanks &other):
@@ -294,6 +300,8 @@ void MelBanks::Compute(const VectorBase<BaseFloat> &power_spectrum,
 //    // it early.
 //    KALDI_ASSERT(!KALDI_ISNAN((*mel_energies_out)(i)));
 //  }
+
+  mel_energies_out->SetZero();
 
   for (int32 k = klo; k <= khi; k++) {
     float ek = power_spectrum(k-1);
