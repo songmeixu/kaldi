@@ -146,19 +146,6 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
   klo = 2;
   khi = num_fft_bins; // apply lo/hi pass filtering
 
-  int sampPeriod = 1e7 / sample_freq;
-  if (low_freq >= 0.0) {
-    klo = (int) ((low_freq * sampPeriod * 1.0e-7 * window_length_padded) + 2.5);
-    if (klo < 2)
-      klo = 2;
-  }
-
-  if (high_freq >= 0.0) {
-    khi = (int) ((high_freq * sampPeriod * 1.0e-7 * window_length_padded) + 0.5);
-    if (khi > num_fft_bins)
-      khi = num_fft_bins;
-  }
-
   // Create vector
   int32 maxChan = num_bins + 1;
   std::vector<float> cf(maxChan);
