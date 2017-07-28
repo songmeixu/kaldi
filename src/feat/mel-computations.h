@@ -69,6 +69,8 @@ struct MelBanksOptions {
     opts->Register("vtln-high", &vtln_high,
                    "High inflection point in piecewise linear VTLN warping function"
                    " (if negative, offset from high-mel-freq");
+    opts->Register("htk-mode", &htk_mode,
+                   "expose htk-mode setting for mel-fbank");
     opts->Register("debug-mel", &debug_mel,
                    "Print out debugging information for mel bin computation");
   }
