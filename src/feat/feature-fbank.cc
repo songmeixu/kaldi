@@ -117,6 +117,10 @@ void FbankComputer::Compute(BaseFloat signal_log_energy,
     mel_energies.ApplyLog();  // take the log.
   }
 
+  std::ofstream mel("mel.txt", std::ios::app);
+  mel_energies.Write(mel, false);
+  mel.close();
+
   // Copy energy as first value (or the last, if htk_compat == true).
   if (opts_.use_energy) {
     if (opts_.energy_floor > 0.0 && signal_log_energy < log_energy_floor_) {
