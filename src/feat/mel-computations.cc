@@ -180,15 +180,6 @@ MelBanks::MelBanks(const MelBanksOptions &opts,
         loWt[k] = (cf[1] - MelScale((k - 1) * fft_bin_width)) / (cf[1] - mel_low_freq);
     }
   }
-
-  std::ofstream out("chan_wt.txt");
-  for (int k = 1; k <= num_fft_bins; ++k) {
-    out << k << " " << loChan[k] << " " << loWt[k] << " " << MelScale((k - 1) * fft_bin_width) << std::endl;
-  }
-  for (int chan = 1; chan <= maxChan; ++chan) {
-    out << chan << " " << cf[chan] << std::endl;
-  }
-  out.close();
 }
 
 MelBanks::MelBanks(const MelBanks &other):
