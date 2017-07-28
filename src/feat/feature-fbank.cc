@@ -90,13 +90,14 @@ void FbankComputer::Compute(BaseFloat signal_log_energy,
   else  // An alternative algorithm that works for non-powers-of-two.
     RealFft(signal_frame, true);
 
+  // baidu fft, the same result as kaldi
 //  Realft(signal_frame);
 
 
   // Convert the FFT into a power spectrum.
   ComputePowerSpectrum(signal_frame);
   SubVector<BaseFloat> power_spectrum(*signal_frame, 0,
-                                      signal_frame->Dim() / 2);
+                                      signal_frame->Dim() / 2 + 1);
 
 
   // Use magnitude instead of power if requested.

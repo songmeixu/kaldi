@@ -269,32 +269,32 @@ void MelBanks::Compute(const VectorBase<BaseFloat> &power_spectrum,
   int32 num_bins = bins_.size();
   KALDI_ASSERT(mel_energies_out->Dim() == num_bins);
 
-//  for (int32 i = 0; i < num_bins; i++) {
-//    int32 offset = bins_[i].first;
-//    const Vector<BaseFloat> &v(bins_[i].second);
-//    BaseFloat energy = VecVec(v, power_spectrum.Range(offset, v.Dim()));
-//    // HTK-like flooring- for testing purposes (we prefer dither)
-//    if (htk_mode_ && energy < 1.0) energy = 1.0;
-//    (*mel_energies_out)(i) = energy;
-//
-//    // The following assert was added due to a problem with OpenBlas that
-//    // we had at one point (it was a bug in that library).  Just to detect
-//    // it early.
-//    KALDI_ASSERT(!KALDI_ISNAN((*mel_energies_out)(i)));
-//  }
+  for (int32 i = 0; i < num_bins; i++) {
+    int32 offset = bins_[i].first;
+    const Vector<BaseFloat> &v(bins_[i].second);
+    BaseFloat energy = VecVec(v, power_spectrum.Range(offset, v.Dim()));
+    // HTK-like flooring- for testing purposes (we prefer dither)
+    if (htk_mode_ && energy < 1.0) energy = 1.0;
+    (*mel_energies_out)(i) = energy;
 
-  mel_energies_out->SetZero();
-
-  for (int32 k = klo; k <= khi; k++) {
-    float ek = power_spectrum(k-1);
-    int32 bin = loChan[k];
-    float t1 = loWt[k] * ek;
-
-    if (bin > 0)
-      (*mel_energies_out)(bin-1) += t1;
-    if (bin < num_bins)
-      (*mel_energies_out)(bin) += ek - t1;
+    // The following assert was added due to a problem with OpenBlas that
+    // we had at one point (it was a bug in that library).  Just to detect
+    // it early.
+    KALDI_ASSERT(!KALDI_ISNAN((*mel_energies_out)(i)));
   }
+
+//  mel_energies_out->SetZero();
+//
+//  for (int32 k = klo; k <= khi; k++) {
+//    float ek = power_spectrum(k-1);
+//    int32 bin = loChan[k];
+//    float t1 = loWt[k] * ek;
+//
+//    if (bin > 0)
+//      (*mel_energies_out)(bin-1) += t1;
+//    if (bin < num_bins)
+//      (*mel_energies_out)(bin) += ek - t1;
+//  }
 
   if (debug_) {
     fprintf(stderr, "MEL BANKS:\n");
