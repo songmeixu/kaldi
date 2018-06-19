@@ -100,9 +100,10 @@ int main(int argc, char *argv[]) {
                              text2.end(), special_symbol) == text2.end());
 
       if (std::find_if(text1.begin(), text1.end(), IsNotToken) != text1.end()) {
-        KALDI_ERR << "In text1, the utterance " << key << " contains unprintable characters." \
+        KALDI_WARN << "In text1, the utterance " << key << " contains unprintable characters." \
           << "That means there is a problem with the text (such as incorrect encoding)." << std::endl;
-        return  -1;
+        n_fail++;
+        continue;
       }
       if (std::find_if(text2.begin(), text2.end(), IsNotToken) != text2.end()) {
         KALDI_ERR << "In text2, the utterance " << key << " contains unprintable characters." \
