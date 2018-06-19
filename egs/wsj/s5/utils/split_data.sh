@@ -15,7 +15,7 @@
 # See the Apache 2 License for the specific language governing permissions and
 # limitations under the License.
 
-split_per_spk=true
+split_per_spk=false
 if [ "$1" == "--per-utt" ]; then
   split_per_spk=false
   shift
@@ -73,7 +73,7 @@ if $split_per_spk; then
   utt=""
 else
   utt2spk_opt=
-  utt="utt"
+  utt=""
 fi
 
 s1=$data/split${numsplit}${utt}/1
