@@ -40,6 +40,9 @@ fi
 if [ -s $data/segments ]; then
   echo "$0: working out $data/utt2dur from $data/segments"
   awk '{len=$4-$3; print $1, len;}' < $data/segments  > $data/utt2dur
+elif [ -f $data/feats.scp ]; then
+  echo "$0: wave file does not exist so getting durations from feats files"
+  feat-to-len scp:$data/feats.scp ark,t:- | awk -v frame_shift=$frame_shift '{print $1, $2*frame_shift;}' >$data/utt2dur
 elif [ -f $data/wav.scp ]; then
   echo "$0: segments file does not exist so getting durations from wave files"
 
@@ -100,9 +103,6 @@ elif [ -f $data/wav.scp ]; then
       cat $sdata/$n/utt2dur
     done > $data/utt2dur
   fi
-elif [ -f $data/feats.scp ]; then
-  echo "$0: wave file does not exist so getting durations from feats files"
-  feat-to-len scp:$data/feats.scp ark,t:- | awk -v frame_shift=$frame_shift '{print $1, $2*frame_shift;}' >$data/utt2dur
 else
   echo "$0: Expected $data/wav.scp, $data/segments or $data/feats.scp to exist"
   exit 1
