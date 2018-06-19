@@ -141,7 +141,7 @@ while [ $x -lt $num_iters ]; do
       $cmd JOB=1:$nj $dir/log/align.$x.JOB.log \
         gmm-align-compiled $scale_opts --beam=$beam --retry-beam=$retry_beam --careful=$careful "$mdl" \
          "ark:gunzip -c $dir/fsts.JOB.gz|" "$feats" \
-         "ark:|gzip -c >$dir/ali.JOB.gz" || exit 1;
+         "ark:|gzip -c >$dir/ali.JOB.gz" "ark,t:$dir/score.JOB" || exit 1;
     fi
     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.log \
       gmm-acc-stats-ali  $dir/$x.mdl "$feats" \
