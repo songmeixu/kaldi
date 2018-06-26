@@ -98,7 +98,7 @@ else
   $cmd JOB=1:$nj $dir/log/align.JOB.log \
     compile-train-graphs --read-disambig-syms=$lang/phones/disambig.int $dir/tree $dir/final.mdl  $lang/L.fst "$tra" ark:- \| \
     gmm-align-compiled $scale_opts --beam=$beam --retry-beam=$retry_beam --careful=$careful "$mdl" ark:- \
-      "$feats" "ark,t:|gzip -c >$dir/ali.JOB.gz" || exit 1;
+      "$feats" "ark,t:|gzip -c >$dir/ali.JOB.gz" "ark,t:$dir/score.JOB" || exit 1;
 fi
 
 steps/diagnostic/analyze_alignments.sh --cmd "$cmd" $lang $dir
