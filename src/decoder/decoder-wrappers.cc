@@ -501,7 +501,7 @@ void AlignUtteranceWrapper(
     alignment_writer->Write(utt, alignment);
 
   if (scores_writer != NULL && scores_writer->IsOpen())
-    scores_writer->Write(utt, -(weight.Value1()+weight.Value2()));
+    scores_writer->Write(utt, like / decodable->NumFramesReady());
 
   Vector<BaseFloat> per_frame_loglikes;
   if (per_frame_acwt_writer != NULL && per_frame_acwt_writer->IsOpen()) {
