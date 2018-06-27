@@ -1131,7 +1131,7 @@ void Matrix<Real>::AdjustSize(MatrixIndexT r) {
     tmp.Row(t).CopyFromVec(MatrixBase<Real>::Row(s));
   }
 
-  this->Resize(r, MatrixBase<Real>::num_rows_);
+  this->Resize(r, MatrixBase<Real>::num_cols_);
   this->CopyFromMat(tmp);
 }
 
