@@ -46,7 +46,8 @@ function check_sorted {
 }
 
 for x in utt2spk spk2utt feats.scp text segments wav.scp cmvn.scp vad.scp \
-    reco2file_and_channel spk2gender utt2lang utt2uniq utt2dur reco2dur utt2num_frames; do
+    reco2file_and_channel spk2gender utt2lang utt2uniq utt2dur reco2dur utt2num_frames \
+    ali.scp phn_dur.ark; do
   if [ -f $data/$x ]; then
     cp $data/$x $data/.backup/$x
     check_sorted $data/$x
@@ -167,7 +168,8 @@ function filter_utts {
     fi
   fi
 
-  for x in utt2spk utt2uniq feats.scp vad.scp text segments utt2lang utt2dur utt2num_frames $maybe_wav $maybe_reco2dur $utt_extra_files; do
+  for x in utt2spk utt2uniq feats.scp vad.scp text segments utt2lang utt2dur \
+      utt2num_frames ali.scp phn_dur.ark $maybe_wav $maybe_reco2dur $utt_extra_files; do
     if [ -f $data/$x ]; then
       cp $data/$x $data/.backup/$x
       if ! cmp -s $data/$x <( utils/filter_scp.pl $tmpdir/utts $data/$x ) ; then
