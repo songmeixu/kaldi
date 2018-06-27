@@ -79,14 +79,15 @@ int main(int argc, char *argv[]) {
         KALDI_WARN << "No alignment for utterance " << key;
         num_err++;
       } else {
-        const Matrix<BaseFloat> &mat = feature_reader.Value();
+        Matrix<BaseFloat> &mat = feature_reader.Value();
         const std::vector<int32> &alignment = alignments_reader.Value(key);
 
         if (alignment.size() != mat.NumRows()) {
           KALDI_WARN << "Alignments has wrong size " << (alignment.size())
                      << " vs. " << (mat.NumRows());
-          num_err++;
-          continue;
+          mat.AdjustSize(alignment.size());
+//          num_err++;
+//          continue;
         }
 
         num_done++;

@@ -1124,6 +1124,18 @@ void Matrix<Real>::RemoveRow(MatrixIndexT i) {
 }
 
 template<typename Real>
+void Matrix<Real>::AdjustSize(MatrixIndexT r) {
+  Matrix<Real> tmp(r, MatrixBase<Real>::num_cols_);
+  for (MatrixIndexT t = 0, s = 0;  t <  r; t++, s++) {
+    if (t >= MatrixBase<Real>::num_rows_) s = MatrixBase<Real>::num_rows_-1;
+    tmp.Row(t).CopyFromVec(MatrixBase<Real>::Row(s));
+  }
+
+  this->Resize(r, MatrixBase<Real>::num_rows_);
+  this->CopyFromMat(tmp);
+}
+
+template<typename Real>
 void Matrix<Real>::Destroy() {
   // we need to free the data block if it was defined
   if (NULL != MatrixBase<Real>::data_)

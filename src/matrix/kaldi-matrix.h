@@ -843,6 +843,8 @@ class Matrix : public MatrixBase<Real> {
   /// Remove a specified row.
   void RemoveRow(MatrixIndexT i);
 
+  void AdjustSize(const MatrixIndexT r);
+
   /// Transpose the matrix.  Works for non-square
   /// matrices as well as square ones.
   void Transpose();
