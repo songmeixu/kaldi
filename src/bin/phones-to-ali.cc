@@ -88,9 +88,14 @@ int main(int argc, char *argv[]) {
 
       for (size_t size = phones.size(), i = 0; i < size; i++) {
         int32 num_states = topo.NumPdfClasses(phones[i]);
+
+        if (durations[i] < 3) {
+          durations[i] = 3;
+          durations[i+1] = durations[i] + durations[i+1] - 3;
+        }
         int32 mean_loop_dur = (durations[i] - num_states) / num_states;
-        KALDI_ASSERT(durations[i] >= 3 && "phones duration is less than 3");
         KALDI_ASSERT(mean_loop_dur >= 0);
+
         std::vector<int32> ctx_phns(N, 0),
             durs(num_states, mean_loop_dur);
         durs[num_states/2] += (durations[i] - num_states) % num_states;
