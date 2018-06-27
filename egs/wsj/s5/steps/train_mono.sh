@@ -13,7 +13,7 @@ cmd=run.pl
 scale_opts="--transition-scale=1.0 --acoustic-scale=0.1 --self-loop-scale=0.1"
 num_iters=50    # Number of iterations of training
 max_iter_inc=30 # Last iter to increase #Gauss on.
-totgauss=2000 # Target #Gaussians.
+totgauss=8000 # Target #Gaussians.
 careful=false
 boost_silence=1.0 # Factor by which to boost silence likelihoods in alignment
 realign_iters="32 33 34 35 36 38 40 44 48";

@@ -8,8 +8,9 @@ stage=-4 #  This allows restarting after partway, when something when wrong.
 config=
 cmd=run.pl
 scale_opts="--transition-scale=1.0 --acoustic-scale=0.1 --self-loop-scale=0.1"
-realign_iters="10 20 30";
-num_iters=35    # Number of iterations of training
+use_prior_align_iters="5 15 25 35";
+realign_iters="10 20 30 40";
+num_iters=45    # Number of iterations of training
 max_iter_inc=25 # Last iter to increase #Gauss on.
 beam=10
 careful=false
@@ -135,6 +136,12 @@ x=1
 while [ $x -lt $num_iters ]; do
   echo "$0: training pass $x"
   if [ $stage -le $x ]; then
+    if echo $use_prior_align_iters | grep -w $x >/dev/null; then
+      echo "$0: using prior alignments"
+      $cmd JOB=1:$nj $dir/log/phones2ali.JOB.log \
+        phones-to-ali $dir/tree $dir/$x.mdl "ark:$sdata/JOB/phn_dur.ark" \
+          "ark,t:|gzip -c >$dir/ali.JOB.gz" || exit 1;
+    fi
     if echo $realign_iters | grep -w $x >/dev/null; then
       echo "$0: aligning data"
       mdl="gmm-boost-silence --boost=$boost_silence `cat $lang/phones/optional_silence.csl` $dir/$x.mdl - |"
