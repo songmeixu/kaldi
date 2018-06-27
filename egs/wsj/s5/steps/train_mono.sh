@@ -11,12 +11,12 @@
 nj=4
 cmd=run.pl
 scale_opts="--transition-scale=1.0 --acoustic-scale=0.1 --self-loop-scale=0.1"
-num_iters=40    # Number of iterations of training
+num_iters=50    # Number of iterations of training
 max_iter_inc=30 # Last iter to increase #Gauss on.
-totgauss=1000 # Target #Gaussians.
+totgauss=2000 # Target #Gaussians.
 careful=false
 boost_silence=1.0 # Factor by which to boost silence likelihoods in alignment
-realign_iters="1 2 3 4 5 6 7 8 9 10 12 14 16 18 20 23 26 29 32 35 38";
+realign_iters="32 33 34 35 36 38 40 44 48";
 config= # name of config file.
 stage=-4
 power=0.25 # exponent to determine number of gaussians from occurrence counts
@@ -89,26 +89,15 @@ if [ $stage -le -2 ]; then
 fi
 
 if [ $stage -le -1 ]; then
-  echo "$0: Aligning data equally (pass 0)"
-  $cmd JOB=1:$nj $dir/log/align.0.JOB.log \
-    align-equal-compiled "ark:gunzip -c $dir/fsts.JOB.gz|" "$feats" ark,t:-  \| \
-    gmm-acc-stats-ali --binary=true $dir/0.mdl "$feats" ark:- \
-    $dir/0.JOB.acc || exit 1;
+  echo "$0: convert phones_dur to alignments"
+  $cmd JOB=1:$nj $dir/log/phones2ali.JOB.log \
+    phones-to-ali $dir/tree $dir/0.mdl "ark:$sdata/JOB/phn_dur.ark" \
+      "ark,t:|gzip -c >$dir/ali.JOB.gz" || exit 1;
 fi
-
-# In the following steps, the --min-gaussian-occupancy=3 option is important, otherwise
-# we fail to est "rare" phones and later on, they never align properly.
-
-if [ $stage -le 0 ]; then
-  gmm-est --min-gaussian-occupancy=3  --mix-up=$numgauss --power=$power \
-    $dir/0.mdl "gmm-sum-accs - $dir/0.*.acc|" $dir/1.mdl 2> $dir/log/update.0.log || exit 1;
-  rm $dir/0.*.acc
-fi
-
 
 beam=6 # will change to 10 below after 1st pass
 # note: using slightly wider beams for WSJ vs. RM.
-x=1
+x=0
 while [ $x -lt $num_iters ]; do
   echo "$0: Pass $x"
   if [ $stage -le $x ]; then
