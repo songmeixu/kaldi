@@ -148,7 +148,7 @@ function filter_utts {
   maybe_reco2dur=
   [ ! -f $data/segments ] && maybe_wav=wav.scp # wav indexed by utts only if segments does not exist.
   [ -s $data/reco2dur ] && [ ! -f $data/segments ] && maybe_reco2dur=reco2dur # reco2dur indexed by utts
-  for x in feats.scp text segments utt2lang ali.scp phn_dur.ark $maybe_wav; do
+  for x in feats.scp text segments utt2lang ali.scp $maybe_wav; do
     if [ -f $data/$x ]; then
       utils/filter_scp.pl $data/$x $tmpdir/utts > $tmpdir/utts.tmp
       mv $tmpdir/utts.tmp $tmpdir/utts
