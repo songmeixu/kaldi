@@ -150,8 +150,7 @@ while [ $x -lt $num_iters ]; do
          "ark:gunzip -c $dir/fsts.JOB.gz|" "$feats" \
          "ark,t:$dir/ali.JOB" "ark,t:$dir/score.JOB" || exit 1;
 
-      $cmd JOB=1:$nj $dir/log/filter.$x.JOB.log \
-        local/filter_ali.py -s $dir/score.JOB -i $dir/ali.JOB -o $dir/ali.JOB.gz
+      python3 local/filter_ali.py -j $nj -d $dir;
     fi
     $cmd JOB=1:$nj $dir/log/acc.$x.JOB.log \
       gmm-acc-stats-ali  $dir/$x.mdl "$feats" \
