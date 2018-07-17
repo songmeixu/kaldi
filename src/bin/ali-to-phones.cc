@@ -132,17 +132,14 @@ int main(int argc, char *argv[]) {
             int32 this_state = trans_model.TransitionIdToHmmState(trans_id);
             if (this_state != prev_state) {
               if (prev_state != -1)
-                fout << phone << prev_state << num_repeats << ";";
+                fout << phone << " " << prev_state << " " << num_repeats << " ;";
               num_repeats = 1;
               prev_state = this_state;
             } else
               num_repeats++;
 
-            if (j == split[i].size() -1) {
-              fout << phone << this_state << num_repeats;
-              if (i != split.size() - 1)
-                fout << ";";
-            }
+            if (j == split[i].size() -1)
+              fout << phone << " " << this_state << " " << num_repeats << " ;";
           }
         }
         fout << "\n";
