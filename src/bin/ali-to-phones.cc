@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
         }
         pair_writer.Write(key, pairs);
       } else if (write_state_lengths) {
-        fout << key << "  ";
+        fout << key << " ";
         for (size_t i = 0; i < split.size(); i++) {
           KALDI_ASSERT(!split[i].empty());
           int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
