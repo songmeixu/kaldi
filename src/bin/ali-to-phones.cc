@@ -25,6 +25,8 @@
 #include "util/common-utils.h"
 #include "fst/fstlib.h"
 
+#include <fstream>
+
 int main(int argc, char *argv[]) {
   using namespace kaldi;
   typedef kaldi::int32 int32;
@@ -42,6 +44,7 @@ int main(int argc, char *argv[]) {
     ParseOptions po(usage);
     bool per_frame = false;
     bool write_lengths = false;
+    bool write_state_lengths = false;
     bool ctm_output = false;
     BaseFloat frame_shift = 0.01;
     po.Register("ctm-output", &ctm_output,
@@ -54,6 +57,8 @@ int main(int argc, char *argv[]) {
                 "(else phone sequence)");
     po.Register("write-lengths", &write_lengths,
                 "If true, write the #frames for each phone (different format)");
+    po.Register("write-state-lengths", &write_state_lengths,
+                "If true, write the #frames for each phone state in stdout (different format)");
 
 
     po.Read(argc, argv);
@@ -74,9 +79,11 @@ int main(int argc, char *argv[]) {
     SequentialInt32VectorReader reader(alignments_rspecifier);
     std::string empty;
     Int32VectorWriter phones_writer(ctm_output ? empty :
-                                    (write_lengths ? empty : po.GetArg(3)));
+                                    (write_lengths | write_state_lengths ? empty : po.GetArg(3)));
     Int32PairVectorWriter pair_writer(ctm_output ? empty :
-                                      (write_lengths ? po.GetArg(3) : empty));
+                                      (write_lengths & !write_state_lengths ? po.GetArg(3) : empty));
+    std::ofstream fout;
+    fout.open(write_state_lengths ? po.GetArg(3) : empty);
 
     std::string ctm_wxfilename(ctm_output ? po.GetArg(3) : empty);
     Output ctm_writer(ctm_wxfilename, false);
@@ -104,7 +111,42 @@ int main(int argc, char *argv[]) {
                       << (frame_shift * num_repeats) << " " << phone << std::endl;
           phone_start += frame_shift * num_repeats;
         }
-      } else if (!write_lengths) {
+      } else if (write_lengths) {
+        std::vector<std::pair<int32, int32> > pairs;
+        for (size_t i = 0; i < split.size(); i++) {
+          KALDI_ASSERT(split[i].size() > 0);
+          int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
+          int32 num_repeats = split[i].size();
+          //KALDI_ASSERT(num_repeats!=0);
+          pairs.push_back(std::make_pair(phone, num_repeats));
+        }
+        pair_writer.Write(key, pairs);
+      } else if (write_state_lengths) {
+        fout << key << "  ";
+        for (size_t i = 0; i < split.size(); i++) {
+          KALDI_ASSERT(!split[i].empty());
+          int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
+          int32 prev_state = -1, num_repeats = 0;
+          for (size_t j = 0; j < split[i].size(); j++) {
+            int32 trans_id = split[i][j];
+            int32 this_state = trans_model.TransitionIdToHmmState(trans_id);
+            if (this_state != prev_state) {
+              if (prev_state != -1)
+                fout << phone << prev_state << num_repeats << ";";
+              num_repeats = 1;
+              prev_state = this_state;
+            } else
+              num_repeats++;
+
+            if (j == split[i].size() -1) {
+              fout << phone << this_state << num_repeats;
+              if (i != split.size() - 1)
+                fout << ";";
+            }
+          }
+        }
+        fout << "\n";
+      } else {
         std::vector<int32> phones;
         for (size_t i = 0; i < split.size(); i++) {
           KALDI_ASSERT(!split[i].empty());
@@ -118,16 +160,6 @@ int main(int argc, char *argv[]) {
             phones.push_back(phone);
         }
         phones_writer.Write(key, phones);
-      } else {
-        std::vector<std::pair<int32, int32> > pairs;
-        for (size_t i = 0; i < split.size(); i++) {
-          KALDI_ASSERT(split[i].size() > 0);
-          int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
-          int32 num_repeats = split[i].size();
-          //KALDI_ASSERT(num_repeats!=0);
-          pairs.push_back(std::make_pair(phone, num_repeats));
-        }
-        pair_writer.Write(key, pairs);
       }
       n_done++;
     }
