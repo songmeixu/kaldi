@@ -89,9 +89,9 @@ int main(int argc, char *argv[]) {
       for (size_t size = phones.size(), i = 0; i < size; i++) {
         int32 num_states = topo.NumPdfClasses(phones[i]);
 
-        if (durations[i] < 3) {
-          durations[i] = 3;
-          durations[i+1] = durations[i] + durations[i+1] - 3;
+        if (durations[i] < 5) {
+          durations[i] = 5;
+          durations[i+1] = durations[i] + durations[i+1] - 5;
         }
         int32 mean_loop_dur = (durations[i] - num_states) / num_states;
         KALDI_ASSERT(mean_loop_dur >= 0);
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
             durs(num_states, mean_loop_dur);
         durs[num_states/2] += (durations[i] - num_states) % num_states;
 
-        if (phones[i] != 1)
+        if (phones[i] > 2)
           for (int32 offset = 0; offset < N; offset++)
             ctx_phns[offset] = phones[i - N/2 + offset];
         else
