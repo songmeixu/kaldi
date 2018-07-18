@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
             durs(num_states, mean_loop_dur);
         durs[num_states/2] += (durations[i] - num_states) % num_states;
 
-        if (phones[i] > 2)
+        if (phones[i] != 1)
           for (int32 offset = 0; offset < N; offset++)
             ctx_phns[offset] = phones[i - N/2 + offset];
         else
