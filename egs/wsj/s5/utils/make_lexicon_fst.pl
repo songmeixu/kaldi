@@ -130,6 +130,7 @@ if ( $silprob == 0.0 ) { # No optional silences: just have one (loop+final) stat
     if ($pron_cost != 0.0) { $pron_cost_string = "\t$pron_cost"; } else { $pron_cost_string = ""; }
     $s = $loopstate;
     $word_or_eps = $w;
+    $pp = "";
     while (@A > 0) {
       $p = shift @A;
       if (@A > 0) {
@@ -138,7 +139,7 @@ if ( $silprob == 0.0 ) { # No optional silences: just have one (loop+final) stat
         $word_or_eps = "<eps>";
         $pron_cost_string = ""; $pron_cost = 0.0; # so we only print it the 1st time.
         $s = $ns;
-      } elsif (!defined($silphone) || $p ne $silphone) {
+      } elsif (!defined($silphone) || ($p ne $silphone && ($p =~ /#\d+/ and $pp ne $silphone))) {
         # This is non-deterministic but relatively compact,
         # and avoids epsilons.
         $local_nosilcost = $nosilcost + $pron_cost;
@@ -149,6 +150,7 @@ if ( $silprob == 0.0 ) { # No optional silences: just have one (loop+final) stat
         # no point putting opt-sil after silence word.
         print "$s\t$loopstate\t$p\t$word_or_eps$pron_cost_string\n";
       }
+      $pp = $p
     }
   }
   print "$loopstate\t0\n";      # final-cost.

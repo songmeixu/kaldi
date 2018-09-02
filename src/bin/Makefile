@@ -21,12 +21,14 @@ BINFILES = align-equal align-equal-compiled acc-tree-stats \
         post-to-pdf-post logprob-to-post prob-to-post copy-post \
         matrix-sum build-pfile-from-ali get-post-on-ali tree-info am-info \
         vector-sum matrix-sum-rows est-pca sum-lda-accs sum-mllt-accs \
-        transform-vec align-text matrix-dim post-to-smat phones-to-ali
+        transform-vec align-text matrix-dim post-to-smat phones-to-ali \
+        compile-train-graphs-from-supervision
 
 
 OBJFILES =
 
-ADDLIBS = ../decoder/kaldi-decoder.a ../lat/kaldi-lat.a ../lm/kaldi-lm.a \
+ADDLIBS = ../decoder/kaldi-decoder.a ../chain/kaldi-chain.a \
+          ../lat/kaldi-lat.a ../lm/kaldi-lm.a \
           ../fstext/kaldi-fstext.a ../hmm/kaldi-hmm.a \
           ../transform/kaldi-transform.a ../gmm/kaldi-gmm.a \
           ../tree/kaldi-tree.a ../util/kaldi-util.a \

@@ -21,6 +21,8 @@
 #include "lat/lattice-functions.h"
 #include "util/text-utils.h"
 #include "hmm/hmm-utils.h"
+#include "fst/fstlib.h"
+#include "fstext/fstext-lib.h"
 #include <numeric>
 
 namespace kaldi {
@@ -394,6 +396,110 @@ bool ProtoSupervisionToSupervision(
   else
     supervision->label_dim = trans_model.NumTransitionIds();
   SortBreadthFirstSearch(&(supervision->fst));
+  return true;
+}
+
+
+bool ProtoSupervisionToTrainingGraph(
+    const ContextDependencyInterface &ctx_dep,
+    const std::vector<int32> &disambig_syms,
+    const TransitionModel &trans_model,
+    const ProtoSupervision &proto_supervision,
+    bool convert_to_pdfs,
+    fst::VectorFst<fst::StdArc> *out_fst) {
+  using fst::VectorFst;
+  using fst::StdArc;
+  VectorFst<StdArc> phone_fst(proto_supervision.fst);
+  const std::vector<int32> &phone_syms = trans_model.GetPhones();
+  int32 subsequential_symbol = 1 + phone_syms.back();
+  if (!disambig_syms.empty() && subsequential_symbol <= disambig_syms.back())
+    subsequential_symbol = 1 + disambig_syms.back();
+  if (ctx_dep.CentralPosition() != ctx_dep.ContextWidth() - 1) {
+    // note: this function only adds the subseq symbol to the input of what was
+    // previously an acceptor, so we project, i.e. copy the ilabels to the
+    // olabels
+    AddSubsequentialLoop(subsequential_symbol, &phone_fst);
+    fst::Project(&phone_fst, fst::PROJECT_INPUT);
+  }
+  fst::ContextFst<StdArc> cfst(subsequential_symbol, trans_model.GetPhones(),
+                               disambig_syms, ctx_dep.ContextWidth(),
+                               ctx_dep.CentralPosition());
+  VectorFst<StdArc> context_dep_fst;
+  fst::ComposeContextFst(cfst, phone_fst, &context_dep_fst);
+  // at this point, context_dep_fst will have indexes into 'ilabels' as its
+  // input symbol (representing context-dependent phones), and phones on its
+  // output.  We don't need the phones, so we'll project.
+  fst::Project(&context_dep_fst, fst::PROJECT_INPUT);
+
+  std::vector<int32> disambig_syms_h; // disambiguation symbols on input side
+  // of H -- will be empty.
+
+  HTransducerConfig h_cfg;
+
+  // We don't want to add any transition probabilities as they will be added
+  // when we compose with the denominator graph.
+  h_cfg.transition_scale = 0.0;
+
+  VectorFst<StdArc> *h_fst = GetHTransducer(cfst.ILabelInfo(),
+                                            ctx_dep,
+                                            trans_model,
+                                            h_cfg,
+                                            &disambig_syms_h);
+  KALDI_ASSERT(disambig_syms_h.empty());
+
+  VectorFst<StdArc> transition_id_fst;
+  TableCompose(*h_fst, context_dep_fst, &transition_id_fst);
+  delete h_fst;
+
+  // We don't want to add any transition probabilities as they will be added
+  // when we compose with the denominator graph.
+  BaseFloat self_loop_scale = 0.0;
+
+  // You should always set reorder to true; for the current chain-model
+  // topologies, it will affect results if you are inconsistent about this.
+  bool reorder = true,
+      check_no_self_loops = true;
+  // add self-loops to the FST with transition-ids as its labels.
+  AddSelfLoops(trans_model, disambig_syms_h, self_loop_scale, reorder,
+               check_no_self_loops, &transition_id_fst);
+
+  // at this point transition_id_fst will have transition-ids as its ilabels and
+  // context-dependent phones (indexes into ILabelInfo()) as its olabels.
+  // Discard the context-dependent phones by projecting on the input, keeping
+  // only the transition-ids.
+  fst::Project(&transition_id_fst, fst::PROJECT_INPUT);
+  if (transition_id_fst.Properties(fst::kIEpsilons, true) != 0) {
+    // remove epsilons, if there are any.
+    fst::RmEpsilon(&transition_id_fst);
+  }
+  KALDI_ASSERT(transition_id_fst.NumStates() > 0);
+
+  // The last step is to enforce that phones can only appear on the frames they
+  // are 'allowed' to appear on.  This will also convert the FST to have pdf-ids
+  // plus one as the labels
+  TimeEnforcerFst enforcer_fst(trans_model,
+                               convert_to_pdfs,
+                               proto_supervision.allowed_phones);
+  ComposeDeterministicOnDemand(transition_id_fst,
+                               &enforcer_fst,
+                               out_fst);
+  fst::Connect(out_fst);
+
+  if (convert_to_pdfs) {
+    // at this point supervision->fst will have pdf-ids plus one as the olabels,
+    // but still transition-ids as the ilabels.  Copy olabels to ilabels.
+    fst::Project(out_fst, fst::PROJECT_OUTPUT);
+  }
+
+  KALDI_ASSERT(out_fst->Properties(fst::kIEpsilons, true) == 0);
+  if (out_fst->NumStates() == 0) {
+    KALDI_WARN << "Supervision FST is empty (too many phones for too few "
+               << "frames?)";
+    // possibly there were too many phones for too few frames.
+    return false;
+  }
+
+  SortBreadthFirstSearch(out_fst);
   return true;
 }
 

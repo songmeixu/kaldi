@@ -322,6 +322,14 @@ bool ProtoSupervisionToSupervision(
     bool convert_to_pdfs,
     Supervision *supervision);
 
+bool ProtoSupervisionToTrainingGraph(
+    const ContextDependencyInterface &ctx_dep,
+    const std::vector<int32> &disambig_syms,
+    const TransitionModel &trans_model,
+    const ProtoSupervision &proto_supervision,
+    bool convert_to_pdfs,
+    fst::VectorFst<fst::StdArc> *out_fst);
+
 /** This function creates and initializes an end-to-end supervision object
     from a training FST (e.g. created using compile-train-graphs). It simply
     sets all the input and output labels to pdf_id+1 (i.e. converts the FST to
