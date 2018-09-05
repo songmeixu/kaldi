@@ -28,8 +28,8 @@ export LC_ALL=C
 
 feat-to-len scp:$data/feats.scp ark,t:$data/tmp.len || exit 1;
 sort -n -k2 $data/tmp.len >$data/feats.len
-for x in utt2spk spk2utt feats.scp labels.scp text segments wav.scp cmvn.scp vad.scp \
-    reco2file_and_channel spk2gender utt2lang utt2uniq utt2dur reco2dur utt2num_frames; do
+for x in utt2spk feats.scp labels.scp text segments wav.scp vad.scp \
+    reco2file_and_channel utt2lang utt2uniq utt2dur reco2dur utt2num_frames; do
   if [ -f $data/$x ]; then
     cp $data/$x $data/.backup/$x
     utils/data/sort_scp.py $data/feats.len $data/.backup/$x >$data/$x

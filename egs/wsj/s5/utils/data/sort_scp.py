@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#-*- coding: utf8 -*-
+#coding=utf-8
 """
 Author: 2018 Meixu Song <songmeixu_mega@icloud.com>
 
@@ -15,11 +15,15 @@ scp_in = sys.argv[2]
 
 # load scp_in
 k_v = {}
-with open(scp_in, 'rt') as scp:
+with open(scp_in, 'rt', encoding="utf-8") as scp:
   for line in scp:
     line.strip()
-    k, v = line.split()
-    k_v[k] = v
+    items = line.split()
+    value = items[1:]
+    if scp_in.endswith("text"):
+      value = [x for x in value if x != "[NOISE]"]
+      value = "".join(value)
+    k_v[items[0]] = " ".join(value)
 
 with open(key_file, 'rt') as key:
   for line in key:
