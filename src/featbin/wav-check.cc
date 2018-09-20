@@ -3,6 +3,8 @@
 // Copyright (c) 2018 Xiaomi Inc. All rights reserved.
 //
 
+#include <algorithm>
+
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
 #include "feat/feature-mfcc.h"
@@ -12,9 +14,8 @@ namespace kaldi {
 
 int CheckWav(const WaveData &wave) {
   const Matrix<BaseFloat> &data = wave.Data();
-  float max = data.Max();
-  float min = data.Min();
-  if (max >= std::numeric_limits<short int>::max() || min <= std::numeric_limits<short int>::min()) {
+  size_t num_min_counts = std::count (data.Data(), data.Data()+data.NumCols(), std::numeric_limits<short int>::min());
+  if (num_min_counts >= 10) {
     return 1;
   }
   return 0;
