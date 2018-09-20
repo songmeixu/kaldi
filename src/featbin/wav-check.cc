@@ -7,16 +7,15 @@
 
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
-#include "feat/feature-mfcc.h"
 #include "feat/wave-reader.h"
 
 namespace kaldi {
 
 int CheckWav(const WaveData &wave, int allow_min_threshold=100) {
   const Matrix<BaseFloat> &data = wave.Data();
-  size_t num_min_counts = std::count (data.Data(), data.Data()+data.NumCols(), std::numeric_limits<short int>::min());
+  long num_min_counts = std::count(data.Data(), data.Data()+data.NumCols(),
+                                     std::numeric_limits<short int>::min());
   if (num_min_counts >= allow_min_threshold) {
-    KALDI_LOG << "counts: " << num_min_counts;
     return 1;
   }
   return 0;
