@@ -21,8 +21,8 @@ BINFILES = align-equal align-equal-compiled acc-tree-stats \
         post-to-pdf-post logprob-to-post prob-to-post copy-post \
         matrix-sum build-pfile-from-ali get-post-on-ali tree-info am-info \
         vector-sum matrix-sum-rows est-pca sum-lda-accs sum-mllt-accs \
-        transform-vec align-text matrix-dim post-to-smat phones-to-ali \
-        compile-train-graphs-from-supervision
+        transform-vec align-text matrix-dim post-to-smat compile-graph \
+	phones-to-ali compile-train-graphs-from-supervision
 
 
 OBJFILES =
