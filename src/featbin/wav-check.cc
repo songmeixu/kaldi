@@ -12,10 +12,11 @@
 
 namespace kaldi {
 
-int CheckWav(const WaveData &wave) {
+int CheckWav(const WaveData &wave, int allow_min_threshold=100) {
   const Matrix<BaseFloat> &data = wave.Data();
   size_t num_min_counts = std::count (data.Data(), data.Data()+data.NumCols(), std::numeric_limits<short int>::min());
-  if (num_min_counts >= 10) {
+  if (num_min_counts >= allow_min_threshold) {
+    KALDI_LOG << "counts: " << num_min_counts;
     return 1;
   }
   return 0;
@@ -32,7 +33,12 @@ int main(int argc, char *argv[]) {
         "Usage: wav-check [options] <wav-rspecifier>\n"
         "e.g. wav-check scp:wav.scp\n";
 
+    int allow_min_threshold = 1;
+
     ParseOptions po(usage);
+
+    po.Register("allow-min-threshold", &allow_min_threshold, "how many times min(-32768) value "
+                                                             "to be allowed in one wav.");
 
     po.Read(argc, argv);
 
@@ -48,7 +54,7 @@ int main(int argc, char *argv[]) {
     SequentialTableReader<WaveHolder> wav_reader(wav_in_fn);
 
     for (; !wav_reader.Done(); wav_reader.Next()) {
-      if (CheckWav(wav_reader.Value())) {
+      if (CheckWav(wav_reader.Value(), allow_min_threshold)) {
         KALDI_LOG << "find error in: " << wav_reader.Key();
         num_error++;
       }
