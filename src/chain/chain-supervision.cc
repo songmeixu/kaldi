@@ -431,11 +431,11 @@ bool ProtoSupervisionToTrainingGraph(
     AddSubsequentialLoop(subsequential_symbol, &phone_fst);
     fst::Project(&phone_fst, fst::PROJECT_INPUT);
   }
-  fst::ContextFst<StdArc> cfst(subsequential_symbol, trans_model.GetPhones(),
-                               disambig_syms, ctx_dep.ContextWidth(),
-                               ctx_dep.CentralPosition());
+  fst::InverseContextFst inv_cfst(subsequential_symbol, trans_model.GetPhones(),
+                                  disambig_syms, ctx_dep.ContextWidth(),
+                                  ctx_dep.CentralPosition());
   VectorFst<StdArc> context_dep_fst;
-  fst::ComposeContextFst(cfst, phone_fst, &context_dep_fst);
+  ComposeDeterministicOnDemandInverse(phone_fst, &inv_cfst, &context_dep_fst);
   // at this point, context_dep_fst will have indexes into 'ilabels' as its
   // input symbol (representing context-dependent phones), and phones on its
   // output.  We don't need the phones, so we'll project.
@@ -450,7 +450,7 @@ bool ProtoSupervisionToTrainingGraph(
   // when we compose with the denominator graph.
   h_cfg.transition_scale = 0.0;
 
-  VectorFst<StdArc> *h_fst = GetHTransducer(cfst.ILabelInfo(),
+  VectorFst<StdArc> *h_fst = GetHTransducer(inv_cfst.IlabelInfo(),
                                             ctx_dep,
                                             trans_model,
                                             h_cfg,
@@ -512,6 +512,7 @@ bool ProtoSupervisionToTrainingGraph(
   SortBreadthFirstSearch(out_fst);
   return true;
 }
+
 
 
 SupervisionSplitter::SupervisionSplitter(
