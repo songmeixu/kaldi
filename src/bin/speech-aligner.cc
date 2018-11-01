@@ -103,7 +103,6 @@ int main(int argc, char *argv[]) {
     BaseFloat min_duration = 0.0;
     mfcc_opts.Register(&po);
     PitchExtractionOptions pitch_opts;
-    pitch_opts.Register(&po);
     ProcessPitchOptions process_opts;
     process_opts.Register(&po);
     int32 length_tolerance = 0;
@@ -171,7 +170,7 @@ int main(int argc, char *argv[]) {
     // feats
     std::string wav_rspecifier = po.GetArg(1);
     Mfcc mfcc(mfcc_opts);
-    SequentialTableReader<WaveHolder> reader(wav_rspecifier);
+    SequentialTableReader<WaveHolder> wav_reader(wav_rspecifier);
     BaseFloatMatrixWriter kaldi_writer;  // typedef to TableWriter<something>.
     TableWriter<HtkMatrixHolder> htk_writer;
     if (!utt2spk_rspecifier.empty())
@@ -222,13 +221,13 @@ int main(int argc, char *argv[]) {
     double tot_like = 0.0;
     kaldi::int64 frame_count = 0;
 
-    for (; !reader.Done() || !transcript_reader.Done(); reader.Next(), transcript_reader.Next()) {
+    for (; !wav_reader.Done() || !transcript_reader.Done(); wav_reader.Next(), transcript_reader.Next()) {
       num_utts++;
-      std::string utt = reader.Key();
+      std::string utt = wav_reader.Key();
       KALDI_ASSERT(utt == transcript_reader.Key() && "wav and text key is not equal");
 
       // feats
-      const WaveData &wave_data = reader.Value();
+      const WaveData &wave_data = wav_reader.Value();
       if (wave_data.Duration() < min_duration) {
         KALDI_WARN << "File: " << utt << " is too short ("
                    << wave_data.Duration() << " sec): producing no output.";
@@ -300,11 +299,13 @@ int main(int argc, char *argv[]) {
         std::vector<Matrix<BaseFloat> > feats(2);
         feats[0] = mfcc_feat;
         feats[1] = processed_pitch;
-        for (int32 i = 1; i < po.NumArgs(); i++)
-          ReadKaldiObject(po.GetArg(i), &(feats[i-1]));
         Matrix<BaseFloat> output;
-        if (!AppendFeats(feats, utt, length_tolerance, &features))
-          return 1; // it will have printed a warning.
+        if (!AppendFeats(feats, utt, length_tolerance, &features)) {
+          KALDI_WARN << "Failed to combine mfcc and pitch for utterance "
+                     << utt;
+          num_err++;
+          continue; // it will have printed a warning.
+        }
       } catch (...) {
         KALDI_WARN << "Failed to compute pitch for utterance "
                    << utt;
