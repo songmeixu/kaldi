@@ -73,6 +73,24 @@ void AlignUtteranceWrapper(
     BaseFloatVectorWriter *per_frame_acwt_writer = NULL);
 
 
+void AlignOneUtteranceWrapper(
+    const AlignConfig &config,
+    const std::string &utt,
+    BaseFloat acoustic_scale,  // affects scores written to scores_writer, if
+    // present
+    fst::VectorFst<fst::StdArc> *fst,  // non-const in case config.careful ==
+    // true, we add loop.
+    DecodableInterface *decodable,  // not const but is really an input.
+    std::vector<int32> *alignment,
+    BaseFloat *score,
+    int32 *num_done,
+    int32 *num_error,
+    int32 *num_retried,
+    double *tot_like,
+    int64 *frame_count,
+    Vector<BaseFloat> *per_frame_acwt = NULL);
+
+
 
 /// This function modifies the decoding graph for what we call "careful
 /// alignment".  The problem we are trying to solve is that if the decoding eats

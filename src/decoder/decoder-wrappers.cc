@@ -546,4 +546,91 @@ void AlignUtteranceWrapper(
   }
 }
 
+
+void AlignOneUtteranceWrapper(
+    const AlignConfig &config,
+    const std::string &utt,
+    BaseFloat acoustic_scale,  // affects scores written to scores_writer, if
+    // present
+    fst::VectorFst<fst::StdArc> *fst,  // non-const in case config.careful ==
+    // true.
+    DecodableInterface *decodable,  // not const but is really an input.
+    std::vector<int32> &alignment,
+    BaseFloat *score,
+    int32 *num_done,
+    int32 *num_error,
+    int32 *num_retried,
+    double *tot_like,
+    int64 *frame_count,
+    Vector<BaseFloat> *per_frame_acwt) {
+
+  if ((config.retry_beam != 0 && config.retry_beam <= config.beam) ||
+      config.beam <= 0.0) {
+    KALDI_ERR << "Beams do not make sense: beam " << config.beam
+              << ", retry-beam " << config.retry_beam;
+  }
+
+  if (fst->Start() == fst::kNoStateId) {
+    KALDI_WARN << "Empty decoding graph for " << utt;
+    if (num_error != NULL) (*num_error)++;
+    return;
+  }
+
+  if (config.careful)
+    ModifyGraphForCarefulAlignment(fst);
+
+  FasterDecoderOptions decode_opts;
+  decode_opts.beam = config.beam;
+
+  FasterDecoder decoder(*fst, decode_opts);
+  decoder.Decode(decodable);
+
+  bool ans = decoder.ReachedFinal();  // consider only final states.
+
+  if (!ans && config.retry_beam != 0.0) {
+    if (num_retried != NULL) (*num_retried)++;
+    KALDI_WARN << "Retrying utterance " << utt << " with beam "
+               << config.retry_beam;
+    decode_opts.beam = config.retry_beam;
+    decoder.SetOptions(decode_opts);
+    decoder.Decode(decodable);
+    ans = decoder.ReachedFinal();
+  }
+
+  if (!ans) {  // Still did not reach final state.
+    KALDI_WARN << "Did not successfully decode file " << utt << ", len = "
+               << decodable->NumFramesReady();
+    if (num_error != NULL) (*num_error)++;
+    return;
+  }
+
+  fst::VectorFst<LatticeArc> decoded;  // linear FST.
+  decoder.GetBestPath(&decoded);
+  if (decoded.NumStates() == 0) {
+    KALDI_WARN << "Error getting best path from decoder (likely a bug)";
+    if (num_error != NULL) (*num_error)++;
+    return;
+  }
+
+  std::vector<int32> words;
+  LatticeWeight weight;
+
+  GetLinearSymbolSequence(decoded, &alignment, &words, &weight);
+  BaseFloat like = -(weight.Value1()+weight.Value2()) / acoustic_scale;
+
+  if (num_done != NULL) (*num_done)++;
+  if (tot_like != NULL) (*tot_like) += like;
+  if (frame_count != NULL) (*frame_count) += decodable->NumFramesReady();
+
+  if (score != NULL)
+    (*score) = -(weight.Value1()+weight.Value2());
+
+  Vector<BaseFloat> per_frame_loglikes;
+  if (per_frame_acwt != NULL) {
+    GetPerFrameAcousticCosts(decoded, &per_frame_loglikes);
+    per_frame_loglikes.Scale(-1 / acoustic_scale);
+    (*per_frame_acwt) = per_frame_loglikes;
+  }
+}
+
 } // end namespace kaldi.

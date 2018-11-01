@@ -36,11 +36,13 @@
 #include "gmm/decodable-am-diag-gmm.h"
 #include "lat/kaldi-lattice.h" // for {Compact}LatticeArc
 
+#include "fst/fstlib.h"
+
 namespace kaldi {
 
 // returns true if successfully appended.
 bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
-                 std::string utt,
+                 const std::string &utt,
                  int32 tolerance,
                  Matrix<BaseFloat> *out) {
   // Check the lengths
@@ -67,10 +69,10 @@ bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
   }
   out->Resize(min_len, tot_dim);
   int32 dim_offset = 0;
-  for (int32 i = 0; i < in.size(); i++) {
-    int32 this_dim = in[i].NumCols();
+  for (const auto i : in) {
+    int32 this_dim = i.NumCols();
     out->Range(0, min_len, dim_offset, this_dim).CopyFromMat(
-        in[i].Range(0, min_len, 0, this_dim));
+        i.Range(0, min_len, 0, this_dim));
     dim_offset += this_dim;
   }
   return true;
@@ -125,13 +127,15 @@ int main(int argc, char *argv[]) {
     gopts.self_loop_scale = 0.0;  // Ditto for self-loop probs.
 
     // align
-    std::string scores_wspecifier;
     AlignConfig align_config;
     BaseFloat acoustic_scale = 1.0;
     BaseFloat transition_scale = 1.0;
     BaseFloat self_loop_scale = 1.0;
-    std::string per_frame_acwt_wspecifier;
     align_config.Register(&po);
+    bool per_frame = false;
+    bool write_lengths = false;
+    bool ctm_output = false;
+    BaseFloat frame_shift = 0.01;
 
     // Register the options
     // feats
@@ -169,6 +173,16 @@ int main(int argc, char *argv[]) {
     po.Register("write-per-frame-acoustic-loglikes", &per_frame_acwt_wspecifier,
                 "Wspecifier for table of vectors containing the acoustic log-likelihoods "
                 "per frame for each utterance. E.g. ark:foo/per_frame_logprobs.1.ark");
+    po.Register("ctm-output", &ctm_output,
+                "If true, output the alignments in ctm format "
+                "(the confidences will be set to 1)");
+    po.Register("frame-shift", &frame_shift,
+                "frame shift used to control the times of the ctm output");
+    po.Register("per-frame", &per_frame,
+                "If true, write out the frame-level phone alignment "
+                "(else phone sequence)");
+    po.Register("write-lengths", &write_lengths,
+                "If true, write the #frames for each phone (different format)");
 
     po.Read(argc, argv);
 
@@ -226,9 +240,18 @@ int main(int argc, char *argv[]) {
       am_gmm.Read(ki.Stream(), binary);
     }
 
-    Int32VectorWriter alignment_writer(alignment_wspecifier);
-    BaseFloatWriter scores_writer(scores_wspecifier);
-    BaseFloatVectorWriter per_frame_acwt_writer(per_frame_acwt_wspecifier);
+    std::string empty;
+    Int32VectorWriter phones_writer(ctm_output ? empty :
+                                    (write_lengths ? empty : alignment_wspecifier));
+    Int32PairVectorWriter pair_writer(ctm_output ? empty :
+                                      (write_lengths ? alignment_wspecifier : empty));
+
+    std::string ctm_wxfilename(ctm_output ? po.GetArg(3) : empty);
+    Output ctm_writer(ctm_wxfilename, false);
+    if (ctm_output) {
+      ctm_writer.Stream() << std::fixed;
+      ctm_writer.Stream().precision(frame_shift >= 0.01 ? 2 : 3);
+    }
 
     int32 num_utts = 0, num_success = 0, num_err = 0, num_retry = 0;
     double tot_like = 0.0;
@@ -237,6 +260,7 @@ int main(int argc, char *argv[]) {
     for (; !wav_reader.Done() || !transcript_reader.Done(); wav_reader.Next(), transcript_reader.Next()) {
       num_utts++;
       std::string utt = wav_reader.Key();
+      KALDI_LOG << utt;
       KALDI_ASSERT(utt == transcript_reader.Key() && "wav and text key is not equal");
 
       // feats
@@ -338,16 +362,14 @@ int main(int argc, char *argv[]) {
       if (!gc.CompileGraphFromText(transcript, &decode_fst)) {
         decode_fst.DeleteStates();  // Just make it empty.
       }
-      if (decode_fst.Start() != fst::kNoStateId) {
-        num_success++;
-      } else {
+      if (decode_fst.Start() == fst::kNoStateId) {
         KALDI_WARN << "Empty decoding graph for utterance "
                    << utt;
         num_err++;
         continue;
       }
-      KALDI_LOG << "compile-train-graphs: succeeded for " << num_success
-                << " graphs, failed for " << num_err;
+      KALDI_VLOG(2) << "compile-train-graphs: succeeded for " << num_success
+                    << " graphs, failed for " << num_err;
 
       // align,
       if (features.NumRows() == 0) {
@@ -363,12 +385,53 @@ int main(int argc, char *argv[]) {
       }
       DecodableAmDiagGmmScaled gmm_decodable(am_gmm, trans_model, features,
                                              acoustic_scale);
-      KALDI_LOG << utt;
-      AlignUtteranceWrapper(align_config, utt,
-                            acoustic_scale, &decode_fst, &gmm_decodable,
-                            &alignment_writer, &scores_writer,
-                            &num_success, &num_err, &num_retry,
-                            &tot_like, &frame_count, &per_frame_acwt_writer);
+      std::vector<int32> alignment;
+      Vector<BaseFloat> per_frame_acwt;
+      BaseFloat score;
+      AlignOneUtteranceWrapper(align_config, utt,
+                               acoustic_scale, &decode_fst, &gmm_decodable,
+                               &alignment, &score,
+                               &num_success, &num_err, &num_retry,
+                               &tot_like, &frame_count, &per_frame_acwt);
+
+      std::vector<std::vector<int32> > split;
+      SplitToPhones(trans_model, alignment, &split);
+
+      if (ctm_output) {
+        BaseFloat phone_start = 0.0;
+        for (auto v : split) {
+          KALDI_ASSERT(!v.empty());
+          int32 phone = trans_model.TransitionIdToPhone(v[0]);
+          size_t num_repeats = v.size();
+          ctm_writer.Stream() << utt << " 1 " << phone_start << " "
+                              << (frame_shift * num_repeats) << " " << phone << std::endl;
+          phone_start += frame_shift * num_repeats;
+        }
+      } else if (!write_lengths) {
+        std::vector<int32> phones;
+        for (auto v : split) {
+          KALDI_ASSERT(!v.empty());
+          int32 phone = trans_model.TransitionIdToPhone(v[0]);
+          size_t num_repeats = v.size();
+          //KALDI_ASSERT(num_repeats!=0);
+          if (per_frame)
+            for(int32 j = 0; j < num_repeats; j++)
+              phones.push_back(phone);
+          else
+            phones.push_back(phone);
+        }
+        phones_writer.Write(utt, phones);
+      } else {
+        std::vector<std::pair<int32, int32> > pairs;
+        for (auto v : split) {
+          KALDI_ASSERT(!v.empty());
+          int32 phone = trans_model.TransitionIdToPhone(v[0]);
+          size_t num_repeats = v.size();
+          //KALDI_ASSERT(num_repeats!=0);
+          pairs.emplace_back(std::make_pair(phone, num_repeats));
+        }
+        pair_writer.Write(utt, pairs);
+      }
 
       if (num_utts % 10 == 0)
         KALDI_LOG << "Processed " << num_utts << " utterances";
