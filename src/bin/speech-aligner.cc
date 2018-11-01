@@ -387,43 +387,45 @@ int main(int argc, char *argv[]) {
                                &num_success, &num_err, &num_retry,
                                &tot_like, &frame_count, &per_frame_acwt);
 
-      std::vector<std::vector<int32> > split;
-      SplitToPhones(trans_model, alignment, &split);
+      if (!alignment.empty()) {
+        std::vector<std::vector<int32> > split;
+        SplitToPhones(trans_model, alignment, &split);
 
-      if (ctm_output) {
-        BaseFloat phone_start = 0.0;
-        for (auto v : split) {
-          KALDI_ASSERT(!v.empty());
-          int32 phone = trans_model.TransitionIdToPhone(v[0]);
-          size_t num_repeats = v.size();
-          ctm_writer.Stream() << utt << " 1 " << phone_start << " "
-                              << (frame_shift * num_repeats) << " " << phone << std::endl;
-          phone_start += frame_shift * num_repeats;
-        }
-      } else if (!write_lengths) {
-        std::vector<int32> phones;
-        for (auto v : split) {
-          KALDI_ASSERT(!v.empty());
-          int32 phone = trans_model.TransitionIdToPhone(v[0]);
-          size_t num_repeats = v.size();
-          //KALDI_ASSERT(num_repeats!=0);
-          if (per_frame)
-            for(int32 j = 0; j < num_repeats; j++)
+        if (ctm_output) {
+          BaseFloat phone_start = 0.0;
+          for (size_t i = 0; i < split.size(); i++) {
+            KALDI_ASSERT(!split[i].empty());
+            int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
+            int32 num_repeats = split[i].size();
+            ctm_writer.Stream() << utt << " 1 " << phone_start << " "
+                                << (frame_shift * num_repeats) << " " << phone << std::endl;
+            phone_start += frame_shift * num_repeats;
+          }
+        } else if (!write_lengths) {
+          std::vector<int32> phones;
+          for (size_t i = 0; i < split.size(); i++) {
+            KALDI_ASSERT(!split[i].empty());
+            int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
+            int32 num_repeats = split[i].size();
+            //KALDI_ASSERT(num_repeats!=0);
+            if (per_frame)
+              for(int32 j = 0; j < num_repeats; j++)
+                phones.push_back(phone);
+            else
               phones.push_back(phone);
-          else
-            phones.push_back(phone);
+          }
+          phones_writer.Write(utt, phones);
+        } else {
+          std::vector<std::pair<int32, int32> > pairs;
+          for (size_t i = 0; i < split.size(); i++) {
+            KALDI_ASSERT(!split[i].empty());
+            int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
+            int32 num_repeats = split[i].size();
+            //KALDI_ASSERT(num_repeats!=0);
+            pairs.emplace_back(std::make_pair(phone, num_repeats));
+          }
+          pair_writer.Write(utt, pairs);
         }
-        phones_writer.Write(utt, phones);
-      } else {
-        std::vector<std::pair<int32, int32> > pairs;
-        for (auto v : split) {
-          KALDI_ASSERT(!v.empty());
-          int32 phone = trans_model.TransitionIdToPhone(v[0]);
-          size_t num_repeats = v.size();
-          //KALDI_ASSERT(num_repeats!=0);
-          pairs.emplace_back(std::make_pair(phone, num_repeats));
-        }
-        pair_writer.Write(utt, pairs);
       }
 
       if (num_utts % 10 == 0)
