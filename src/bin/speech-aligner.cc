@@ -113,7 +113,6 @@ int main(int argc, char *argv[]) {
     bool norm_vars = false;
     bool norm_means = true;
     DeltaFeaturesOptions delta_opts;
-    delta_opts.Register(&po);
 
     // graph
     std::string tree_rxfilename;
@@ -135,7 +134,7 @@ int main(int argc, char *argv[]) {
     bool per_frame = false;
     bool write_lengths = false;
     bool ctm_output = false;
-    BaseFloat frame_shift = 0.01;
+    BaseFloat frame_shift = 0.005;
 
     // Register the options
     // feats
@@ -172,8 +171,6 @@ int main(int argc, char *argv[]) {
     po.Register("ctm-output", &ctm_output,
                 "If true, output the alignments in ctm format "
                 "(the confidences will be set to 1)");
-    po.Register("frame-shift", &frame_shift,
-                "frame shift used to control the times of the ctm output");
     po.Register("per-frame", &per_frame,
                 "If true, write out the frame-level phone alignment "
                 "(else phone sequence)");
