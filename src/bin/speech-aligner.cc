@@ -20,6 +20,7 @@
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
 #include "feat/feature-mfcc.h"
+#include "feat/pitch-functions.h"
 #include "feat/wave-reader.h"
 
 #include "tree/context-dep.h"
@@ -32,6 +33,49 @@
 #include "decoder/decoder-wrappers.h"
 #include "gmm/decodable-am-diag-gmm.h"
 #include "lat/kaldi-lattice.h" // for {Compact}LatticeArc
+
+namespace kaldi {
+
+// returns true if successfully appended.
+bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
+                 std::string utt,
+                 int32 tolerance,
+                 Matrix<BaseFloat> *out) {
+  // Check the lengths
+  int32 min_len = in[0].NumRows(),
+      max_len = in[0].NumRows(),
+      tot_dim = in[0].NumCols();
+  for (int32 i = 1; i < in.size(); i++) {
+    int32 len = in[i].NumRows(), dim = in[i].NumCols();
+    tot_dim += dim;
+    if(len < min_len) min_len = len;
+    if(len > max_len) max_len = len;
+  }
+  if (max_len - min_len > tolerance || min_len == 0) {
+    KALDI_WARN << "Length mismatch " << max_len << " vs. " << min_len
+               << (utt.empty() ? "" : " for utt ") << utt
+               << " exceeds tolerance " << tolerance;
+    out->Resize(0, 0);
+    return false;
+  }
+  if (max_len - min_len > 0) {
+    KALDI_VLOG(2) << "Length mismatch " << max_len << " vs. " << min_len
+                  << (utt.empty() ? "" : " for utt ") << utt
+                  << " within tolerance " << tolerance;
+  }
+  out->Resize(min_len, tot_dim);
+  int32 dim_offset = 0;
+  for (int32 i = 0; i < in.size(); i++) {
+    int32 this_dim = in[i].NumCols();
+    out->Range(0, min_len, dim_offset, this_dim).CopyFromMat(
+        in[i].Range(0, min_len, 0, this_dim));
+    dim_offset += this_dim;
+  }
+  return true;
+}
+
+
+}
 
 int main(int argc, char *argv[]) {
   try {
@@ -58,6 +102,11 @@ int main(int argc, char *argv[]) {
     int32 channel = -1;
     BaseFloat min_duration = 0.0;
     mfcc_opts.Register(&po);
+    PitchExtractionOptions pitch_opts;
+    pitch_opts.Register(&po);
+    ProcessPitchOptions process_opts;
+    process_opts.Register(&po);
+    int32 length_tolerance = 0;
 
     // graph
     std::string tree_rxfilename;
@@ -93,6 +142,10 @@ int main(int argc, char *argv[]) {
                                      "0 -> left, 1 -> right)");
     po.Register("min-duration", &min_duration, "Minimum duration of segments "
                                                "to process (in seconds).");
+    po.Register("length-tolerance", &length_tolerance,
+                "If length is different, trim as shortest up to a frame "
+                " difference of length-tolerance, otherwise exclude segment.");
+
     // graph
     po.Register("tree-rxfilename", &tree_rxfilename, "tree");
     po.Register("model-rxfilename", &model_rxfilename, "model");
@@ -121,8 +174,8 @@ int main(int argc, char *argv[]) {
     SequentialTableReader<WaveHolder> reader(wav_rspecifier);
     BaseFloatMatrixWriter kaldi_writer;  // typedef to TableWriter<something>.
     TableWriter<HtkMatrixHolder> htk_writer;
-    if (utt2spk_rspecifier != "")
-      KALDI_ASSERT(vtln_map_rspecifier != "" && "the utt2spk option is only "
+    if (!utt2spk_rspecifier.empty())
+      KALDI_ASSERT(!vtln_map_rspecifier.empty() && "the utt2spk option is only "
                                                 "needed if the vtln-map option is used.");
     RandomAccessBaseFloatReaderMapped vtln_map_reader(vtln_map_rspecifier,
                                                       utt2spk_rspecifier);
@@ -140,14 +193,14 @@ int main(int argc, char *argv[]) {
     VectorFst<StdArc> *lex_fst = fst::ReadFstKaldi(lex_rxfilename);
 
     std::vector<int32> disambig_syms;
-    if (disambig_rxfilename != "")
+    if (!disambig_rxfilename.empty())
       if (!ReadIntegerVectorSimple(disambig_rxfilename, &disambig_syms))
         KALDI_ERR << "fstcomposecontext: Could not read disambiguation symbols from "
                   << disambig_rxfilename;
 
     TrainingGraphCompiler gc(trans_model, ctx_dep, lex_fst, disambig_syms, gopts);
 
-    lex_fst = NULL;  // we gave ownership to gc.
+    lex_fst = nullptr;  // we gave ownership to gc.
 
     SequentialInt32VectorReader transcript_reader(transcript_rspecifier);
 
@@ -174,7 +227,7 @@ int main(int argc, char *argv[]) {
       std::string utt = reader.Key();
       KALDI_ASSERT(utt == transcript_reader.Key() && "wav and text key is not equal");
 
-      // feats, features
+      // feats
       const WaveData &wave_data = reader.Value();
       if (wave_data.Duration() < min_duration) {
         KALDI_WARN << "File: " << utt << " is too short ("
@@ -202,7 +255,7 @@ int main(int argc, char *argv[]) {
         }
       }
       BaseFloat vtln_warp_local;  // Work out VTLN warp factor.
-      if (vtln_map_rspecifier != "") {
+      if (!vtln_map_rspecifier.empty()) {
         if (!vtln_map_reader.HasKey(utt)) {
           KALDI_WARN << "No vtln-map entry for utterance-id (or speaker-id) "
                      << utt;
@@ -214,9 +267,10 @@ int main(int argc, char *argv[]) {
         vtln_warp_local = vtln_warp;
       }
       SubVector<BaseFloat> waveform(wave_data.Data(), this_chan);
-      Matrix<BaseFloat> features;
+      Matrix<BaseFloat> mfcc_feat;
+      /// mfcc
       try {
-        mfcc.ComputeFeatures(waveform, wave_data.SampFreq(), vtln_warp_local, &features);
+        mfcc.ComputeFeatures(waveform, wave_data.SampFreq(), vtln_warp_local, &mfcc_feat);
       } catch (...) {
         KALDI_WARN << "Failed to compute features for utterance "
                    << utt;
@@ -224,11 +278,38 @@ int main(int argc, char *argv[]) {
         continue;
       }
       if (subtract_mean) {
-        Vector<BaseFloat> mean(features.NumCols());
-        mean.AddRowSumMat(1.0, features);
-        mean.Scale(1.0 / features.NumRows());
-        for (int32 i = 0; i < features.NumRows(); i++)
-          features.Row(i).AddVec(-1.0, mean);
+        Vector<BaseFloat> mean(mfcc_feat.NumCols());
+        mean.AddRowSumMat(1.0, mfcc_feat);
+        mean.Scale(1.0f / mfcc_feat.NumRows());
+        for (int32 i = 0; i < mfcc_feat.NumRows(); i++)
+          mfcc_feat.Row(i).AddVec(-1.0f, mean);
+      }
+      /// pitch
+      if (pitch_opts.samp_freq != wave_data.SampFreq())
+        KALDI_ERR << "Sample frequency mismatch: you specified "
+                  << pitch_opts.samp_freq << " but data has "
+                  << wave_data.SampFreq() << " (use --sample-frequency "
+                  << "option).  Utterance is " << utt;
+      Matrix<BaseFloat> features;
+      try {
+        Matrix<BaseFloat> pitch;
+        ComputeKaldiPitch(pitch_opts, waveform, &pitch);
+        Matrix<BaseFloat> processed_pitch(pitch);
+        ProcessPitch(process_opts, pitch, &processed_pitch);
+
+        std::vector<Matrix<BaseFloat> > feats(2);
+        feats[0] = mfcc_feat;
+        feats[1] = processed_pitch;
+        for (int32 i = 1; i < po.NumArgs(); i++)
+          ReadKaldiObject(po.GetArg(i), &(feats[i-1]));
+        Matrix<BaseFloat> output;
+        if (!AppendFeats(feats, utt, length_tolerance, &features))
+          return 1; // it will have printed a warning.
+      } catch (...) {
+        KALDI_WARN << "Failed to compute pitch for utterance "
+                   << utt;
+        num_err++;
+        continue;
       }
 
       //graph, decode_fst
@@ -255,8 +336,8 @@ int main(int argc, char *argv[]) {
         continue;
       }
       {  // Add transition-probs to the FST.
-        std::vector<int32> disambig_syms;  // empty.
-        AddTransitionProbs(trans_model, disambig_syms,
+        std::vector<int32> disambig_syms_empty;  // empty.
+        AddTransitionProbs(trans_model, disambig_syms_empty,
                            transition_scale, self_loop_scale,
                            &decode_fst);
       }
