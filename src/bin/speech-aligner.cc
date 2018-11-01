@@ -167,12 +167,8 @@ int main(int argc, char *argv[]) {
                                                             "list of disambiguation symbols in phone symbol table");
 
     // align
-    po.Register("scores-wspecifier", &scores_wspecifier, "score");
     po.Register("acoustic-scale", &acoustic_scale,
                 "Scaling factor for acoustic likelihoods");
-    po.Register("write-per-frame-acoustic-loglikes", &per_frame_acwt_wspecifier,
-                "Wspecifier for table of vectors containing the acoustic log-likelihoods "
-                "per frame for each utterance. E.g. ark:foo/per_frame_logprobs.1.ark");
     po.Register("ctm-output", &ctm_output,
                 "If true, output the alignments in ctm format "
                 "(the confidences will be set to 1)");
@@ -390,7 +386,7 @@ int main(int argc, char *argv[]) {
       BaseFloat score;
       AlignOneUtteranceWrapper(align_config, utt,
                                acoustic_scale, &decode_fst, &gmm_decodable,
-                               &alignment, &score,
+                               alignment, &score,
                                &num_success, &num_err, &num_retry,
                                &tot_like, &frame_count, &per_frame_acwt);
 

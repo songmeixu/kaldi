@@ -81,7 +81,7 @@ void AlignOneUtteranceWrapper(
     fst::VectorFst<fst::StdArc> *fst,  // non-const in case config.careful ==
     // true, we add loop.
     DecodableInterface *decodable,  // not const but is really an input.
-    std::vector<int32> *alignment,
+    std::vector<int32> &alignment,
     BaseFloat *score,
     int32 *num_done,
     int32 *num_error,
