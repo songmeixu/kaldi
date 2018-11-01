@@ -121,15 +121,12 @@ int main(int argc, char *argv[]) {
     TrainingGraphCompilerOptions gopts;
     std::string disambig_rxfilename;
     gopts.Register(&po);
-    gopts.transition_scale = 0.0;  // Change the default to 0.0 since we will generally add the
-    // transition probs in the alignment phase (since they change eacm time)
-    gopts.self_loop_scale = 0.0;  // Ditto for self-loop probs.
 
     // align
     AlignConfig align_config;
-    BaseFloat acoustic_scale = 1.0;
+    BaseFloat acoustic_scale = 0.1;
     BaseFloat transition_scale = 1.0;
-    BaseFloat self_loop_scale = 1.0;
+    BaseFloat self_loop_scale = 0.1;
     align_config.Register(&po);
     bool per_frame = false;
     bool write_lengths = false;
@@ -217,6 +214,9 @@ int main(int argc, char *argv[]) {
         KALDI_ERR << "fstcomposecontext: Could not read disambiguation symbols from "
                   << disambig_rxfilename;
 
+    gopts.transition_scale = 0.0;  // Change the default to 0.0 since we will generally add the
+    // transition probs in the alignment phase (since they change eacm time)
+    gopts.self_loop_scale = 0.0;  // Ditto for self-loop probs.
     TrainingGraphCompiler gc(trans_model, ctx_dep, lex_fst, disambig_syms, gopts);
 
     lex_fst = nullptr;  // we gave ownership to gc.
