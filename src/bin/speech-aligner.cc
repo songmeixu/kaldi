@@ -103,7 +103,6 @@ int main(int argc, char *argv[]) {
     BaseFloat min_duration = 0.0;
     mfcc_opts.Register(&po);
     PitchExtractionOptions pitch_opts;
-    pitch_opts.frame_shift_ms = mfcc_opts.frame_opts.frame_shift_ms;
     ProcessPitchOptions process_opts;
     process_opts.Register(&po);
     int32 length_tolerance = 0;
@@ -171,6 +170,7 @@ int main(int argc, char *argv[]) {
     // feats
     std::string wav_rspecifier = po.GetArg(1);
     Mfcc mfcc(mfcc_opts);
+    pitch_opts.frame_shift_ms = mfcc_opts.frame_opts.frame_shift_ms;
     SequentialTableReader<WaveHolder> wav_reader(wav_rspecifier);
     BaseFloatMatrixWriter kaldi_writer;  // typedef to TableWriter<something>.
     TableWriter<HtkMatrixHolder> htk_writer;
