@@ -64,11 +64,11 @@ int main(int argc, char *argv[]) {
     std::string model_rxfilename;
     std::string lex_rxfilename;
     TrainingGraphCompilerOptions gopts;
+    std::string disambig_rxfilename;
+    gopts.Register(&po);
     gopts.transition_scale = 0.0;  // Change the default to 0.0 since we will generally add the
     // transition probs in the alignment phase (since they change eacm time)
     gopts.self_loop_scale = 0.0;  // Ditto for self-loop probs.
-    std::string disambig_rxfilename;
-    gopts.Register(&po);
 
     // align
     std::string scores_wspecifier;
