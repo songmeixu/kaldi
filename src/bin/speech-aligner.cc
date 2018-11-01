@@ -103,6 +103,7 @@ int main(int argc, char *argv[]) {
     BaseFloat min_duration = 0.0;
     mfcc_opts.Register(&po);
     PitchExtractionOptions pitch_opts;
+    pitch_opts.frame_shift_ms = mfcc_opts.frame_opts.frame_shift_ms;
     ProcessPitchOptions process_opts;
     process_opts.Register(&po);
     int32 length_tolerance = 0;
