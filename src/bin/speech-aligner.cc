@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) {
             int32 phone = trans_model.TransitionIdToPhone(split[i][0]);
             int32 num_repeats = split[i].size();
             //KALDI_ASSERT(num_repeats!=0);
-            pairs.emplace_back(std::make_pair(phone, num_repeats));
+            pairs.push_back(std::make_pair(phone, num_repeats));
           }
           pair_writer.Write(utt, pairs);
         }
