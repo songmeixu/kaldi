@@ -22,6 +22,8 @@
 #include "feat/feature-mfcc.h"
 #include "feat/pitch-functions.h"
 #include "feat/wave-reader.h"
+#include "transform/cmvn.h"
+#include "feat/feature-functions.h"
 
 #include "tree/context-dep.h"
 #include "hmm/transition-model.h"
@@ -106,6 +108,10 @@ int main(int argc, char *argv[]) {
     ProcessPitchOptions process_opts;
     process_opts.Register(&po);
     int32 length_tolerance = 0;
+    bool norm_vars = false;
+    bool norm_means = true;
+    DeltaFeaturesOptions delta_opts;
+    delta_opts.Register(&po);
 
     // graph
     std::string tree_rxfilename;
@@ -144,6 +150,10 @@ int main(int argc, char *argv[]) {
     po.Register("length-tolerance", &length_tolerance,
                 "If length is different, trim as shortest up to a frame "
                 " difference of length-tolerance, otherwise exclude segment.");
+    po.Register("norm-vars", &norm_vars, "If true, normalize variances.");
+    po.Register("norm-means", &norm_means, "You can set this to false to turn off mean "
+                                           "normalization.  Note, the same can be achieved by using 'fake' CMVN stats; "
+                                           "see the --fake option to compute_cmvn_stats.sh");
 
     // graph
     po.Register("tree-rxfilename", &tree_rxfilename, "tree");
@@ -179,6 +189,8 @@ int main(int argc, char *argv[]) {
                                                 "needed if the vtln-map option is used.");
     RandomAccessBaseFloatReaderMapped vtln_map_reader(vtln_map_rspecifier,
                                                       utt2spk_rspecifier);
+    if (norm_vars && !norm_means)
+      KALDI_ERR << "You cannot normalize the variance but not the mean.";
 
     // graph
     std::string transcript_rspecifier = po.GetArg(2);
@@ -290,7 +302,7 @@ int main(int argc, char *argv[]) {
                   << pitch_opts.samp_freq << " but data has "
                   << wave_data.SampFreq() << " (use --sample-frequency "
                   << "option).  Utterance is " << utt;
-      Matrix<BaseFloat> features;
+      Matrix<BaseFloat> base_feats;
       try {
         Matrix<BaseFloat> pitch;
         ComputeKaldiPitch(pitch_opts, waveform, &pitch);
@@ -301,7 +313,7 @@ int main(int argc, char *argv[]) {
         feats[0] = mfcc_feat;
         feats[1] = processed_pitch;
         Matrix<BaseFloat> output;
-        if (!AppendFeats(feats, utt, length_tolerance, &features)) {
+        if (!AppendFeats(feats, utt, length_tolerance, &base_feats)) {
           KALDI_WARN << "Failed to combine mfcc and pitch for utterance "
                      << utt;
           num_err++;
@@ -313,6 +325,12 @@ int main(int argc, char *argv[]) {
         num_err++;
         continue;
       }
+      Matrix<double> cmvn_stats;
+      Matrix<BaseFloat> features;
+      InitCmvnStats(base_feats.NumCols(), &cmvn_stats);
+      AccCmvnStats(base_feats, nullptr, &cmvn_stats);
+      ApplyCmvn(cmvn_stats, norm_vars, &base_feats);
+      ComputeDeltas(delta_opts, base_feats, &features);
 
       //graph, decode_fst
       VectorFst<StdArc> decode_fst;
