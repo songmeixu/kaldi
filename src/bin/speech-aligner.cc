@@ -17,6 +17,8 @@
 // See the Apache 2 License for the specific language governing permissions and
 // limitations under the License.
 
+#include <locale>
+#include <utility>
 #include <codecvt>
 
 #include "base/kaldi-common.h"
@@ -307,6 +309,7 @@ int main(int argc, char *argv[]) {
       KALDI_LOG << utt;
 
       std::getline(trans_text, line);
+      KALDI_ASSERT(!line.empty() && "key of text files is not equal that of wav files");
       std::vector<std::string> items;
       std::istringstream iss(line);
       for(std::string s; iss >> s; )
