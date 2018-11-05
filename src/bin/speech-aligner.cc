@@ -20,6 +20,7 @@
 #include <locale>
 #include <utility>
 #include <codecvt>
+#include <iomanip>
 
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
@@ -235,6 +236,9 @@ int main(int argc, char *argv[]) {
 
     // feats
     std::string wav_rspecifier = po.GetArg(1);
+    if (wav_rspecifier.substr(0, 3) != "scp:") {
+      wav_rspecifier = "scp:" + wav_rspecifier;
+    }
     Mfcc mfcc(mfcc_opts);
     pitch_opts.frame_shift_ms = mfcc_opts.frame_opts.frame_shift_ms;
     SequentialTableReader<WaveHolder> wav_reader(wav_rspecifier);
@@ -479,7 +483,7 @@ int main(int argc, char *argv[]) {
             //KALDI_ASSERT(num_repeats!=0);
             st = et;
             et += num_repeats * frame_shift;
-            output << st << et << phone << std::endl;
+            output << std::fixed << std::setprecision(3) << st << " " << et << " " << phone << std::endl;
           }
           output << "." << std::endl;
         } else if (ctm_output) {
