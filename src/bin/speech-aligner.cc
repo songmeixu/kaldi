@@ -173,7 +173,9 @@ int main(int argc, char *argv[]) {
     bool per_frame = false;
     bool write_lengths = false;
     bool ctm_output = false;
+    bool custom_output = true;
     BaseFloat frame_shift = 0.005;
+    std::string phone_syms_filename;
 
 
     // Register the options
@@ -205,7 +207,7 @@ int main(int argc, char *argv[]) {
     po.Register("read-disambig-syms", &disambig_rxfilename, "File containing "
                                                             "list of disambiguation symbols in phone symbol table");
     po.Register("word-symbol-table", &word_syms_filename,
-                "Symbol table for words [for debug output]");
+                "Symbol table for words");
 
     // align
     po.Register("acoustic-scale", &acoustic_scale,
@@ -218,6 +220,10 @@ int main(int argc, char *argv[]) {
                 "(else phone sequence)");
     po.Register("write-lengths", &write_lengths,
                 "If true, write the #frames for each phone (different format)");
+    po.Register("phone-symbol-table", &phone_syms_filename,
+                "Symbol table for phones");
+    po.Register("custom-output", &custom_output,
+                "If true, output in the custom format");
 
 
     po.Read(argc, argv);
@@ -282,14 +288,21 @@ int main(int argc, char *argv[]) {
     fst::SymbolTable *word_syms = NULL;
     word_syms = fst::SymbolTable::ReadText(word_syms_filename);
     if (!word_syms) {
-      KALDI_ERR << "Could not read symbol table from file "<<word_syms_filename;
+      KALDI_ERR << "Could not read symbol table from file " << word_syms_filename;
     }
 
     std::string empty;
-    Int32VectorWriter phones_writer(ctm_output ? empty :
+    Int32VectorWriter phones_writer(custom_output || ctm_output ? empty :
                                     (write_lengths ? empty : alignment_wspecifier));
-    Int32PairVectorWriter pair_writer(ctm_output ? empty :
+    Int32PairVectorWriter pair_writer(custom_output || ctm_output ? empty :
                                       (write_lengths ? alignment_wspecifier : empty));
+    std::ofstream output(alignment_wspecifier);
+
+    fst::SymbolTable *phone_syms = NULL;
+    phone_syms = fst::SymbolTable::ReadText(phone_syms_filename);
+    if (!phone_syms) {
+      KALDI_ERR << "Could not read symbol table from file " << phone_syms_filename;
+    }
 
     std::string ctm_wxfilename(ctm_output ? po.GetArg(3) : empty);
     Output ctm_writer(ctm_wxfilename, false);
@@ -455,7 +468,21 @@ int main(int argc, char *argv[]) {
         std::vector<std::vector<int32> > split;
         SplitToPhones(trans_model, alignment, &split);
 
-        if (ctm_output) {
+        if (custom_output) {
+          float st = 0.0, et = 0.0;
+          output << utt << std::endl;
+          for (size_t i = 0; i < split.size(); i++) {
+            KALDI_ASSERT(!split[i].empty());
+            int32 phone_id = trans_model.TransitionIdToPhone(split[i][0]);
+            std::string phone = phone_syms->Find(phone_id);
+            int32 num_repeats = split[i].size();
+            //KALDI_ASSERT(num_repeats!=0);
+            st = et;
+            et += num_repeats * frame_shift;
+            output << st << et << phone << std::endl;
+          }
+          output << "." << std::endl;
+        } else if (ctm_output) {
           BaseFloat phone_start = 0.0;
           for (size_t i = 0; i < split.size(); i++) {
             KALDI_ASSERT(!split[i].empty());
@@ -497,6 +524,8 @@ int main(int argc, char *argv[]) {
       KALDI_VLOG(2) << "Processed features for key " << utt;
     }
 
+    trans_text.close();
+    output.close();
     KALDI_LOG << " Done " << num_success << " out of " << num_utts
               << " utterances.";
     return (num_success != 0 ? 0 : 1);
