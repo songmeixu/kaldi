@@ -17,6 +17,8 @@
 // See the Apache 2 License for the specific language governing permissions and
 // limitations under the License.
 
+#include <codecvt>
+
 #include "base/kaldi-common.h"
 #include "util/common-utils.h"
 #include "feat/feature-mfcc.h"
@@ -79,14 +81,31 @@ bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
   return true;
 }
 
+
+std::wstring s2ws(const std::string& str) {
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.from_bytes(str);
+}
+
+std::string ws2s(const std::wstring& wstr) {
+  using convert_typeX = std::codecvt_utf8<wchar_t>;
+  std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+  return converterX.to_bytes(wstr);
+}
+
 bool SegWordFMM(fst::SymbolTable *word_syms, const string &sentence,
-    vector<string> &words, vector<int64> &word_ids) {
-  int maxLength = 10, index = 0, length = sentence.size();
+    vector<string> &words, vector<int32> &word_ids) {
+  std::wstring sent = s2ws(sentence);
+  int maxLength = 10, index = 0, length = sent.size();
   while (index < length) {
     int wordLen = length - index + 1 >= maxLength ? maxLength : length - index + 1;
     while (wordLen >= 1) {
-      string curWord = sentence.substr(index, wordLen);
-      int64 word_id = word_syms->Find(curWord);
+      std::wstring cur = sent.substr(index, wordLen);
+      string curWord = ws2s(cur);
+      int32 word_id = word_syms->Find(curWord);
       if (word_id != -1 || 1 == wordLen) {
         words.push_back(curWord);
         word_ids.push_back(word_id);
@@ -282,12 +301,12 @@ int main(int argc, char *argv[]) {
     kaldi::int64 frame_count = 0;
     std::string line;
 
-    for (; !wav_reader.Done() || !transcript_reader.Done(); wav_reader.Next(), transcript_reader.Next()) {
+    for (; !wav_reader.Done(); wav_reader.Next()) {
       num_utts++;
       std::string utt = wav_reader.Key();
       KALDI_LOG << utt;
 
-      std::getline(trans_file, line)
+      std::getline(trans_text, line);
       std::vector<std::string> items;
       std::istringstream iss(line);
       for(std::string s; iss >> s; )
