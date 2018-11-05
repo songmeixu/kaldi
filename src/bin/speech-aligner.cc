@@ -36,9 +36,10 @@
 #include "gmm/decodable-am-diag-gmm.h"
 #include "lat/kaldi-lattice.h" // for {Compact}LatticeArc
 
-#include "fst/fstlib.h"
-
 namespace kaldi {
+
+using std::vector;
+using std::string;
 
 // returns true if successfully appended.
 bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
@@ -78,6 +79,25 @@ bool AppendFeats(const std::vector<Matrix<BaseFloat> > &in,
   return true;
 }
 
+bool SegWordFMM(fst::SymbolTable *word_syms, const string &sentence,
+    vector<string> &words, vector<int64> &word_ids) {
+  int maxLength = 10, index = 0, length = sentence.size();
+  while (index < length) {
+    int wordLen = length - index + 1 >= maxLength ? maxLength : length - index + 1;
+    while (wordLen >= 1) {
+      string curWord = sentence.substr(index, wordLen);
+      int64 word_id = word_syms->Find(curWord);
+      if (word_id != -1 || 1 == wordLen) {
+        words.push_back(curWord);
+        word_ids.push_back(word_id);
+        index += wordLen;
+        break;
+      }
+      wordLen--;
+    }
+  }
+  return true;
+}
 
 }
 
@@ -118,8 +138,9 @@ int main(int argc, char *argv[]) {
     std::string tree_rxfilename;
     std::string model_rxfilename;
     std::string lex_rxfilename;
-    TrainingGraphCompilerOptions gopts;
     std::string disambig_rxfilename;
+    std::string word_syms_filename;
+    TrainingGraphCompilerOptions gopts;
     gopts.Register(&po);
 
     // align
@@ -132,6 +153,7 @@ int main(int argc, char *argv[]) {
     bool write_lengths = false;
     bool ctm_output = false;
     BaseFloat frame_shift = 0.005;
+
 
     // Register the options
     // feats
@@ -161,6 +183,8 @@ int main(int argc, char *argv[]) {
     po.Register("lex-rxfilename", &lex_rxfilename, "lexicon");
     po.Register("read-disambig-syms", &disambig_rxfilename, "File containing "
                                                             "list of disambiguation symbols in phone symbol table");
+    po.Register("word-symbol-table", &word_syms_filename,
+                "Symbol table for words [for debug output]");
 
     // align
     po.Register("acoustic-scale", &acoustic_scale,
@@ -173,6 +197,7 @@ int main(int argc, char *argv[]) {
                 "(else phone sequence)");
     po.Register("write-lengths", &write_lengths,
                 "If true, write the #frames for each phone (different format)");
+
 
     po.Read(argc, argv);
 
@@ -197,7 +222,7 @@ int main(int argc, char *argv[]) {
       KALDI_ERR << "You cannot normalize the variance but not the mean.";
 
     // graph
-    std::string transcript_rspecifier = po.GetArg(2);
+    std::string trans_file = po.GetArg(2);
 
     ContextDependency ctx_dep;  // the tree.
     ReadKaldiObject(tree_rxfilename, &ctx_dep);
@@ -221,7 +246,7 @@ int main(int argc, char *argv[]) {
 
     lex_fst = nullptr;  // we gave ownership to gc.
 
-    SequentialInt32VectorReader transcript_reader(transcript_rspecifier);
+    std::ifstream trans_text(trans_file);
 
     // align
     std::string alignment_wspecifier = po.GetArg(3);
@@ -231,6 +256,12 @@ int main(int argc, char *argv[]) {
       Input ki(model_rxfilename, &binary);
       trans_model.Read(ki.Stream(), binary);
       am_gmm.Read(ki.Stream(), binary);
+    }
+
+    fst::SymbolTable *word_syms = NULL;
+    word_syms = fst::SymbolTable::ReadText(word_syms_filename);
+    if (!word_syms) {
+      KALDI_ERR << "Could not read symbol table from file "<<word_syms_filename;
     }
 
     std::string empty;
@@ -249,12 +280,24 @@ int main(int argc, char *argv[]) {
     int32 num_utts = 0, num_success = 0, num_err = 0, num_retry = 0;
     double tot_like = 0.0;
     kaldi::int64 frame_count = 0;
+    std::string line;
 
     for (; !wav_reader.Done() || !transcript_reader.Done(); wav_reader.Next(), transcript_reader.Next()) {
       num_utts++;
       std::string utt = wav_reader.Key();
       KALDI_LOG << utt;
-      KALDI_ASSERT(utt == transcript_reader.Key() && "wav and text key is not equal");
+
+      std::getline(trans_file, line)
+      std::vector<std::string> items;
+      std::istringstream iss(line);
+      for(std::string s; iss >> s; )
+        items.push_back(s);
+      KALDI_ASSERT(items.size() == 2 && "transcript is not in \"key non-blank-characters\" format");
+      KALDI_ASSERT(utt == items[0] && "wav and text key is not equal");
+      std::string sentence = items[1];
+      std::vector<std::string> words;
+      std::vector<int32> word_ids;
+      SegWordFMM(word_syms, sentence, words, word_ids);
 
       // feats
       const WaveData &wave_data = wav_reader.Value();
@@ -351,8 +394,7 @@ int main(int argc, char *argv[]) {
 
       //graph, decode_fst
       VectorFst<StdArc> decode_fst;
-      const std::vector<int32> &transcript = transcript_reader.Value();
-      if (!gc.CompileGraphFromText(transcript, &decode_fst)) {
+      if (!gc.CompileGraphFromText(word_ids, &decode_fst)) {
         decode_fst.DeleteStates();  // Just make it empty.
       }
       if (decode_fst.Start() == fst::kNoStateId) {
