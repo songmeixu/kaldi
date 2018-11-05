@@ -495,7 +495,6 @@ int main(int argc, char *argv[]) {
       if (num_utts % 10 == 0)
         KALDI_LOG << "Processed " << num_utts << " utterances";
       KALDI_VLOG(2) << "Processed features for key " << utt;
-      num_success++;
     }
 
     KALDI_LOG << " Done " << num_success << " out of " << num_utts
