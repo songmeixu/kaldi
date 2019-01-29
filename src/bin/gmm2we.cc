@@ -62,7 +62,6 @@ static int gmm2htk(std::ostream &hmmdef_stream,
 
   std::vector<int32> phone_window;
   std::stringstream context_phns;
-  hmmdef_stream << "~h \"";
   for (size_t i = 1; i < e.size(); ++i) {
     if (i == 2)
       context_phns << "-";
@@ -80,10 +79,10 @@ static int gmm2htk(std::ostream &hmmdef_stream,
     } else
       context_phns << phn;
   }
-  hmmdef_stream << context_phns.str() << "\"" << std::endl;
+  hmmdef_stream << "~h \"" << context_phns.str() << "\"" << std::endl;
   statemap_stream << context_phns.str() << " ";
 
-  int32 P = ctx_dep.CentralPosition();
+  int32 P = (e.size() - 1) / 2;
   int32 central_phone = phone_window[P];
   const HmmTopology &topo = trans_model.GetTopo();
   const HmmTopology::TopologyEntry &entry = topo.TopologyForPhone(central_phone);
@@ -91,18 +90,36 @@ static int gmm2htk(std::ostream &hmmdef_stream,
   int32 num_pdf_classes = topo.NumPdfClasses(central_phone);
   std::vector<int32> pdf_ids(num_pdf_classes);
 
-  for (int32 pdf_class = 0; pdf_class < num_pdf_classes; pdf_class++) {
-    if (!ctx_dep.Compute(phone_window, pdf_class, &(pdf_ids[pdf_class]))) {
-      std::ostringstream tmp;
-      WriteIntegerVector(tmp, false, phone_window);
-      KALDI_ERR << "tree did not succeed in converting phone window "
-                << tmp.str();
+  if (phone_window.size() == 1 && phone_window[0] == 1) { // sil
+    pdf_ids.clear();
+    if (is_chain_gmm)
+      pdf_ids = {0, 1};
+    else
+      for (int32 i = 0; i < num_states; ++i) {
+        pdf_ids.push_back(i);
+      }
+  } else { // non-sil
+    for (int32 pdf_class = 0; pdf_class < num_pdf_classes; pdf_class++) {
+      if (!ctx_dep.Compute(phone_window, pdf_class, &(pdf_ids[pdf_class]))) {
+        std::ostringstream tmp;
+        WriteIntegerVector(tmp, false, phone_window);
+        KALDI_ERR << "tree did not succeed in converting phone window "
+                  << tmp.str();
+      }
     }
   }
 
   hmmdef_stream << "<BEGINHMM>" << std::endl;
   hmmdef_stream << "<NUMSTATES> " << num_states + 2 << std::endl;
   statemap_stream << num_states;
+  std::stringstream ss, ts; //state stream, trans stream
+
+  ts << "<TRANSP> " << num_states + 2 << std::endl;
+  ts << " 0 1" << std::string(" 0") * num_states << std::endl;
+  int32 trans_state;
+  int32 trans_id;
+  BaseFloat loop_prob;
+  BaseFloat out_prob;
 
   for (int32 hmm_state = 0;
        hmm_state < static_cast<int32>(entry.size());
@@ -118,36 +135,29 @@ static int gmm2htk(std::ostream &hmmdef_stream,
       forward_pdf = pdf_ids[forward_pdf_class];
       self_loop_pdf = pdf_ids[self_loop_pdf_class];
 
-      hmmdef_stream << "<STATE> " << hmm_state + 2 << std::endl;
-      hmmdef_stream << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
+      // state
+      ss << "<STATE> " << hmm_state + 2 << std::endl;
+      ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
       statemap_stream << " " << forward_pdf;
       if (is_chain_gmm)
         statemap_stream << " " << self_loop_pdf;
 
-      // print transion prob
-      hmmdef_stream << "<TRANSP> " << num_states + 2 << std::endl;
-      hmmdef_stream << " 0 1" << std::string(" 0") * num_states << std::endl;
-      int32 trans_state;
-      int32 trans_id;
-      BaseFloat loop_prob;
-      BaseFloat out_prob;
-
+      // transion
       trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
       trans_id = trans_model.PairToTransitionId(trans_state, 0);
       loop_prob = trans_model.GetTransitionProb(trans_id);
       trans_id = trans_model.PairToTransitionId(trans_state, 1);
       out_prob = trans_model.GetTransitionProb(trans_id);
       if (is_chain_gmm && hmm_state == 0)
-        hmmdef_stream << " 0 0 " << loop_prob << " " << out_prob << std::endl;
+        ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
       else
-        hmmdef_stream << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
+        ts << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
                       << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
-
     }
   }
 
-  hmmdef_stream << std::string(" 0") * (num_states + 2) << std::endl;
-  hmmdef_stream << "<ENDHMM>" << std::endl;
+  ts << std::string(" 0") * (num_states + 2) << std::endl;
+  hmmdef_stream << ss.str() << ts.str() << "<ENDHMM>" << std::endl;
   statemap_stream << " " << central_phone << std::endl;
 
   return 0;
@@ -197,10 +207,16 @@ void PrintUnseen(std::ostream &hmmdef_stream,
     hmmdef_stream << "<BEGINHMM>" << std::endl;
     hmmdef_stream << "<NUMSTATES> " << num_states + 2 << std::endl;
     statemap_stream << "sil-" << phn << "+sil" << " " << num_states;
-
-    hmmdef_stream << "<BEGINHMM>" << std::endl;
-    hmmdef_stream << "<NUMSTATES> " << num_states + 2 << std::endl;
     statemap_stream << num_states;
+
+    std::stringstream ss, ts; //state stream, trans stream
+
+    ts << "<TRANSP> " << num_states + 2 << std::endl;
+    ts << " 0 1" << std::string(" 0") * num_states << std::endl;
+    int32 trans_state;
+    int32 trans_id;
+    BaseFloat loop_prob;
+    BaseFloat out_prob;
 
     for (int32 hmm_state = 0;
          hmm_state < static_cast<int32>(entry.size());
@@ -216,34 +232,29 @@ void PrintUnseen(std::ostream &hmmdef_stream,
         forward_pdf = pdf_ids[forward_pdf_class];
         self_loop_pdf = pdf_ids[self_loop_pdf_class];
 
-        hmmdef_stream << "<STATE> " << hmm_state + 2 << std::endl;
-        hmmdef_stream << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
+        // state
+        ss << "<STATE> " << hmm_state + 2 << std::endl;
+        ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
         statemap_stream << " " << forward_pdf;
         if (is_chain_gmm)
           statemap_stream << " " << self_loop_pdf;
 
-        // print transion prob
-        hmmdef_stream << "<TRANSP> " << num_states + 2 << std::endl;
-        hmmdef_stream << " 0 1" << std::string(" 0") * num_states << std::endl;
-        int32 trans_state;
-        int32 trans_id;
-        BaseFloat loop_prob;
-        BaseFloat out_prob;
-
+        // transion
         trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
         trans_id = trans_model.PairToTransitionId(trans_state, 0);
         loop_prob = trans_model.GetTransitionProb(trans_id);
         trans_id = trans_model.PairToTransitionId(trans_state, 1);
         out_prob = trans_model.GetTransitionProb(trans_id);
         if (is_chain_gmm && hmm_state == 0)
-          hmmdef_stream << " 0 0 " << loop_prob << " " << out_prob << std::endl;
+          ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
         else
-          hmmdef_stream << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
+          ts << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
                         << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
       }
     }
 
-    hmmdef_stream << std::string(" 0") * (num_states + 2) << std::endl;
+    ts << std::string(" 0") * (num_states + 2) << std::endl;
+    hmmdef_stream << ss.str() << ts.str() << "<ENDHMM>" << std::endl;
     hmmdef_stream << "<ENDHMM>" << std::endl;
     statemap_stream << " " << phone_window[1] << std::endl;
   }
