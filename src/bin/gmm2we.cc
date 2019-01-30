@@ -46,43 +46,38 @@ std::string operator*(std::string const &s, size_t n) {
   return r;
 }
 
+std::string phonevec2ctxstr(const fst::SymbolTable *phones_symtab, std::vector<int32> &phone_window) {
+  std::stringstream ss;
+  for (size_t i = 0; i < phone_window.size(); ++i) {
+    if (i == 1)
+      ss << "-";
+    else if (i == 2)
+      ss << "+";
+
+    std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(phone_window[i]));
+    if (phn.empty()) {
+      // in case we can't resolve the symbol, plot the ID
+      KALDI_ERR << "No phone found for ID " << phone_window[i];
+      return "";
+    } else
+      ss << phn;
+  }
+  return ss.str();
+}
+
 // Generate a string representation of the given EventType;  the symtable is
 // optional, so is the request for positional symbols (tri-phones: 0-left,
 // 1-center, 2-right.
 static int gmm2htk(std::ostream &hmmdef_stream,
                    std::ostream &statemap_stream,
-                   EventType &e,
+                   std::ostream &tiedlist_stream,
+                   std::vector<int32> &phone_window,
+                   std::map<std::vector<int>, std::string> &hmm_map,
                    const fst::SymbolTable *phones_symtab,
                    const TransitionModel &trans_model,
                    const ContextDependency &ctx_dep) {
-  // make sure it's sorted so that the kPdfClass is the first element!
-  std::sort(e.begin(), e.end());
 
-  // first plot the pdf-class
-
-  std::vector<int32> phone_window;
-  std::stringstream context_phns;
-  for (size_t i = 1; i < e.size(); ++i) {
-    if (i == 2)
-      context_phns << "-";
-    else if (i == 3)
-      context_phns << "+";
-
-    phone_window.push_back(e[i].second);
-    if (e[i].second == 0)
-      return 0; // skip <eps>
-    std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(e[i].second));
-    if (phn.empty()) {
-      // in case we can't resolve the symbol, plot the ID
-      KALDI_WARN << "No phone found for ID " << e[i].second;
-      context_phns << e[i].second;
-    } else
-      context_phns << phn;
-  }
-  hmmdef_stream << "~h \"" << context_phns.str() << "\"" << std::endl;
-  statemap_stream << context_phns.str() << " ";
-
-  int32 P = (e.size() - 1) / 2;
+  int32 P = ctx_dep.CentralPosition();
   int32 central_phone = phone_window[P];
   const HmmTopology &topo = trans_model.GetTopo();
   const HmmTopology::TopologyEntry &entry = topo.TopologyForPhone(central_phone);
@@ -109,114 +104,25 @@ static int gmm2htk(std::ostream &hmmdef_stream,
     }
   }
 
-  hmmdef_stream << "<BEGINHMM>" << std::endl;
-  hmmdef_stream << "<NUMSTATES> " << num_states + 2 << std::endl;
-  statemap_stream << num_states;
-  std::stringstream ss, ts; //state stream, trans stream
+  std::string context_phns = phonevec2ctxstr(phones_symtab, phone_window);
 
-  ts << "<TRANSP> " << num_states + 2 << std::endl;
-  ts << " 0 1" << std::string(" 0") * num_states << std::endl;
-  int32 trans_state;
-  int32 trans_id;
-  BaseFloat loop_prob;
-  BaseFloat out_prob;
+  if (hmm_map.find(pdf_ids) != hmm_map.end()) {
+    tiedlist_stream << context_phns << " " << hmm_map[pdf_ids] << std::endl;
+    return 0;
+  } else {
+    tiedlist_stream << context_phns << std::endl;
+    hmm_map[pdf_ids] = context_phns;
 
-  for (int32 hmm_state = 0;
-       hmm_state < static_cast<int32>(entry.size());
-       hmm_state++) {
-    int32 forward_pdf_class = entry[hmm_state].forward_pdf_class, forward_pdf;
-    int32 self_loop_pdf_class = entry[hmm_state].self_loop_pdf_class, self_loop_pdf;
-    if (forward_pdf_class == kNoPdf) {  // nonemitting state.
-      forward_pdf = kNoPdf;
-      self_loop_pdf = kNoPdf;
-    } else {
-      KALDI_ASSERT(forward_pdf_class < static_cast<int32>(pdf_ids.size()));
-      KALDI_ASSERT(self_loop_pdf_class < static_cast<int32>(pdf_ids.size()));
-      forward_pdf = pdf_ids[forward_pdf_class];
-      self_loop_pdf = pdf_ids[self_loop_pdf_class];
+    hmmdef_stream << "~h \"" << context_phns << "\"" << std::endl;
+    statemap_stream << context_phns << " ";
 
-      // state
-      ss << "<STATE> " << hmm_state + 2 << std::endl;
-      ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
-      statemap_stream << " " << forward_pdf;
-      if (is_chain_gmm)
-        statemap_stream << " " << self_loop_pdf;
-
-      // transion
-      trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
-      trans_id = trans_model.PairToTransitionId(trans_state, 0);
-      loop_prob = trans_model.GetTransitionProb(trans_id);
-      trans_id = trans_model.PairToTransitionId(trans_state, 1);
-      out_prob = trans_model.GetTransitionProb(trans_id);
-      if (is_chain_gmm && hmm_state == 0)
-        ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
-      else
-        ts << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
-                      << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
-    }
-  }
-
-  ts << std::string(" 0") * (num_states + 2) << std::endl;
-  hmmdef_stream << ss.str() << ts.str() << "<ENDHMM>" << std::endl;
-  statemap_stream << " " << central_phone << std::endl;
-
-  return 0;
-}
-
-void PrintUnseen(std::ostream &hmmdef_stream,
-                 std::ostream &statemap_stream,
-                 const TransitionModel &trans_model,
-                 const fst::SymbolTable *phones_symtab,
-                 const Vector<double> *occs,
-                 const ContextDependency &ctx_dep) {
-  KALDI_ASSERT(occs->Dim() == trans_model.NumPdfs());
-  std::set<int32> unseen_phone;
-  for (int pdf = 0; pdf < occs->Dim(); ++pdf) {
-    if ((*occs)(pdf) != 0) {
-      continue;
-    }
-    std::vector<int32> pdfs(1, pdf), phones;
-    GetPhonesForPdfs(trans_model, pdfs, &phones);
-    KALDI_ASSERT(phones.size() == 1);
-    unseen_phone.insert(phones[0]);
-  }
-
-  for (std::set<int32>::iterator it = unseen_phone.begin(); it != unseen_phone.end(); ++it) {
-    std::string phn = phones_symtab->Find(*it);
-    std::vector<int32> phone_window(3, 1);
-    phone_window[1] = *it;
-
-    int32 P = ctx_dep.CentralPosition();
-    int32 central_phone = phone_window[P];
-    const HmmTopology &topo = trans_model.GetTopo();
-    const HmmTopology::TopologyEntry &entry = topo.TopologyForPhone(central_phone);
-    int num_states = entry.size() - 1;
-    int32 num_pdf_classes = topo.NumPdfClasses(central_phone);
-    std::vector<int32> pdf_ids(num_pdf_classes);
-
-    for (int32 pdf_class = 0; pdf_class < num_pdf_classes; pdf_class++) {
-      if (!ctx_dep.Compute(phone_window, pdf_class, &(pdf_ids[pdf_class]))) {
-        std::ostringstream tmp;
-        WriteIntegerVector(tmp, false, phone_window);
-        KALDI_ERR << "tree did not succeed in converting phone window "
-                  << tmp.str();
-      }
-    }
-
-    hmmdef_stream << "~h \"sil-" << phn << "+sil\"" << std::endl;
     hmmdef_stream << "<BEGINHMM>" << std::endl;
     hmmdef_stream << "<NUMSTATES> " << num_states + 2 << std::endl;
-    statemap_stream << "sil-" << phn << "+sil" << " " << num_states;
     statemap_stream << num_states;
 
     std::stringstream ss, ts; //state stream, trans stream
-
     ts << "<TRANSP> " << num_states + 2 << std::endl;
     ts << " 0 1" << std::string(" 0") * num_states << std::endl;
-    int32 trans_state;
-    int32 trans_id;
-    BaseFloat loop_prob;
-    BaseFloat out_prob;
 
     for (int32 hmm_state = 0;
          hmm_state < static_cast<int32>(entry.size());
@@ -240,23 +146,24 @@ void PrintUnseen(std::ostream &hmmdef_stream,
           statemap_stream << " " << self_loop_pdf;
 
         // transion
-        trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
-        trans_id = trans_model.PairToTransitionId(trans_state, 0);
-        loop_prob = trans_model.GetTransitionProb(trans_id);
+        int32 trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
+        int32 trans_id = trans_model.PairToTransitionId(trans_state, 0);
+        BaseFloat loop_prob = trans_model.GetTransitionProb(trans_id);
         trans_id = trans_model.PairToTransitionId(trans_state, 1);
-        out_prob = trans_model.GetTransitionProb(trans_id);
+        BaseFloat out_prob = trans_model.GetTransitionProb(trans_id);
         if (is_chain_gmm && hmm_state == 0)
           ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
         else
           ts << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
-                        << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
+             << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
       }
     }
 
     ts << std::string(" 0") * (num_states + 2) << std::endl;
     hmmdef_stream << ss.str() << ts.str() << "<ENDHMM>" << std::endl;
-    hmmdef_stream << "<ENDHMM>" << std::endl;
-    statemap_stream << " " << phone_window[1] << std::endl;
+    statemap_stream << " " << central_phone << std::endl;
+
+    return 0;
   }
 }
 
@@ -270,7 +177,7 @@ int main(int argc, const char *argv[]) {
         "convert kaldi hmm.mdl to state map, that used for building decode graph\n"
         "Usage:  gmm2we [option] <phones-symbol-table> <in-kaldi-mdl-file> <treeacc> <*.occs> <tree>\n"
         "e.g.: \n"
-        "gmm2we phones.txt final.mdl treeacc occs tree hmmdefs state.map\n";
+        "gmm2we phones.txt final.mdl tree hmmdefs state.map tied.list\n";
 
     bool chain = false;
     ParseOptions po(usage);
@@ -278,7 +185,7 @@ int main(int argc, const char *argv[]) {
 
     po.Read(argc, argv);
 
-    if (po.NumArgs() != 7) {
+    if (po.NumArgs() != 6) {
       po.PrintUsage();
       exit(1);
     }
@@ -287,14 +194,14 @@ int main(int argc, const char *argv[]) {
 
     std::string phones_symtab_filename = po.GetArg(1),
         model_in_filename = po.GetArg(2),
-        acc_filename = po.GetOptArg(3),
-        occ_filename = po.GetOptArg(4),
-        tree_filename = po.GetOptArg(5),
-        hmmdef_filename = po.GetOptArg(6),
-        statemap_filename = po.GetOptArg(7);
+        tree_filename = po.GetOptArg(3),
+        hmmdef_filename = po.GetOptArg(4),
+        statemap_filename = po.GetOptArg(5),
+        tiedlist_filename = po.GetOptArg(6);
 
     std::ofstream hmmdef_file(hmmdef_filename);
     std::ofstream statemap_file(statemap_filename);
+    std::ofstream tiedlist_file(tiedlist_filename);
 
     // 1. load phones.txt
     fst::SymbolTable *phones_symtab = fst::SymbolTable::ReadText(phones_symtab_filename);
@@ -338,35 +245,34 @@ int main(int argc, const char *argv[]) {
       }
     }
 
-    /// 3.3 print ~h proto for seen phones
-    BuildTreeStatsType stats;
-    {
-      bool binary_in;
-      GaussClusterable gc;  // dummy needed to provide type.
-      Input ki(acc_filename, &binary_in);
-      ReadBuildTreeStats(ki.Stream(), binary_in, gc, &stats);
-    }
-    //// read the tree, get all the leaves
+    /// 3.3 print ~h proto
+    //// enumerate every context phones
     ContextDependency ctx_dep;
     ReadKaldiObject(tree_filename, &ctx_dep);
-    //// now, for each tree stats element, query the tree to get the pdf-id
-    for (size_t i = 0; i < stats.size(); ++i) {
-      if (stats[i].first[0].second == 0) // only iter first state of seen phone_windows
-        gmm2htk(hmmdef_file, statemap_file, stats[i].first, phones_symtab, trans_model, ctx_dep);
-    }
+    std::map<std::vector<int>, std::string> hmm_map;
+    // triphones
+    if ((ctx_dep.ContextWidth() == 3) && (ctx_dep.CentralPosition() == 1)) {
+      // iter over all possible triphones
+      size_t nphones = phones_symtab->NumSymbols();
+      for (int32 ph = 2; ph < nphones; ++ph) { // not <eps> and sil
+        for (int32 l_ctx = 1; l_ctx < nphones; ++l_ctx) { // not <eps>
+          for (int32 p_ctx = 1; p_ctx < nphones; ++p_ctx) {
+            // triphone context vector
+            std::vector<int32> triphone;
+            triphone.push_back(l_ctx);
+            triphone.push_back(ph);
+            triphone.push_back(p_ctx);
 
-    /// 3.4 print ~h proto for unseen phones
-    Vector<double> occs;
-    if (occ_filename != "") {
-      bool binary_in;
-      Input ki(occ_filename, &binary_in);
-      occs.Read(ki.Stream(), binary_in);
+            gmm2htk(hmmdef_file, statemap_file, tiedlist_file, triphone, hmm_map, phones_symtab, trans_model, ctx_dep);
+          }
+        }
+      }
     }
-    PrintUnseen(hmmdef_file, statemap_file, trans_model, phones_symtab, &occs, ctx_dep);
 
     delete phones_symtab;
     hmmdef_file.close();
     statemap_file.close();
+    tiedlist_file.close();
 
     return 0;
   } catch (const std::exception &e) {
