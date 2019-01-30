@@ -65,9 +65,6 @@ std::string phonevec2ctxstr(const fst::SymbolTable *phones_symtab, std::vector<i
   return ss.str();
 }
 
-// Generate a string representation of the given EventType;  the symtable is
-// optional, so is the request for positional symbols (tri-phones: 0-left,
-// 1-center, 2-right.
 static int gmm2htk(std::ostream &hmmdef_stream,
                    std::ostream &statemap_stream,
                    std::ostream &tiedlist_stream,
@@ -82,6 +79,8 @@ static int gmm2htk(std::ostream &hmmdef_stream,
   const HmmTopology &topo = trans_model.GetTopo();
   const HmmTopology::TopologyEntry &entry = topo.TopologyForPhone(central_phone);
   int num_states = entry.size() - 1;
+  if (is_chain_gmm)
+    num_states += 1;
   int32 num_pdf_classes = topo.NumPdfClasses(central_phone);
   std::vector<int32> pdf_ids(num_pdf_classes);
 
@@ -139,23 +138,35 @@ static int gmm2htk(std::ostream &hmmdef_stream,
         self_loop_pdf = pdf_ids[self_loop_pdf_class];
 
         // state
-        ss << "<STATE> " << hmm_state + 2 << std::endl;
-        ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
-        statemap_stream << " " << forward_pdf;
-        if (is_chain_gmm)
-          statemap_stream << " " << self_loop_pdf;
+        if (is_chain_gmm) {
+          ss << "<STATE> " << hmm_state + 2 << std::endl;
+          ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
+          ss << "<STATE> " << hmm_state + 3 << std::endl;
+          ss << "~s \"PDFID_" << self_loop_pdf << "\"" << std::endl;
+          statemap_stream << " " << forward_pdf << " " << self_loop_pdf;
 
-        // transion
-        int32 trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
-        int32 trans_id = trans_model.PairToTransitionId(trans_state, 0);
-        BaseFloat loop_prob = trans_model.GetTransitionProb(trans_id);
-        trans_id = trans_model.PairToTransitionId(trans_state, 1);
-        BaseFloat out_prob = trans_model.GetTransitionProb(trans_id);
-        if (is_chain_gmm && hmm_state == 0)
+          // transion
+          int32 trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
+          int32 trans_id = trans_model.PairToTransitionId(trans_state, 0);
+          BaseFloat loop_prob = trans_model.GetTransitionProb(trans_id);
+          trans_id = trans_model.PairToTransitionId(trans_state, 1);
+          BaseFloat out_prob = trans_model.GetTransitionProb(trans_id);
           ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
-        else
+          ts << " 0 0 " << loop_prob << " " << out_prob << std::endl;
+        } else {
+          ss << "<STATE> " << hmm_state + 2 << std::endl;
+          ss << "~s \"PDFID_" << forward_pdf << "\"" << std::endl;
+          statemap_stream << " " << forward_pdf;
+
+          // transion
+          int32 trans_state = trans_model.TupleToTransitionState(central_phone, hmm_state, forward_pdf, self_loop_pdf);
+          int32 trans_id = trans_model.PairToTransitionId(trans_state, 0);
+          BaseFloat loop_prob = trans_model.GetTransitionProb(trans_id);
+          trans_id = trans_model.PairToTransitionId(trans_state, 1);
+          BaseFloat out_prob = trans_model.GetTransitionProb(trans_id);
           ts << " 0 " << std::string("0 ") * hmm_state << loop_prob << " " << out_prob
              << std::string(" 0") * (num_states - hmm_state - 1) << std::endl;
+        }
       }
     }
 
@@ -250,21 +261,21 @@ int main(int argc, const char *argv[]) {
     ContextDependency ctx_dep;
     ReadKaldiObject(tree_filename, &ctx_dep);
     std::map<std::vector<int>, std::string> hmm_map;
-    // triphones
-    if ((ctx_dep.ContextWidth() == 3) && (ctx_dep.CentralPosition() == 1)) {
+
+    if ((ctx_dep.ContextWidth() == 3) && (ctx_dep.CentralPosition() == 1)) { // triphones
       // iter over all possible triphones
       size_t nphones = phones_symtab->NumSymbols();
       for (int32 ph = 2; ph < nphones; ++ph) { // not <eps> and sil
-        for (int32 l_ctx = 1; l_ctx < nphones; ++l_ctx) { // not <eps>
-          for (int32 p_ctx = 1; p_ctx < nphones; ++p_ctx) {
+        for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
+          for (int32 rphn = 1; rphn < nphones; ++rphn) {
             // triphone context vector
             std::vector<int32> triphone;
-            triphone.push_back(l_ctx);
+            triphone.push_back(lphn);
             triphone.push_back(ph);
-            triphone.push_back(p_ctx);
+            triphone.push_back(rphn);
 
             bool no_aux_phn = true;
-            for(int pid = 0; pid < triphone.size(); ++pid) {
+            for (int pid = 0; pid < triphone.size(); ++pid) {
               std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(triphone[pid]));
               if (phn.find("#") == 0) {
                 no_aux_phn = false;
@@ -273,10 +284,42 @@ int main(int argc, const char *argv[]) {
             }
 
             if (no_aux_phn)
-              gmm2htk(hmmdef_file, statemap_file, tiedlist_file, triphone, hmm_map, phones_symtab, trans_model, ctx_dep);
+              gmm2htk(hmmdef_file,
+                      statemap_file,
+                      tiedlist_file,
+                      triphone,
+                      hmm_map,
+                      phones_symtab,
+                      trans_model,
+                      ctx_dep);
           }
         }
       }
+    } else if ((ctx_dep.ContextWidth() == 2) && (ctx_dep.CentralPosition() == 1)) { // left bi-phone (chain)
+      // iter over all possible left biphone
+      size_t nphones = phones_symtab->NumSymbols();
+      for (int32 ph = 2; ph < nphones; ++ph) { // not <eps> and sil
+        for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
+          // triphone context vector
+          std::vector<int32> biphone;
+          biphone.push_back(lphn);
+          biphone.push_back(ph);
+
+          bool no_aux_phn = true;
+          for (int pid = 0; pid < biphone.size(); ++pid) {
+            std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(biphone[pid]));
+            if (phn.find("#") == 0) {
+              no_aux_phn = false;
+              break;
+            }
+          }
+
+          if (no_aux_phn)
+            gmm2htk(hmmdef_file, statemap_file, tiedlist_file, biphone, hmm_map, phones_symtab, trans_model, ctx_dep);
+        }
+      }
+    } else if ((ctx_dep.ContextWidth() == 1) && (ctx_dep.CentralPosition() == 0)) { // mono
+      KALDI_ERR << "Not implemented";
     }
 
     delete phones_symtab;
