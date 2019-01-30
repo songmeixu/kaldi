@@ -84,29 +84,25 @@ static int gmm2htk(std::ostream &hmmdef_stream,
   int32 num_pdf_classes = topo.NumPdfClasses(central_phone);
   std::vector<int32> pdf_ids(num_pdf_classes);
 
-  if (phone_window.size() == 1 && phone_window[0] == 1) { // sil
-    pdf_ids.clear();
-    if (is_chain_gmm)
-      pdf_ids = {0, 1};
-    else
-      for (int32 i = 0; i < num_states; ++i) {
-        pdf_ids.push_back(i);
-      }
-  } else { // non-sil
-    for (int32 pdf_class = 0; pdf_class < num_pdf_classes; pdf_class++) {
-      if (!ctx_dep.Compute(phone_window, pdf_class, &(pdf_ids[pdf_class]))) {
-        std::ostringstream tmp;
-        WriteIntegerVector(tmp, false, phone_window);
-        KALDI_ERR << "tree did not succeed in converting phone window "
-                  << tmp.str();
-      }
+  for (int32 pdf_class = 0; pdf_class < num_pdf_classes; pdf_class++) {
+    if (!ctx_dep.Compute(phone_window, pdf_class, &(pdf_ids[pdf_class]))) {
+      std::ostringstream tmp;
+      WriteIntegerVector(tmp, false, phone_window);
+      KALDI_ERR << "tree did not succeed in converting phone window "
+                << tmp.str();
     }
   }
 
-  std::string context_phns = phonevec2ctxstr(phones_symtab, phone_window);
+  std::string context_phns;
+  if (central_phone == 1) {
+    context_phns = "sil";
+  } else {
+    context_phns = phonevec2ctxstr(phones_symtab, phone_window);
+  }
 
   if (hmm_map.find(pdf_ids) != hmm_map.end()) {
-    tiedlist_stream << context_phns << " " << hmm_map[pdf_ids] << std::endl;
+    if (central_phone != 1)
+      tiedlist_stream << context_phns << " " << hmm_map[pdf_ids] << std::endl;
     return 0;
   } else {
     tiedlist_stream << context_phns << std::endl;
@@ -265,7 +261,7 @@ int main(int argc, const char *argv[]) {
     if ((ctx_dep.ContextWidth() == 3) && (ctx_dep.CentralPosition() == 1)) { // triphones
       // iter over all possible triphones
       size_t nphones = phones_symtab->NumSymbols();
-      for (int32 ph = 2; ph < nphones; ++ph) { // not <eps> and sil
+      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps> and sil
         for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
           for (int32 rphn = 1; rphn < nphones; ++rphn) {
             // triphone context vector
@@ -298,7 +294,7 @@ int main(int argc, const char *argv[]) {
     } else if ((ctx_dep.ContextWidth() == 2) && (ctx_dep.CentralPosition() == 1)) { // left bi-phone (chain)
       // iter over all possible left biphone
       size_t nphones = phones_symtab->NumSymbols();
-      for (int32 ph = 2; ph < nphones; ++ph) { // not <eps> and sil
+      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps> and sil
         for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
           // triphone context vector
           std::vector<int32> biphone;
