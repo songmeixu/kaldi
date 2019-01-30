@@ -1,9 +1,6 @@
 //
 // Created by songmeixu on 2019-01-29.
 //
-
-// bin/show-transitions.cc
-//
 // Copyright 2009-2011  Microsoft Corporation
 //                2014  Johns Hopkins University (author: Daniel Povey)
 
@@ -261,7 +258,7 @@ int main(int argc, const char *argv[]) {
     if ((ctx_dep.ContextWidth() == 3) && (ctx_dep.CentralPosition() == 1)) { // triphones
       // iter over all possible triphones
       size_t nphones = phones_symtab->NumSymbols();
-      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps> and sil
+      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps>
         for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
           for (int32 rphn = 1; rphn < nphones; ++rphn) {
             // triphone context vector
@@ -294,9 +291,9 @@ int main(int argc, const char *argv[]) {
     } else if ((ctx_dep.ContextWidth() == 2) && (ctx_dep.CentralPosition() == 1)) { // left bi-phone (chain)
       // iter over all possible left biphone
       size_t nphones = phones_symtab->NumSymbols();
-      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps> and sil
+      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps>
         for (int32 lphn = 1; lphn < nphones; ++lphn) { // not <eps>
-          // triphone context vector
+          // biphone context vector
           std::vector<int32> biphone;
           biphone.push_back(lphn);
           biphone.push_back(ph);
@@ -315,7 +312,20 @@ int main(int argc, const char *argv[]) {
         }
       }
     } else if ((ctx_dep.ContextWidth() == 1) && (ctx_dep.CentralPosition() == 0)) { // mono
-      KALDI_ERR << "Not implemented";
+      // iter over all monophone
+      size_t nphones = phones_symtab->NumSymbols();
+      for (int32 ph = 1; ph < nphones; ++ph) { // not <eps>
+        // monophone
+        std::vector<int32> monophone;
+        monophone.push_back(ph);
+
+        std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(monophone[0]));
+        if (phn.find("#") == 0) {
+          continue;
+        }
+
+        gmm2htk(hmmdef_file, statemap_file, tiedlist_file, monophone, hmm_map, phones_symtab, trans_model, ctx_dep);
+      }
     }
 
     delete phones_symtab;
