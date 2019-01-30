@@ -175,7 +175,7 @@ int main(int argc, const char *argv[]) {
 
     const char *usage =
         "convert kaldi hmm.mdl to state map, that used for building decode graph\n"
-        "Usage:  gmm2we [option] <phones-symbol-table> <in-kaldi-mdl-file> <treeacc> <*.occs> <tree>\n"
+        "Usage:  gmm2we [option] <phones-symbol-table> <in-kaldi-mdl-file> <tree> <hmmdefs> <statemap> <tiedlist>\n"
         "e.g.: \n"
         "gmm2we phones.txt final.mdl tree hmmdefs state.map tied.list\n";
 
@@ -194,10 +194,10 @@ int main(int argc, const char *argv[]) {
 
     std::string phones_symtab_filename = po.GetArg(1),
         model_in_filename = po.GetArg(2),
-        tree_filename = po.GetOptArg(3),
-        hmmdef_filename = po.GetOptArg(4),
-        statemap_filename = po.GetOptArg(5),
-        tiedlist_filename = po.GetOptArg(6);
+        tree_filename = po.GetArg(3),
+        hmmdef_filename = po.GetArg(4),
+        statemap_filename = po.GetArg(5),
+        tiedlist_filename = po.GetArg(6);
 
     std::ofstream hmmdef_file(hmmdef_filename);
     std::ofstream statemap_file(statemap_filename);
@@ -263,7 +263,17 @@ int main(int argc, const char *argv[]) {
             triphone.push_back(ph);
             triphone.push_back(p_ctx);
 
-            gmm2htk(hmmdef_file, statemap_file, tiedlist_file, triphone, hmm_map, phones_symtab, trans_model, ctx_dep);
+            bool no_aux_phn = true;
+            for(int pid = 0; pid < triphone.size(); ++pid) {
+              std::string phn = phones_symtab->Find(static_cast<kaldi::int64>(triphone[pid]));
+              if (phn.find("#") == 0) {
+                no_aux_phn = false;
+                break;
+              }
+            }
+
+            if (no_aux_phn)
+              gmm2htk(hmmdef_file, statemap_file, tiedlist_file, triphone, hmm_map, phones_symtab, trans_model, ctx_dep);
           }
         }
       }
