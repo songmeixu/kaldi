@@ -1,5 +1,6 @@
 #!/bin/bash
 # Copyright 2012  Johns Hopkins University (Author: Daniel Povey)
+#           2019  Xiaohui Zhang
 # Apache 2.0
 
 
@@ -13,7 +14,10 @@ cmd=run.pl
 scale_opts="--transition-scale=1.0 --acoustic-scale=0.1 --self-loop-scale=0.1"
 num_iters=50    # Number of iterations of training
 max_iter_inc=30 # Last iter to increase #Gauss on.
-totgauss=8000 # Target #Gaussians.
+initial_beam=6 # beam used in the first iteration (set smaller to speed up initialization)
+regular_beam=10 # beam used after the first iteration
+retry_beam=40
+totgauss=1000 # Target #Gaussians.
 careful=false
 boost_silence=1.0 # Factor by which to boost silence likelihoods in alignment
 realign_iters="32 33 34 35 36 38 40 44 48";
@@ -95,7 +99,16 @@ if [ $stage -le -1 ]; then
       "ark,t:|gzip -c >$dir/ali.JOB.gz" || exit 1;
 fi
 
-beam=6 # will change to 10 below after 1st pass
+# In the following steps, the --min-gaussian-occupancy=3 option is important, otherwise
+# we fail to est "rare" phones and later on, they never align properly.
+
+if [ $stage -le 0 ]; then
+  gmm-est --min-gaussian-occupancy=3  --mix-up=$numgauss --power=$power \
+    $dir/0.mdl "gmm-sum-accs - $dir/0.*.acc|" $dir/1.mdl 2> $dir/log/update.0.log || exit 1;
+  rm $dir/0.*.acc
+fi
+
+beam=$initial_beam # will change to regular_beam below after 1st pass
 # note: using slightly wider beams for WSJ vs. RM.
 x=0
 while [ $x -lt $num_iters ]; do
@@ -105,7 +118,7 @@ while [ $x -lt $num_iters ]; do
       echo "$0: Aligning data"
       mdl="gmm-boost-silence --boost=$boost_silence `cat $lang/phones/optional_silence.csl` $dir/$x.mdl - |"
       $cmd JOB=1:$nj $dir/log/align.$x.JOB.log \
-        gmm-align-compiled $scale_opts --beam=$beam --retry-beam=$[$beam*4] --careful=$careful "$mdl" \
+        gmm-align-compiled $scale_opts --beam=$beam --retry-beam=$retry_beam --careful=$careful "$mdl" \
         "ark:gunzip -c $dir/fsts.JOB.gz|" "$feats" "ark,t:|gzip -c >$dir/ali.JOB.gz" \
         || exit 1;
     fi
@@ -121,7 +134,7 @@ while [ $x -lt $num_iters ]; do
   if [ $x -le $max_iter_inc ]; then
      numgauss=$[$numgauss+$incgauss];
   fi
-  beam=10
+  beam=$regular_beam
   x=$[$x+1]
 done
 

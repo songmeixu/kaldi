@@ -23,6 +23,7 @@ add_executable(kaldi
         src/base/kaldi-utils.cc
         src/base/kaldi-utils.h
         src/base/timer-test.cc
+        src/base/timer.cc
         src/base/timer.h
         src/base/version.h
         src/bin/acc-lda.cc
@@ -42,9 +43,9 @@ add_executable(kaldi
         src/bin/build-tree-two-level.cc
         src/bin/build-tree.cc
         src/bin/cluster-phones.cc
+        src/bin/compare-int-vector.cc
         src/bin/compile-graph.cc
         src/bin/compile-questions.cc
-        src/bin/compile-train-graphs-from-supervision.cc
         src/bin/compile-train-graphs-fsts.cc
         src/bin/compile-train-graphs.cc
         src/bin/compute-wer-bootci.cc
@@ -74,7 +75,6 @@ add_executable(kaldi
         src/bin/matrix-dim.cc
         src/bin/matrix-sum-rows.cc
         src/bin/matrix-sum.cc
-        src/bin/phones-to-ali.cc
         src/bin/phones-to-prons.cc
         src/bin/post-to-pdf-post.cc
         src/bin/post-to-phone-post.cc
@@ -184,6 +184,7 @@ add_executable(kaldi
         src/cudamatrix/cublas-wrappers.h
         src/decoder/biglm-faster-decoder.h
         src/decoder/decodable-mapped.h
+        src/decoder/decodable-matrix.cc
         src/decoder/decodable-matrix.h
         src/decoder/decodable-sum.h
         src/decoder/decoder-wrappers.cc
@@ -863,6 +864,8 @@ add_executable(kaldi
         src/nnet3/nnet-analyze.h
         src/nnet3/nnet-attention-component.cc
         src/nnet3/nnet-attention-component.h
+        src/nnet3/nnet-batch-compute.cc
+        src/nnet3/nnet-batch-compute.h
         src/nnet3/nnet-chain-diagnostics.cc
         src/nnet3/nnet-chain-diagnostics.h
         src/nnet3/nnet-chain-example.cc
@@ -946,6 +949,7 @@ add_executable(kaldi
         src/nnet3bin/nnet3-am-train-transitions.cc
         src/nnet3bin/nnet3-average.cc
         src/nnet3bin/nnet3-combine.cc
+        src/nnet3bin/nnet3-compute-batch.cc
         src/nnet3bin/nnet3-compute-from-egs.cc
         src/nnet3bin/nnet3-compute-prob.cc
         src/nnet3bin/nnet3-compute.cc
@@ -965,6 +969,7 @@ add_executable(kaldi
         src/nnet3bin/nnet3-get-egs.cc
         src/nnet3bin/nnet3-info.cc
         src/nnet3bin/nnet3-init.cc
+        src/nnet3bin/nnet3-latgen-faster-batch.cc
         src/nnet3bin/nnet3-latgen-faster-looped.cc
         src/nnet3bin/nnet3-latgen-faster-parallel.cc
         src/nnet3bin/nnet3-latgen-faster.cc
@@ -4878,80 +4883,194 @@ add_executable(kaldi
         tools/openfst/include/fst/verify.h
         tools/openfst/include/fst/visit.h
         tools/openfst/include/fst/weight.h
+        tools/openfst/src/bin/fstarcsort
         tools/openfst/src/bin/fstarcsort-main.cc
+        tools/openfst/src/bin/fstarcsort-main.o
         tools/openfst/src/bin/fstarcsort.cc
+        tools/openfst/src/bin/fstarcsort.o
+        tools/openfst/src/bin/fstclosure
         tools/openfst/src/bin/fstclosure-main.cc
+        tools/openfst/src/bin/fstclosure-main.o
         tools/openfst/src/bin/fstclosure.cc
+        tools/openfst/src/bin/fstclosure.o
+        tools/openfst/src/bin/fstcompile
         tools/openfst/src/bin/fstcompile-main.cc
+        tools/openfst/src/bin/fstcompile-main.o
         tools/openfst/src/bin/fstcompile.cc
+        tools/openfst/src/bin/fstcompile.o
+        tools/openfst/src/bin/fstcompose
         tools/openfst/src/bin/fstcompose-main.cc
+        tools/openfst/src/bin/fstcompose-main.o
         tools/openfst/src/bin/fstcompose.cc
+        tools/openfst/src/bin/fstcompose.o
+        tools/openfst/src/bin/fstconcat
         tools/openfst/src/bin/fstconcat-main.cc
+        tools/openfst/src/bin/fstconcat-main.o
         tools/openfst/src/bin/fstconcat.cc
+        tools/openfst/src/bin/fstconcat.o
+        tools/openfst/src/bin/fstconnect
         tools/openfst/src/bin/fstconnect-main.cc
+        tools/openfst/src/bin/fstconnect-main.o
         tools/openfst/src/bin/fstconnect.cc
+        tools/openfst/src/bin/fstconnect.o
+        tools/openfst/src/bin/fstconvert
         tools/openfst/src/bin/fstconvert-main.cc
+        tools/openfst/src/bin/fstconvert-main.o
         tools/openfst/src/bin/fstconvert.cc
+        tools/openfst/src/bin/fstconvert.o
+        tools/openfst/src/bin/fstdeterminize
         tools/openfst/src/bin/fstdeterminize-main.cc
+        tools/openfst/src/bin/fstdeterminize-main.o
         tools/openfst/src/bin/fstdeterminize.cc
+        tools/openfst/src/bin/fstdeterminize.o
+        tools/openfst/src/bin/fstdifference
         tools/openfst/src/bin/fstdifference-main.cc
+        tools/openfst/src/bin/fstdifference-main.o
         tools/openfst/src/bin/fstdifference.cc
+        tools/openfst/src/bin/fstdifference.o
+        tools/openfst/src/bin/fstdisambiguate
         tools/openfst/src/bin/fstdisambiguate-main.cc
+        tools/openfst/src/bin/fstdisambiguate-main.o
         tools/openfst/src/bin/fstdisambiguate.cc
+        tools/openfst/src/bin/fstdisambiguate.o
+        tools/openfst/src/bin/fstdraw
         tools/openfst/src/bin/fstdraw-main.cc
+        tools/openfst/src/bin/fstdraw-main.o
         tools/openfst/src/bin/fstdraw.cc
+        tools/openfst/src/bin/fstdraw.o
+        tools/openfst/src/bin/fstencode
         tools/openfst/src/bin/fstencode-main.cc
+        tools/openfst/src/bin/fstencode-main.o
         tools/openfst/src/bin/fstencode.cc
+        tools/openfst/src/bin/fstencode.o
+        tools/openfst/src/bin/fstepsnormalize
         tools/openfst/src/bin/fstepsnormalize-main.cc
+        tools/openfst/src/bin/fstepsnormalize-main.o
         tools/openfst/src/bin/fstepsnormalize.cc
+        tools/openfst/src/bin/fstepsnormalize.o
+        tools/openfst/src/bin/fstequal
         tools/openfst/src/bin/fstequal-main.cc
+        tools/openfst/src/bin/fstequal-main.o
         tools/openfst/src/bin/fstequal.cc
+        tools/openfst/src/bin/fstequal.o
+        tools/openfst/src/bin/fstequivalent
         tools/openfst/src/bin/fstequivalent-main.cc
+        tools/openfst/src/bin/fstequivalent-main.o
         tools/openfst/src/bin/fstequivalent.cc
+        tools/openfst/src/bin/fstequivalent.o
+        tools/openfst/src/bin/fstinfo
         tools/openfst/src/bin/fstinfo-main.cc
+        tools/openfst/src/bin/fstinfo-main.o
         tools/openfst/src/bin/fstinfo.cc
+        tools/openfst/src/bin/fstinfo.o
+        tools/openfst/src/bin/fstintersect
         tools/openfst/src/bin/fstintersect-main.cc
+        tools/openfst/src/bin/fstintersect-main.o
         tools/openfst/src/bin/fstintersect.cc
+        tools/openfst/src/bin/fstintersect.o
+        tools/openfst/src/bin/fstinvert
         tools/openfst/src/bin/fstinvert-main.cc
+        tools/openfst/src/bin/fstinvert-main.o
         tools/openfst/src/bin/fstinvert.cc
+        tools/openfst/src/bin/fstinvert.o
+        tools/openfst/src/bin/fstisomorphic
         tools/openfst/src/bin/fstisomorphic-main.cc
+        tools/openfst/src/bin/fstisomorphic-main.o
         tools/openfst/src/bin/fstisomorphic.cc
+        tools/openfst/src/bin/fstisomorphic.o
+        tools/openfst/src/bin/fstmap
         tools/openfst/src/bin/fstmap-main.cc
+        tools/openfst/src/bin/fstmap-main.o
         tools/openfst/src/bin/fstmap.cc
+        tools/openfst/src/bin/fstmap.o
+        tools/openfst/src/bin/fstminimize
         tools/openfst/src/bin/fstminimize-main.cc
+        tools/openfst/src/bin/fstminimize-main.o
         tools/openfst/src/bin/fstminimize.cc
+        tools/openfst/src/bin/fstminimize.o
+        tools/openfst/src/bin/fstprint
         tools/openfst/src/bin/fstprint-main.cc
+        tools/openfst/src/bin/fstprint-main.o
         tools/openfst/src/bin/fstprint.cc
+        tools/openfst/src/bin/fstprint.o
+        tools/openfst/src/bin/fstproject
         tools/openfst/src/bin/fstproject-main.cc
+        tools/openfst/src/bin/fstproject-main.o
         tools/openfst/src/bin/fstproject.cc
+        tools/openfst/src/bin/fstproject.o
+        tools/openfst/src/bin/fstprune
         tools/openfst/src/bin/fstprune-main.cc
+        tools/openfst/src/bin/fstprune-main.o
         tools/openfst/src/bin/fstprune.cc
+        tools/openfst/src/bin/fstprune.o
+        tools/openfst/src/bin/fstpush
         tools/openfst/src/bin/fstpush-main.cc
+        tools/openfst/src/bin/fstpush-main.o
         tools/openfst/src/bin/fstpush.cc
+        tools/openfst/src/bin/fstpush.o
+        tools/openfst/src/bin/fstrandgen
         tools/openfst/src/bin/fstrandgen-main.cc
+        tools/openfst/src/bin/fstrandgen-main.o
         tools/openfst/src/bin/fstrandgen.cc
+        tools/openfst/src/bin/fstrandgen.o
+        tools/openfst/src/bin/fstrelabel
         tools/openfst/src/bin/fstrelabel-main.cc
+        tools/openfst/src/bin/fstrelabel-main.o
         tools/openfst/src/bin/fstrelabel.cc
+        tools/openfst/src/bin/fstrelabel.o
+        tools/openfst/src/bin/fstreplace
         tools/openfst/src/bin/fstreplace-main.cc
+        tools/openfst/src/bin/fstreplace-main.o
         tools/openfst/src/bin/fstreplace.cc
+        tools/openfst/src/bin/fstreplace.o
+        tools/openfst/src/bin/fstreverse
         tools/openfst/src/bin/fstreverse-main.cc
+        tools/openfst/src/bin/fstreverse-main.o
         tools/openfst/src/bin/fstreverse.cc
+        tools/openfst/src/bin/fstreverse.o
+        tools/openfst/src/bin/fstreweight
         tools/openfst/src/bin/fstreweight-main.cc
+        tools/openfst/src/bin/fstreweight-main.o
         tools/openfst/src/bin/fstreweight.cc
+        tools/openfst/src/bin/fstreweight.o
+        tools/openfst/src/bin/fstrmepsilon
         tools/openfst/src/bin/fstrmepsilon-main.cc
+        tools/openfst/src/bin/fstrmepsilon-main.o
         tools/openfst/src/bin/fstrmepsilon.cc
+        tools/openfst/src/bin/fstrmepsilon.o
+        tools/openfst/src/bin/fstshortestdistance
         tools/openfst/src/bin/fstshortestdistance-main.cc
+        tools/openfst/src/bin/fstshortestdistance-main.o
         tools/openfst/src/bin/fstshortestdistance.cc
+        tools/openfst/src/bin/fstshortestdistance.o
+        tools/openfst/src/bin/fstshortestpath
         tools/openfst/src/bin/fstshortestpath-main.cc
+        tools/openfst/src/bin/fstshortestpath-main.o
         tools/openfst/src/bin/fstshortestpath.cc
+        tools/openfst/src/bin/fstshortestpath.o
+        tools/openfst/src/bin/fstsymbols
         tools/openfst/src/bin/fstsymbols-main.cc
+        tools/openfst/src/bin/fstsymbols-main.o
         tools/openfst/src/bin/fstsymbols.cc
+        tools/openfst/src/bin/fstsymbols.o
+        tools/openfst/src/bin/fstsynchronize
         tools/openfst/src/bin/fstsynchronize-main.cc
+        tools/openfst/src/bin/fstsynchronize-main.o
         tools/openfst/src/bin/fstsynchronize.cc
+        tools/openfst/src/bin/fstsynchronize.o
+        tools/openfst/src/bin/fsttopsort
         tools/openfst/src/bin/fsttopsort-main.cc
+        tools/openfst/src/bin/fsttopsort-main.o
         tools/openfst/src/bin/fsttopsort.cc
+        tools/openfst/src/bin/fsttopsort.o
+        tools/openfst/src/bin/fstunion
         tools/openfst/src/bin/fstunion-main.cc
+        tools/openfst/src/bin/fstunion-main.o
         tools/openfst/src/bin/fstunion.cc
+        tools/openfst/src/bin/fstunion.o
+        tools/openfst/src/bin/Makefile
+        tools/openfst/src/bin/Makefile.am
+        tools/openfst/src/bin/Makefile.in
         tools/openfst/src/extensions/compact/compact16_acceptor-fst.cc
         tools/openfst/src/extensions/compact/compact16_string-fst.cc
         tools/openfst/src/extensions/compact/compact16_unweighted-fst.cc
@@ -4967,43 +5086,108 @@ add_executable(kaldi
         tools/openfst/src/extensions/compact/compact8_unweighted-fst.cc
         tools/openfst/src/extensions/compact/compact8_unweighted_acceptor-fst.cc
         tools/openfst/src/extensions/compact/compact8_weighted_string-fst.cc
+        tools/openfst/src/extensions/compact/Makefile
+        tools/openfst/src/extensions/compact/Makefile.am
+        tools/openfst/src/extensions/compact/Makefile.in
         tools/openfst/src/extensions/compress/compress-script.cc
         tools/openfst/src/extensions/compress/fstcompress.cc
         tools/openfst/src/extensions/compress/fstrandmod.cc
+        tools/openfst/src/extensions/compress/Makefile
+        tools/openfst/src/extensions/compress/Makefile.am
+        tools/openfst/src/extensions/compress/Makefile.in
         tools/openfst/src/extensions/const/const16-fst.cc
         tools/openfst/src/extensions/const/const64-fst.cc
         tools/openfst/src/extensions/const/const8-fst.cc
+        tools/openfst/src/extensions/const/Makefile
+        tools/openfst/src/extensions/const/Makefile.am
+        tools/openfst/src/extensions/const/Makefile.in
         tools/openfst/src/extensions/far/far-class.cc
+        tools/openfst/src/extensions/far/far-class.lo
+        tools/openfst/src/extensions/far/far-class.o
+        tools/openfst/src/extensions/far/farcompilestrings
         tools/openfst/src/extensions/far/farcompilestrings.cc
+        tools/openfst/src/extensions/far/farcompilestrings.o
+        tools/openfst/src/extensions/far/farcreate
         tools/openfst/src/extensions/far/farcreate.cc
+        tools/openfst/src/extensions/far/farcreate.o
+        tools/openfst/src/extensions/far/farequal
         tools/openfst/src/extensions/far/farequal.cc
+        tools/openfst/src/extensions/far/farequal.o
+        tools/openfst/src/extensions/far/farextract
         tools/openfst/src/extensions/far/farextract.cc
+        tools/openfst/src/extensions/far/farextract.o
+        tools/openfst/src/extensions/far/farinfo
         tools/openfst/src/extensions/far/farinfo.cc
+        tools/openfst/src/extensions/far/farinfo.o
+        tools/openfst/src/extensions/far/farisomorphic
         tools/openfst/src/extensions/far/farisomorphic.cc
+        tools/openfst/src/extensions/far/farisomorphic.o
+        tools/openfst/src/extensions/far/farprintstrings
         tools/openfst/src/extensions/far/farprintstrings.cc
+        tools/openfst/src/extensions/far/farprintstrings.o
         tools/openfst/src/extensions/far/farscript.cc
+        tools/openfst/src/extensions/far/farscript.lo
+        tools/openfst/src/extensions/far/farscript.o
         tools/openfst/src/extensions/far/getters.cc
+        tools/openfst/src/extensions/far/getters.lo
+        tools/openfst/src/extensions/far/getters.o
+        tools/openfst/src/extensions/far/libfstfar.la
+        tools/openfst/src/extensions/far/libfstfarscript.la
+        tools/openfst/src/extensions/far/Makefile
+        tools/openfst/src/extensions/far/Makefile.am
+        tools/openfst/src/extensions/far/Makefile.in
         tools/openfst/src/extensions/far/script-impl.cc
+        tools/openfst/src/extensions/far/script-impl.lo
+        tools/openfst/src/extensions/far/script-impl.o
         tools/openfst/src/extensions/far/stlist.cc
+        tools/openfst/src/extensions/far/stlist.lo
+        tools/openfst/src/extensions/far/stlist.o
         tools/openfst/src/extensions/far/strings.cc
+        tools/openfst/src/extensions/far/strings.lo
+        tools/openfst/src/extensions/far/strings.o
         tools/openfst/src/extensions/far/sttable.cc
+        tools/openfst/src/extensions/far/sttable.lo
+        tools/openfst/src/extensions/far/sttable.o
         tools/openfst/src/extensions/linear/fstlinear.cc
         tools/openfst/src/extensions/linear/fstloglinearapply.cc
         tools/openfst/src/extensions/linear/linear-classifier-fst.cc
         tools/openfst/src/extensions/linear/linear-tagger-fst.cc
         tools/openfst/src/extensions/linear/linearscript.cc
+        tools/openfst/src/extensions/linear/Makefile
+        tools/openfst/src/extensions/linear/Makefile.am
+        tools/openfst/src/extensions/linear/Makefile.in
         tools/openfst/src/extensions/lookahead/arc_lookahead-fst.cc
         tools/openfst/src/extensions/lookahead/ilabel_lookahead-fst.cc
+        tools/openfst/src/extensions/lookahead/Makefile
+        tools/openfst/src/extensions/lookahead/Makefile.am
+        tools/openfst/src/extensions/lookahead/Makefile.in
         tools/openfst/src/extensions/lookahead/olabel_lookahead-fst.cc
+        tools/openfst/src/extensions/mpdt/Makefile
+        tools/openfst/src/extensions/mpdt/Makefile.am
+        tools/openfst/src/extensions/mpdt/Makefile.in
         tools/openfst/src/extensions/mpdt/mpdtcompose.cc
         tools/openfst/src/extensions/mpdt/mpdtexpand.cc
         tools/openfst/src/extensions/mpdt/mpdtinfo.cc
         tools/openfst/src/extensions/mpdt/mpdtreverse.cc
         tools/openfst/src/extensions/mpdt/mpdtscript.cc
         tools/openfst/src/extensions/ngram/bitmap-index.cc
+        tools/openfst/src/extensions/ngram/bitmap-index.lo
+        tools/openfst/src/extensions/ngram/bitmap-index.o
+        tools/openfst/src/extensions/ngram/libfstngram.la
+        tools/openfst/src/extensions/ngram/Makefile
+        tools/openfst/src/extensions/ngram/Makefile.am
+        tools/openfst/src/extensions/ngram/Makefile.in
         tools/openfst/src/extensions/ngram/ngram-fst.cc
+        tools/openfst/src/extensions/ngram/ngram-fst.la
+        tools/openfst/src/extensions/ngram/ngram-fst.lo
+        tools/openfst/src/extensions/ngram/ngram-fst.o
         tools/openfst/src/extensions/ngram/nthbit.cc
+        tools/openfst/src/extensions/ngram/nthbit.lo
+        tools/openfst/src/extensions/ngram/nthbit.o
         tools/openfst/src/extensions/pdt/getters.cc
+        tools/openfst/src/extensions/pdt/Makefile
+        tools/openfst/src/extensions/pdt/Makefile.am
+        tools/openfst/src/extensions/pdt/Makefile.in
         tools/openfst/src/extensions/pdt/pdtcompose.cc
         tools/openfst/src/extensions/pdt/pdtexpand.cc
         tools/openfst/src/extensions/pdt/pdtinfo.cc
@@ -5011,10 +5195,25 @@ add_executable(kaldi
         tools/openfst/src/extensions/pdt/pdtreverse.cc
         tools/openfst/src/extensions/pdt/pdtscript.cc
         tools/openfst/src/extensions/pdt/pdtshortestpath.cc
+        tools/openfst/src/extensions/python/basictypes.pxd
+        tools/openfst/src/extensions/python/fst.pxd
+        tools/openfst/src/extensions/python/ios.pxd
+        tools/openfst/src/extensions/python/Makefile
+        tools/openfst/src/extensions/python/Makefile.am
+        tools/openfst/src/extensions/python/Makefile.in
+        tools/openfst/src/extensions/python/memory.pxd
         tools/openfst/src/extensions/python/pywrapfst.cc
+        tools/openfst/src/extensions/python/pywrapfst.pxd
+        tools/openfst/src/extensions/python/pywrapfst.pyx
+        tools/openfst/src/extensions/special/Makefile
+        tools/openfst/src/extensions/special/Makefile.am
+        tools/openfst/src/extensions/special/Makefile.in
         tools/openfst/src/extensions/special/phi-fst.cc
         tools/openfst/src/extensions/special/rho-fst.cc
         tools/openfst/src/extensions/special/sigma-fst.cc
+        tools/openfst/src/extensions/Makefile
+        tools/openfst/src/extensions/Makefile.am
+        tools/openfst/src/extensions/Makefile.in
         tools/openfst/src/include/fst/extensions/compress/compress-script.h
         tools/openfst/src/include/fst/extensions/compress/compress.h
         tools/openfst/src/include/fst/extensions/compress/elias.h
@@ -5140,6 +5339,7 @@ add_executable(kaldi
         tools/openfst/src/include/fst/compose.h
         tools/openfst/src/include/fst/concat.h
         tools/openfst/src/include/fst/config.h
+        tools/openfst/src/include/fst/config.h.in
         tools/openfst/src/include/fst/connect.h
         tools/openfst/src/include/fst/const-fst.h
         tools/openfst/src/include/fst/determinize.h
@@ -5206,6 +5406,7 @@ add_executable(kaldi
         tools/openfst/src/include/fst/signed-log-weight.h
         tools/openfst/src/include/fst/sparse-power-weight.h
         tools/openfst/src/include/fst/sparse-tuple-weight.h
+        tools/openfst/src/include/fst/stamp-h2
         tools/openfst/src/include/fst/state-map.h
         tools/openfst/src/include/fst/state-reachable.h
         tools/openfst/src/include/fst/state-table.h
@@ -5227,69 +5428,202 @@ add_executable(kaldi
         tools/openfst/src/include/fst/verify.h
         tools/openfst/src/include/fst/visit.h
         tools/openfst/src/include/fst/weight.h
+        tools/openfst/src/include/Makefile
+        tools/openfst/src/include/Makefile.am
+        tools/openfst/src/include/Makefile.in
         tools/openfst/src/lib/compat.cc
+        tools/openfst/src/lib/compat.lo
+        tools/openfst/src/lib/compat.o
         tools/openfst/src/lib/flags.cc
+        tools/openfst/src/lib/flags.lo
+        tools/openfst/src/lib/flags.o
+        tools/openfst/src/lib/fst-types.cc
+        tools/openfst/src/lib/fst-types.lo
+        tools/openfst/src/lib/fst-types.o
         tools/openfst/src/lib/fst.cc
+        tools/openfst/src/lib/fst.lo
+        tools/openfst/src/lib/fst.o
+        tools/openfst/src/lib/libfst.la
+        tools/openfst/src/lib/Makefile
+        tools/openfst/src/lib/Makefile.am
+        tools/openfst/src/lib/Makefile.in
         tools/openfst/src/lib/mapped-file.cc
+        tools/openfst/src/lib/mapped-file.lo
+        tools/openfst/src/lib/mapped-file.o
         tools/openfst/src/lib/properties.cc
+        tools/openfst/src/lib/properties.lo
+        tools/openfst/src/lib/properties.o
         tools/openfst/src/lib/symbol-table-ops.cc
+        tools/openfst/src/lib/symbol-table-ops.lo
+        tools/openfst/src/lib/symbol-table-ops.o
         tools/openfst/src/lib/symbol-table.cc
+        tools/openfst/src/lib/symbol-table.lo
+        tools/openfst/src/lib/symbol-table.o
         tools/openfst/src/lib/util.cc
+        tools/openfst/src/lib/util.lo
+        tools/openfst/src/lib/util.o
         tools/openfst/src/lib/weight.cc
+        tools/openfst/src/lib/weight.lo
+        tools/openfst/src/lib/weight.o
         tools/openfst/src/script/arciterator-class.cc
+        tools/openfst/src/script/arciterator-class.lo
+        tools/openfst/src/script/arciterator-class.o
         tools/openfst/src/script/arcsort.cc
+        tools/openfst/src/script/arcsort.lo
+        tools/openfst/src/script/arcsort.o
         tools/openfst/src/script/closure.cc
+        tools/openfst/src/script/closure.lo
+        tools/openfst/src/script/closure.o
         tools/openfst/src/script/compile.cc
+        tools/openfst/src/script/compile.lo
+        tools/openfst/src/script/compile.o
         tools/openfst/src/script/compose.cc
+        tools/openfst/src/script/compose.lo
+        tools/openfst/src/script/compose.o
         tools/openfst/src/script/concat.cc
+        tools/openfst/src/script/concat.lo
+        tools/openfst/src/script/concat.o
         tools/openfst/src/script/connect.cc
+        tools/openfst/src/script/connect.lo
+        tools/openfst/src/script/connect.o
         tools/openfst/src/script/convert.cc
+        tools/openfst/src/script/convert.lo
+        tools/openfst/src/script/convert.o
         tools/openfst/src/script/decode.cc
+        tools/openfst/src/script/decode.lo
+        tools/openfst/src/script/decode.o
         tools/openfst/src/script/determinize.cc
+        tools/openfst/src/script/determinize.lo
+        tools/openfst/src/script/determinize.o
         tools/openfst/src/script/difference.cc
+        tools/openfst/src/script/difference.lo
+        tools/openfst/src/script/difference.o
         tools/openfst/src/script/disambiguate.cc
+        tools/openfst/src/script/disambiguate.lo
+        tools/openfst/src/script/disambiguate.o
         tools/openfst/src/script/draw.cc
+        tools/openfst/src/script/draw.lo
+        tools/openfst/src/script/draw.o
         tools/openfst/src/script/encode.cc
+        tools/openfst/src/script/encode.lo
+        tools/openfst/src/script/encode.o
         tools/openfst/src/script/encodemapper-class.cc
+        tools/openfst/src/script/encodemapper-class.lo
+        tools/openfst/src/script/encodemapper-class.o
         tools/openfst/src/script/epsnormalize.cc
+        tools/openfst/src/script/epsnormalize.lo
+        tools/openfst/src/script/epsnormalize.o
         tools/openfst/src/script/equal.cc
+        tools/openfst/src/script/equal.lo
+        tools/openfst/src/script/equal.o
         tools/openfst/src/script/equivalent.cc
+        tools/openfst/src/script/equivalent.lo
+        tools/openfst/src/script/equivalent.o
         tools/openfst/src/script/fst-class.cc
+        tools/openfst/src/script/fst-class.lo
+        tools/openfst/src/script/fst-class.o
         tools/openfst/src/script/getters.cc
+        tools/openfst/src/script/getters.lo
+        tools/openfst/src/script/getters.o
         tools/openfst/src/script/info-impl.cc
+        tools/openfst/src/script/info-impl.lo
+        tools/openfst/src/script/info-impl.o
         tools/openfst/src/script/info.cc
+        tools/openfst/src/script/info.lo
+        tools/openfst/src/script/info.o
         tools/openfst/src/script/intersect.cc
+        tools/openfst/src/script/intersect.lo
+        tools/openfst/src/script/intersect.o
         tools/openfst/src/script/invert.cc
+        tools/openfst/src/script/invert.lo
+        tools/openfst/src/script/invert.o
         tools/openfst/src/script/isomorphic.cc
+        tools/openfst/src/script/isomorphic.lo
+        tools/openfst/src/script/isomorphic.o
+        tools/openfst/src/script/libfstscript.la
+        tools/openfst/src/script/Makefile
+        tools/openfst/src/script/Makefile.am
+        tools/openfst/src/script/Makefile.in
         tools/openfst/src/script/map.cc
+        tools/openfst/src/script/map.lo
+        tools/openfst/src/script/map.o
         tools/openfst/src/script/minimize.cc
+        tools/openfst/src/script/minimize.lo
+        tools/openfst/src/script/minimize.o
         tools/openfst/src/script/print.cc
+        tools/openfst/src/script/print.lo
+        tools/openfst/src/script/print.o
         tools/openfst/src/script/project.cc
+        tools/openfst/src/script/project.lo
+        tools/openfst/src/script/project.o
         tools/openfst/src/script/prune.cc
+        tools/openfst/src/script/prune.lo
+        tools/openfst/src/script/prune.o
         tools/openfst/src/script/push.cc
+        tools/openfst/src/script/push.lo
+        tools/openfst/src/script/push.o
         tools/openfst/src/script/randequivalent.cc
+        tools/openfst/src/script/randequivalent.lo
+        tools/openfst/src/script/randequivalent.o
         tools/openfst/src/script/randgen.cc
+        tools/openfst/src/script/randgen.lo
+        tools/openfst/src/script/randgen.o
         tools/openfst/src/script/relabel.cc
+        tools/openfst/src/script/relabel.lo
+        tools/openfst/src/script/relabel.o
         tools/openfst/src/script/replace.cc
+        tools/openfst/src/script/replace.lo
+        tools/openfst/src/script/replace.o
         tools/openfst/src/script/reverse.cc
+        tools/openfst/src/script/reverse.lo
+        tools/openfst/src/script/reverse.o
         tools/openfst/src/script/reweight.cc
+        tools/openfst/src/script/reweight.lo
+        tools/openfst/src/script/reweight.o
         tools/openfst/src/script/rmepsilon.cc
+        tools/openfst/src/script/rmepsilon.lo
+        tools/openfst/src/script/rmepsilon.o
         tools/openfst/src/script/shortest-distance.cc
+        tools/openfst/src/script/shortest-distance.lo
+        tools/openfst/src/script/shortest-distance.o
         tools/openfst/src/script/shortest-path.cc
+        tools/openfst/src/script/shortest-path.lo
+        tools/openfst/src/script/shortest-path.o
         tools/openfst/src/script/stateiterator-class.cc
+        tools/openfst/src/script/stateiterator-class.lo
+        tools/openfst/src/script/stateiterator-class.o
         tools/openfst/src/script/synchronize.cc
+        tools/openfst/src/script/synchronize.lo
+        tools/openfst/src/script/synchronize.o
         tools/openfst/src/script/text-io.cc
+        tools/openfst/src/script/text-io.lo
+        tools/openfst/src/script/text-io.o
         tools/openfst/src/script/topsort.cc
+        tools/openfst/src/script/topsort.lo
+        tools/openfst/src/script/topsort.o
         tools/openfst/src/script/union.cc
+        tools/openfst/src/script/union.lo
+        tools/openfst/src/script/union.o
         tools/openfst/src/script/verify.cc
+        tools/openfst/src/script/verify.lo
+        tools/openfst/src/script/verify.o
         tools/openfst/src/script/weight-class.cc
+        tools/openfst/src/script/weight-class.lo
+        tools/openfst/src/script/weight-class.o
         tools/openfst/src/test/algo_test.cc
         tools/openfst/src/test/algo_test.h
         tools/openfst/src/test/fst_test.cc
         tools/openfst/src/test/fst_test.h
+        tools/openfst/src/test/Makefile
+        tools/openfst/src/test/Makefile.am
+        tools/openfst/src/test/Makefile.in
         tools/openfst/src/test/rand-fst.h
         tools/openfst/src/test/weight-tester.h
         tools/openfst/src/test/weight_test.cc
+        tools/openfst/src/Makefile
+        tools/openfst/src/Makefile.am
+        tools/openfst/src/Makefile.in
+        tools/openfst/config.h
         tools/sctk/src/asclite/core/lzma/Alloc.c
         tools/sctk/src/asclite/core/lzma/Alloc.h
         tools/sctk/src/asclite/core/lzma/LzFind.c
@@ -5995,11 +6329,11 @@ link_directories(src/lib)
 #add_executable(copy-matrix src/bin/copy-matrix.cc)
 #add_executable(phones-to-ali src/bin/phones-to-ali.cc)
 #add_executable(nnet3-latgen-faster-from-am-score src/nnet3bin/nnet3-latgen-faster-from-am-score.cc)
-add_executable(wav-check src/featbin/wav-check.cc)
+#add_executable(wav-check src/featbin/wav-check.cc)
 
-target_link_libraries(wav-check
-        kaldi-hmm kaldi-feat kaldi-transform kaldi-gmm kaldi-tree kaldi-util kaldi-matrix kaldi-base
-        m pthread dl)
+#target_link_libraries(wav-check
+#        kaldi-hmm kaldi-feat kaldi-transform kaldi-gmm kaldi-tree kaldi-util kaldi-matrix kaldi-base
+#        m pthread dl)
 
 #target_link_libraries(phones-to-ali
 #        libkaldi-decoder.dylib
