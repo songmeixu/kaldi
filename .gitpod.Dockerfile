@@ -16,7 +16,9 @@ RUN sudo apt-get -q update \
     sox gfortran \
  && sudo rm -rf /var/lib/apt/lists/*
 
-RUN cd ~/GitHub/r-with-intel-mkl/ \
- && wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB | sudo apt-key add - \
+RUN sudo mkdir -p /etc/GitHub/r-with-intel-mkl/ \
+ && cd /etc/GitHub/r-with-intel-mkl/ \
+ && sudo wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB \
+ && sudo apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB \
  && sudo sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list' \
- && sudo apt-get -q update && sudo apt-get -yq install intel-mkl-64bit
+ && sudo apt-get -q update && sudo apt-get -yq install intel-mkl-64bit-2020.1-102
