@@ -4,42 +4,40 @@
 # Apache 2.0
 
 import logging
+import math
 import os
 import sys
-import math
-
-import torch
-from torch.utils.dlpack import to_dlpack
 
 import kaldi
-
-
+import torch
 from common import load_checkpoint
 from common import setup_logger
 from device_utils import allocate_gpu_devices
 from feat_dataset import get_feat_dataloader
 from model import get_chain_model
 from options import get_args
+from torch.utils.dlpack import to_dlpack
+
 
 def main():
     args = get_args()
-    setup_logger('{}/log-inference'.format(args.dir), args.log_level)
-    logging.info(' '.join(sys.argv))
+    setup_logger("{}/log-inference".format(args.dir), args.log_level)
+    logging.info(" ".join(sys.argv))
 
     if torch.cuda.is_available() == False:
-        logging.warning('No GPU detected! Use CPU for inference.')
-        device = torch.device('cpu')
+        logging.warning("No GPU detected! Use CPU for inference.")
+        device = torch.device("cpu")
     else:
         if args.device_ids != None and len(args.device_ids) > 0:
             device_id = args.device_ids[0]
         else:
             devices = allocate_gpu_devices(1)
             if len(devices) != 1:
-                logging.error('Allocate GPU failed!')
+                logging.error("Allocate GPU failed!")
                 sys.exit(-1)
             device_id = devices[0][0]
-        logging.info('device: {}'.format(device_id))
-        device = torch.device('cuda', device_id)
+        logging.info("device: {}".format(device_id))
+        device = torch.device("cuda", device_id)
 
     model = get_chain_model(
         feat_dim=args.feat_dim,
@@ -50,15 +48,17 @@ def main():
         bottleneck_dim=args.bottleneck_dim,
         prefinal_bottleneck_dim=args.prefinal_bottleneck_dim,
         kernel_size_list=args.kernel_size_list,
-        subsampling_factor_list=args.subsampling_factor_list)
+        subsampling_factor_list=args.subsampling_factor_list,
+    )
 
     load_checkpoint(args.checkpoint, model)
 
     model.to(device)
     model.eval()
 
-    specifier = 'ark,scp:{filename}.ark,{filename}.scp'.format(
-        filename=os.path.join(args.dir, 'nnet_output'))
+    specifier = "ark,scp:{filename}.ark,{filename}.scp".format(
+        filename=os.path.join(args.dir, "nnet_output")
+    )
 
     if args.save_as_compressed:
         Writer = kaldi.CompressedMatrixWriter
@@ -75,7 +75,8 @@ def main():
         model_left_context=args.model_left_context,
         model_right_context=args.model_right_context,
         batch_size=32,
-        num_workers=10)
+        num_workers=10,
+    )
     subsampling_factor = 3
     subsampled_frames_per_chunk = args.frames_per_chunk // subsampling_factor
     for batch_idx, batch in enumerate(dataloader):
@@ -90,7 +91,7 @@ def main():
             key = key_list[i]
             output_len = output_len_list[i]
             target_len = math.ceil(output_len / subsampled_frames_per_chunk)
-            result = nnet_output[first:first + target_len, :, :].split(1, 0)
+            result = nnet_output[first : first + target_len, :, :].split(1, 0)
             value = torch.cat(result, dim=1)[0, :output_len, :]
             value = value.cpu()
             first += target_len
@@ -100,14 +101,21 @@ def main():
             writer.Write(key, m)
 
         if batch_idx % 10 == 0:
-            logging.info('Processed batch {}/{} ({:.6f}%)'.format(
-                batch_idx, len(dataloader),
-                float(batch_idx) / len(dataloader) * 100))
+            logging.info(
+                "Processed batch {}/{} ({:.6f}%)".format(
+                    batch_idx,
+                    len(dataloader),
+                    float(batch_idx) / len(dataloader) * 100,
+                )
+            )
 
     writer.Close()
-    logging.info('pseudo-log-likelihood is saved to {}'.format(
-        os.path.join(args.dir, 'nnet_output.scp')))
+    logging.info(
+        "pseudo-log-likelihood is saved to {}".format(
+            os.path.join(args.dir, "nnet_output.scp")
+        )
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

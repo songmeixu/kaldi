@@ -2,21 +2,20 @@
 
 # Copyright 2020 Mobvoi AI Lab, Beijing, China (author: Fangjun Kuang)
 # Apache 2.0
-import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
 def _constrain_orthonormal_internal(M):
-    '''
+    """
     Refer to
         void ConstrainOrthonormalInternal(BaseFloat scale, CuMatrixBase<BaseFloat> *M)
     from
         https://github.com/kaldi-asr/kaldi/blob/master/src/nnet3/nnet-utils.cc#L982
 
     Note that we always use the **floating** case.
-    '''
+    """
     assert M.ndim == 2
 
     num_rows = M.size(0)
@@ -53,28 +52,30 @@ def _constrain_orthonormal_internal(M):
 
 class SharedDimScaleDropout(nn.Module):
     def __init__(self, dim=1):
-        '''
+        """
         Continuous scaled dropout that is const over chosen dim (usually across time)
         Multiplies inputs by random mask taken from Uniform([1 - 2\alpha, 1 + 2\alpha])
-        '''
+        """
         super().__init__()
         self.dim = dim
-        self.register_buffer('mask', torch.tensor(0.))
+        self.register_buffer("mask", torch.tensor(0.0))
 
     def forward(self, x, alpha=0.0):
-        if self.training and alpha > 0.:
+        if self.training and alpha > 0.0:
             # sample mask from uniform dist with dim of length 1 in self.dim and then repeat to match size
             tied_mask_shape = list(x.shape)
             tied_mask_shape[self.dim] = 1
-            repeats = [1 if i != self.dim else x.shape[self.dim]
-                        for i in range(len(x.shape))]
-            return x * self.mask.repeat(tied_mask_shape).uniform_(1 - 2*alpha, 1 + 2*alpha).repeat(repeats)
+            repeats = [
+                1 if i != self.dim else x.shape[self.dim] for i in range(len(x.shape))
+            ]
+            return x * self.mask.repeat(tied_mask_shape).uniform_(
+                1 - 2 * alpha, 1 + 2 * alpha
+            ).repeat(repeats)
             # expected value of dropout mask is 1 so no need to scale outputs like vanilla dropout
         return x
 
 
 class OrthonormalLinear(nn.Module):
-
     def __init__(self, dim, bottleneck_dim, kernel_size):
         super().__init__()
         # WARNING(fangjun): kaldi uses [-1, 0] for the first linear layer
@@ -84,10 +85,12 @@ class OrthonormalLinear(nn.Module):
         self.kernel_size = kernel_size
 
         # conv requires [N, C, T]
-        self.conv = nn.Conv1d(in_channels=dim,
-                              out_channels=bottleneck_dim,
-                              kernel_size=kernel_size,
-                              bias=False)
+        self.conv = nn.Conv1d(
+            in_channels=dim,
+            out_channels=bottleneck_dim,
+            kernel_size=kernel_size,
+            bias=False,
+        )
 
     def forward(self, x):
         # input x is of shape: [batch_size, feat_dim, seq_len] = [N, C, T]
@@ -97,7 +100,7 @@ class OrthonormalLinear(nn.Module):
 
     def constrain_orthonormal(self):
         state_dict = self.conv.state_dict()
-        w = state_dict['weight']
+        w = state_dict["weight"]
         # w is of shape [out_channels, in_channels, kernel_size]
         out_channels = w.size(0)
         in_channels = w.size(1)
@@ -120,19 +123,18 @@ class OrthonormalLinear(nn.Module):
 
         w = w.reshape(out_channels, in_channels, kernel_size)
 
-        state_dict['weight'] = w
+        state_dict["weight"] = w
         self.conv.load_state_dict(state_dict)
 
 
 class PrefinalLayer(nn.Module):
-
     def __init__(self, big_dim, small_dim):
         super().__init__()
         self.affine = nn.Linear(in_features=small_dim, out_features=big_dim)
         self.batchnorm1 = nn.BatchNorm1d(num_features=big_dim, affine=False)
-        self.linear = OrthonormalLinear(dim=big_dim,
-                                        bottleneck_dim=small_dim,
-                                        kernel_size=1)
+        self.linear = OrthonormalLinear(
+            dim=big_dim, bottleneck_dim=small_dim, kernel_size=1
+        )
         self.batchnorm2 = nn.BatchNorm1d(num_features=small_dim, affine=False)
 
     def forward(self, x):
@@ -160,25 +162,24 @@ class PrefinalLayer(nn.Module):
 
 
 class TDNN(nn.Module):
-    '''
+    """
     This class implements the following topology in kaldi:
       relu-batchnorm-dropout-layer name=tdnn1 dropout-per-dim-continuous=true dim=1024
-    '''
+    """
 
     def __init__(self, input_dim, hidden_dim):
         super().__init__()
         # affine conv1d requires [N, C, T]
-        self.affine = nn.Conv1d(in_channels=input_dim,
-                                out_channels=hidden_dim,
-                                kernel_size=1)
+        self.affine = nn.Conv1d(
+            in_channels=input_dim, out_channels=hidden_dim, kernel_size=1
+        )
 
         # tdnn1_batchnorm requires [N, C, T]
-        self.batchnorm = nn.BatchNorm1d(num_features=hidden_dim,
-                                              affine=False)
-        
+        self.batchnorm = nn.BatchNorm1d(num_features=hidden_dim, affine=False)
+
         self.dropout = SharedDimScaleDropout(dim=2)
 
-    def forward(self, x, dropout=0.):
+    def forward(self, x, dropout=0.0):
         # input x is of shape: [batch_size, feat_dim, seq_len] = [N, C, T]
         x = self.affine(x)
         x = F.relu(x)
@@ -189,7 +190,7 @@ class TDNN(nn.Module):
 
 
 class FactorizedTDNN(nn.Module):
-    '''
+    """
     This class implements the following topology in kaldi:
       tdnnf-layer name=tdnnf2 $tdnnf_opts dim=1024 bottleneck-dim=128 time-stride=1
 
@@ -197,14 +198,11 @@ class FactorizedTDNN(nn.Module):
         - http://danielpovey.com/files/2018_interspeech_tdnnf.pdf
         - ConstrainOrthonormalInternal() from
           https://github.com/kaldi-asr/kaldi/blob/master/src/nnet3/nnet-utils.cc#L982
-    '''
+    """
 
-    def __init__(self,
-                 dim,
-                 bottleneck_dim,
-                 kernel_size,
-                 subsampling_factor,
-                 bypass_scale=0.66):
+    def __init__(
+        self, dim, bottleneck_dim, kernel_size, subsampling_factor, bypass_scale=0.66
+    ):
         super().__init__()
 
         assert abs(bypass_scale) <= 1
@@ -214,24 +212,26 @@ class FactorizedTDNN(nn.Module):
         self.s = subsampling_factor
 
         # linear requires [N, C, T]
-        self.linear = OrthonormalLinear(dim=dim,
-                                        bottleneck_dim=bottleneck_dim,
-                                        kernel_size=kernel_size)
+        self.linear = OrthonormalLinear(
+            dim=dim, bottleneck_dim=bottleneck_dim, kernel_size=kernel_size
+        )
 
         # affine requires [N, C, T]
         # WARNING(fangjun): we do not use nn.Linear here
         # since we want to use `stride`
-        self.affine = nn.Conv1d(in_channels=bottleneck_dim,
-                                out_channels=dim,
-                                kernel_size=1,
-                                stride=subsampling_factor)
+        self.affine = nn.Conv1d(
+            in_channels=bottleneck_dim,
+            out_channels=dim,
+            kernel_size=1,
+            stride=subsampling_factor,
+        )
 
         # batchnorm requires [N, C, T]
         self.batchnorm = nn.BatchNorm1d(num_features=dim, affine=False)
 
         self.dropout = SharedDimScaleDropout(dim=2)
 
-    def forward(self, x, dropout=0.):
+    def forward(self, x, dropout=0.0):
         # input x is of shape: [batch_size, feat_dim, seq_len] = [N, C, T]
         assert x.ndim == 3
 
@@ -255,14 +255,13 @@ class FactorizedTDNN(nn.Module):
         x = self.dropout(x, alpha=dropout)
 
         if self.linear.kernel_size > 1:
-            x = self.bypass_scale * input_x[:, :, self.s:-self.s:self.s] + x
+            x = self.bypass_scale * input_x[:, :, self.s : -self.s : self.s] + x
         else:
-            x = self.bypass_scale * input_x[:, :, ::self.s] + x
+            x = self.bypass_scale * input_x[:, :, :: self.s] + x
         return x
 
 
 def _test_constrain_orthonormal():
-
     def compute_loss(M):
         P = torch.mm(M, M.t())
         P_PT = torch.mm(P, P.t())
@@ -274,14 +273,13 @@ def _test_constrain_orthonormal():
 
         identity = torch.eye(P.size(0), dtype=P.dtype, device=P.device)
         Q = P / (scale * scale) - identity
-        loss = torch.norm(Q, p='fro')  # Frobenius norm
+        loss = torch.norm(Q, p="fro")  # Frobenius norm
 
         return loss
 
     w = torch.randn(6, 8) * 10
 
-    loss = []
-    loss.append(compute_loss(w))
+    loss = [compute_loss(w)]
 
     for i in range(15):
         w = _constrain_orthonormal_internal(w)
@@ -293,25 +291,23 @@ def _test_constrain_orthonormal():
     # TODO(fangjun): draw the loss using matplotlib
     #  print(loss)
 
-    model = FactorizedTDNN(dim=1024,
-                           bottleneck_dim=128,
-                           kernel_size=3,
-                           subsampling_factor=1)
+    model = FactorizedTDNN(
+        dim=1024, bottleneck_dim=128, kernel_size=3, subsampling_factor=1
+    )
     loss = []
 
     for m in model.modules():
-        if hasattr(m, 'constrain_orthonormal'):
+        if hasattr(m, "constrain_orthonormal"):
             m.constrain_orthonormal()
 
-    loss.append(
-        compute_loss(model.linear.conv.state_dict()['weight'].reshape(128, -1)))
+    loss.append(compute_loss(model.linear.conv.state_dict()["weight"].reshape(128, -1)))
     for i in range(5):
         for m in model.modules():
-            if hasattr(m, 'constrain_orthonormal'):
+            if hasattr(m, "constrain_orthonormal"):
                 m.constrain_orthonormal()
         loss.append(
-            compute_loss(model.linear.conv.state_dict()['weight'].reshape(
-                128, -1)))
+            compute_loss(model.linear.conv.state_dict()["weight"].reshape(128, -1))
+        )
 
     for i in range(1, len(loss)):
         assert loss[i - 1] > loss[i]
@@ -319,37 +315,29 @@ def _test_constrain_orthonormal():
 
 def _test_factorized_tdnn():
     import math
+
     N = 1
     T = 10
     C = 4
 
     # case 0: kernel_size == 1, subsampling_factor == 1
-    model = FactorizedTDNN(dim=C,
-                           bottleneck_dim=2,
-                           kernel_size=1,
-                           subsampling_factor=1)
+    model = FactorizedTDNN(dim=C, bottleneck_dim=2, kernel_size=1, subsampling_factor=1)
     x = torch.arange(N * T * C).reshape(N, C, T).float()
     y = model(x)
     assert y.size(2) == T
 
     # case 1: kernel_size == 3, subsampling_factor == 1
-    model = FactorizedTDNN(dim=C,
-                           bottleneck_dim=2,
-                           kernel_size=3,
-                           subsampling_factor=1)
+    model = FactorizedTDNN(dim=C, bottleneck_dim=2, kernel_size=3, subsampling_factor=1)
     y = model(x)
     assert y.size(2) == T - 2
 
     # case 2: kernel_size == 1, subsampling_factor == 3
-    model = FactorizedTDNN(dim=C,
-                           bottleneck_dim=2,
-                           kernel_size=1,
-                           subsampling_factor=3)
+    model = FactorizedTDNN(dim=C, bottleneck_dim=2, kernel_size=1, subsampling_factor=3)
     y = model(x)
     assert y.size(2) == math.ceil(math.ceil((T - 3)) - 3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     torch.manual_seed(20200130)
     _test_factorized_tdnn()
     _test_constrain_orthonormal()

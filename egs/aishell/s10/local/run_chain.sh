@@ -12,13 +12,13 @@ nj=10
 train_set=train
 gmm=tri3
 nnet3_affix=_pybind
-tree_affix= 
+tree_affix=
 tdnn_affix=
 train_affix=
 online_cmvn=true
 train_ivector=false
 num_epochs=6
-dropout_schedule=0,0@0.20,0.5@0.50,0      # you might set this to 0,0 or 0.5,0.5 to train.
+dropout_schedule=0,0@0.20,0.5@0.50,0 # you might set this to 0,0 or 0.5,0.5 to train.
 frame_subsampling_factor=3
 feat_type="delta"
 lang=default
@@ -74,10 +74,10 @@ fi
 train_ivector_dir=
 if $train_ivector; then
   local/run_ivector_common.sh --stage $stage \
-                              --nj $nj \
-                              --train-set $train_set \
-                              --online-cmvn-iextractor $online_cmvn \
-                              --nnet3-affix "$nnet3_affix"
+    --nj $nj \
+    --train-set $train_set \
+    --online-cmvn-iextractor $online_cmvn \
+    --nnet3-affix "$nnet3_affix"
   train_ivector_dir=exp/nnet3${nnet3_affix}/ivectors_${train_set}_sp_hires
 fi
 echo $train_ivector_dir
@@ -90,7 +90,7 @@ lores_train_data_dir=data/${train_set}_sp
 
 if [[ $stage -le 9 ]]; then
   for f in $gmm_dir/final.mdl $train_data_dir/feats.scp \
-      $lores_train_data_dir/feats.scp $ali_dir/ali.1.gz $gmm_dir/final.mdl; do
+    $lores_train_data_dir/feats.scp $ali_dir/ali.1.gz $gmm_dir/final.mdl; do
     [ ! -f $f ] && echo "$0: expected file $f to exist" && exit 1
   done
 fi
@@ -101,8 +101,8 @@ if [[ $stage -le 10 ]]; then
   # topo file. [note, it really has two states.. the first one is only repeated
   # once, the second one has zero or more repeats.]
   cp -r data/lang data/lang_chain
-  silphonelist=$(cat data/lang_chain/phones/silence.csl) || exit 1;
-  nonsilphonelist=$(cat data/lang_chain/phones/nonsilence.csl) || exit 1;
+  silphonelist=$(cat data/lang_chain/phones/silence.csl) || exit 1
+  nonsilphonelist=$(cat data/lang_chain/phones/nonsilence.csl) || exit 1
   # Use our special topology... note that later on may have to tune this
   # topology.
   steps/nnet3/chain/gen_topo.py $nonsilphonelist $silphonelist >data/lang_chain/topo
@@ -121,11 +121,11 @@ if [[ $stage -le 12 ]]; then
   # speed-perturbed data (local/nnet3/run_ivector_common.sh made them), so use
   # those.
   steps/nnet3/chain/build_tree.sh --frame-subsampling-factor 3 \
-      --context-opts "--context-width=2 --central-position=1" \
-      --cmd "$train_cmd" 4000 ${lores_train_data_dir} data/lang_chain $ali_dir $tree_dir
+    --context-opts "--context-width=2 --central-position=1" \
+    --cmd "$train_cmd" 4000 ${lores_train_data_dir} data/lang_chain $ali_dir $tree_dir
 fi
 
-if  [[ $stage -le 13 ]]; then
+if [[ $stage -le 13 ]]; then
   echo "$0: Making Phone LM and denominator and normalization FST"
   mkdir -p $dir/den_fsts/log
 
@@ -135,14 +135,14 @@ if  [[ $stage -le 13 ]]; then
   echo "$0: creating phone language-model"
   $train_cmd $dir/den_fsts/log/make_phone_lm_${lang}.log \
     chain-est-phone-lm --num-extra-lm-states=2000 \
-       "ark:gunzip -c $tree_dir/ali.*.gz | ali-to-phones $tree_dir/final.mdl ark:- ark:- |" \
-       $dir/den_fsts/${lang}.phone_lm.fst
+    "ark:gunzip -c $tree_dir/ali.*.gz | ali-to-phones $tree_dir/final.mdl ark:- ark:- |" \
+    $dir/den_fsts/${lang}.phone_lm.fst
   mkdir -p $dir/init
   copy-transition-model $tree_dir/final.mdl $dir/init/${lang}_trans.mdl
   echo "$0: creating denominator FST"
   $train_cmd $dir/den_fsts/log/make_den_fst.log \
-     chain-make-den-fst $dir/${lang}.tree $dir/init/${lang}_trans.mdl $dir/den_fsts/${lang}.phone_lm.fst \
-     $dir/den_fsts/${lang}.den.fst $dir/den_fsts/${lang}.normalization.fst || exit 1;
+    chain-make-den-fst $dir/${lang}.tree $dir/init/${lang}_trans.mdl $dir/den_fsts/${lang}.phone_lm.fst \
+    $dir/den_fsts/${lang}.den.fst $dir/den_fsts/${lang}.normalization.fst || exit 1
 fi
 
 # You should know how to calculate your model's left/right context **manually**
@@ -157,7 +157,7 @@ minibatch_size=128
 hidden_dim=1024
 bottleneck_dim=128
 prefinal_bottleneck_dim=256
-kernel_size_list="3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3" # comma separated list
+kernel_size_list="3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3"        # comma separated list
 subsampling_factor_list="1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1" # comma separated list
 
 log_level=info # valid values: debug, info, warning
@@ -183,8 +183,8 @@ fi
 
 if [ $stage -le 15 ]; then
   echo "$0: about to process egs"
-  steps/chain2/process_egs.sh  --cmd "$train_cmd" \
-      --num-repeats 1 \
+  steps/chain2/process_egs.sh --cmd "$train_cmd" \
+    --num-repeats 1 \
     ${dir}/raw_egs ${dir}/processed_egs
 fi
 
@@ -215,7 +215,7 @@ if [[ $stage -le 19 ]]; then
   $train_cmd --max-jobs-run $nj JOB=1:$num_egs $dir/$merged_egs_dir/log/merge_egs.JOB.log \
     nnet3-chain-shuffle-egs scp:$dir/egs/train.JOB.scp ark:- \| \
     nnet3-chain-merge-egs --minibatch-size=$minibatch_size ark:- \
-      ark,scp:$dir/$merged_egs_dir/cegs.JOB.ark,$dir/$merged_egs_dir/cegs.JOB.scp || exit 1
+    ark,scp:$dir/$merged_egs_dir/cegs.JOB.ark,$dir/$merged_egs_dir/cegs.JOB.scp || exit 1
 
   rm -f $dir/raw_egs/cegs.*.ark
 fi
@@ -236,7 +236,7 @@ if [[ $stage -le 20 ]]; then
   num_egs=$(ls -1 $dir/$training_eg_dir/tmp_scp_dir/*.scp | wc -l)
   $train_cmd --max-jobs-run $nj JOB=1:$num_egs $dir/$training_eg_dir/log/copy_egs.JOB.log \
     nnet3-chain-copy-egs scp:$dir/$training_eg_dir/tmp_scp_dir/cegs.JOB.scp \
-      ark,scp:$dir/$training_eg_dir/cegs.JOB.ark,$dir/$training_eg_dir/cegs.JOB.scp || exit 1
+    ark,scp:$dir/$training_eg_dir/cegs.JOB.ark,$dir/$training_eg_dir/cegs.JOB.scp || exit 1
 
   rm -r $dir/$training_eg_dir/tmp_scp_dir
   rm -f $dir/$merged_egs_dir/cegs.*.ark
@@ -262,7 +262,7 @@ if [[ $stage -le 21 ]]; then
 
   num_epochs=$num_epochs
   lr=1e-3
-  
+
   # use_ddp = false & world_size = 1: training model with one GPU
   # use_ddp = true & use_multiple_machine = false: training model with multiple GPUs on a single machine
   # use_ddp = true & use_multiple_machine = true:  training model with GPU on multiple machines
@@ -272,41 +272,41 @@ if [[ $stage -le 21 ]]; then
   use_multiple_machine=false
   # you can assign GPUs with --device-ids "$device_ids"
   # device_ids="4, 5, 6, 7"
-  if $use_multiple_machine ; then
+  if $use_multiple_machine; then
     # suppose you are using Sun GridEngine
     cuda_train_cmd="$cuda_train_cmd --gpu 1 JOB=1:$world_size $dir/$train_dir/logs/job.JOB.log"
   else
     cuda_train_cmd="$cuda_train_cmd --gpu $world_size $dir/$train_dir/logs/train.log"
   fi
-  
+
   $cuda_train_cmd python3 ./chain/train.py \
-        --bottleneck-dim $bottleneck_dim \
-        --checkpoint=${train_checkpoint:-} \
-        --dir $dir/$train_dir \
-        --feat-dim $feat_dim \
-        --hidden-dim $hidden_dim \
-        --is-training true \
-        --ivector-dim $ivector_dim \
-        --kernel-size-list "$kernel_size_list" \
-        --log-level $log_level \
-        --output-dim $output_dim \
-        --prefinal-bottleneck-dim $prefinal_bottleneck_dim \
-        --subsampling-factor-list "$subsampling_factor_list" \
-        --train.cegs-dir $dir/$training_eg_dir \
-        --train.ddp.init-method $init_method \
-        --train.ddp.multiple-machine $use_multiple_machine \
-        --train.ddp.world-size $world_size \
-        --train.den-fst $dir/den_fsts/${lang}.den.fst \
-        --train.dropout-schedule "$dropout_schedule" \
-        --train.egs-left-context $egs_left_context \
-        --train.egs-right-context $egs_right_context \
-        --train.l2-regularize 5e-5 \
-        --train.leaky-hmm-coefficient 0.1 \
-        --train.lr $lr \
-        --train.num-epochs $num_epochs \
-        --train.use-ddp $use_ddp \
-        --train.valid-cegs-scp $dir/processed_egs/train_subset.scp \
-        --train.xent-regularize 0.1 || exit 1;
+    --bottleneck-dim $bottleneck_dim \
+    --checkpoint=${train_checkpoint:-} \
+    --dir $dir/$train_dir \
+    --feat-dim $feat_dim \
+    --hidden-dim $hidden_dim \
+    --is-training true \
+    --ivector-dim $ivector_dim \
+    --kernel-size-list "$kernel_size_list" \
+    --log-level $log_level \
+    --output-dim $output_dim \
+    --prefinal-bottleneck-dim $prefinal_bottleneck_dim \
+    --subsampling-factor-list "$subsampling_factor_list" \
+    --train.cegs-dir $dir/$training_eg_dir \
+    --train.ddp.init-method $init_method \
+    --train.ddp.multiple-machine $use_multiple_machine \
+    --train.ddp.world-size $world_size \
+    --train.den-fst $dir/den_fsts/${lang}.den.fst \
+    --train.dropout-schedule "$dropout_schedule" \
+    --train.egs-left-context $egs_left_context \
+    --train.egs-right-context $egs_right_context \
+    --train.l2-regularize 5e-5 \
+    --train.leaky-hmm-coefficient 0.1 \
+    --train.lr $lr \
+    --train.num-epochs $num_epochs \
+    --train.use-ddp $use_ddp \
+    --train.valid-cegs-scp $dir/processed_egs/train_subset.scp \
+    --train.xent-regularize 0.1 || exit 1
 fi
 
 if [[ $stage -le 22 ]]; then
@@ -323,8 +323,8 @@ if [[ $stage -le 22 ]]; then
       if $online_cmvn; then
         if [[ "$feat_type" == "delta" ]]; then
           apply-cmvn-online --spk2utt=ark:data/${x}_hires/spk2utt $dir/raw_egs/global_cmvn.stats \
-              scp:data/${x}_hires/feats.scp ark:- | add-deltas --print-args=false --delta-order=2 --delta-window=2 \
-              ark:- ark,scp:data/${x}_hires/data/online_cmvn_feats.ark,data/${x}_hires/online_cmvn_feats.scp
+            scp:data/${x}_hires/feats.scp ark:- | add-deltas --print-args=false --delta-order=2 --delta-window=2 \
+            ark:- ark,scp:data/${x}_hires/data/online_cmvn_feats.ark,data/${x}_hires/online_cmvn_feats.scp
         fi
         feat_scp="data/${x}_hires/online_cmvn_feats.scp"
       fi
@@ -349,7 +349,7 @@ if [[ $stage -le 22 ]]; then
         --model-right-context $model_right_context \
         --output-dim $output_dim \
         --save-as-compressed $save_nn_output_as_compressed \
-        --subsampling-factor-list "$subsampling_factor_list" || exit 1;
+        --subsampling-factor-list "$subsampling_factor_list" || exit 1
     fi
   done
 fi
@@ -362,7 +362,6 @@ if [[ $stage -le 23 ]]; then
   cp $tree_dir/tree $dir/tree
   utils/mkgraph.sh --self-loop-scale 1.0 data/lang_test $dir $dir/graph
 fi
-
 
 if [[ $stage -le 24 ]]; then
   echo "decoding"

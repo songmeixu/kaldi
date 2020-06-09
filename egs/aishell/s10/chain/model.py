@@ -8,7 +8,6 @@ import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from common import load_lda_mat
 from tdnnf_layer import FactorizedTDNN
 from tdnnf_layer import OrthonormalLinear
@@ -16,28 +15,32 @@ from tdnnf_layer import PrefinalLayer
 from tdnnf_layer import TDNN
 
 
-def get_chain_model(feat_dim,
-                    output_dim,
-                    ivector_dim,
-                    hidden_dim,
-                    bottleneck_dim,
-                    prefinal_bottleneck_dim,
-                    kernel_size_list,
-                    subsampling_factor_list,
-                    lda_mat_filename=None):
-    model = ChainModel(feat_dim=feat_dim,
-                       output_dim=output_dim,
-                       ivector_dim=ivector_dim,
-                       lda_mat_filename=lda_mat_filename,
-                       hidden_dim=hidden_dim,
-                       bottleneck_dim=bottleneck_dim,
-                       prefinal_bottleneck_dim=prefinal_bottleneck_dim,
-                       kernel_size_list=kernel_size_list,
-                       subsampling_factor_list=subsampling_factor_list)
+def get_chain_model(
+    feat_dim,
+    output_dim,
+    ivector_dim,
+    hidden_dim,
+    bottleneck_dim,
+    prefinal_bottleneck_dim,
+    kernel_size_list,
+    subsampling_factor_list,
+    lda_mat_filename=None,
+):
+    model = ChainModel(
+        feat_dim=feat_dim,
+        output_dim=output_dim,
+        ivector_dim=ivector_dim,
+        lda_mat_filename=lda_mat_filename,
+        hidden_dim=hidden_dim,
+        bottleneck_dim=bottleneck_dim,
+        prefinal_bottleneck_dim=prefinal_bottleneck_dim,
+        kernel_size_list=kernel_size_list,
+        subsampling_factor_list=subsampling_factor_list,
+    )
     return model
 
 
-'''
+"""
 input dim=43 name=input
 
 # please note that it is important to have input layer with the name=input
@@ -66,37 +69,38 @@ output-layer name=output include-log-softmax=false dim=3456 l2-regularize=0.002
 
 prefinal-layer name=prefinal-xent input=prefinal-l l2-regularize=0.008 big-dim=1024 small-dim=256
 output-layer name=output-xent dim=3456 learning-rate-factor=5.0 l2-regularize=0.002
-'''
+"""
 
 
 def constrain_orthonormal_hook(model, unused_x):
     if not model.training:
         return
-    
+
     model.ortho_constrain_count = (model.ortho_constrain_count + 1) % 2
     if model.ortho_constrain_count != 0:
         return
 
     with torch.no_grad():
         for m in model.modules():
-            if hasattr(m, 'constrain_orthonormal'):
+            if hasattr(m, "constrain_orthonormal"):
                 m.constrain_orthonormal()
 
 
 # Create a network like the above one
 class ChainModel(nn.Module):
-
-    def __init__(self,
-                 feat_dim,
-                 output_dim,
-                 ivector_dim=0,
-                 lda_mat_filename=None,
-                 hidden_dim=1024,
-                 bottleneck_dim=128,
-                 prefinal_bottleneck_dim=256,
-                 kernel_size_list=[3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3],
-                 subsampling_factor_list=[1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1],
-                 frame_subsampling_factor=3):
+    def __init__(
+        self,
+        feat_dim,
+        output_dim,
+        ivector_dim=0,
+        lda_mat_filename=None,
+        hidden_dim=1024,
+        bottleneck_dim=128,
+        prefinal_bottleneck_dim=256,
+        kernel_size_list=[3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3],
+        subsampling_factor_list=[1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1],
+        frame_subsampling_factor=3,
+    ):
         super().__init__()
 
         # at present, we support only frame_subsampling_factor to be 3
@@ -104,21 +108,23 @@ class ChainModel(nn.Module):
 
         assert len(kernel_size_list) == len(subsampling_factor_list)
         num_layers = len(kernel_size_list)
-        
+
         self.ortho_constrain_count = 0
 
         input_dim = feat_dim * 3 + ivector_dim
-        
+
         self.tdnn1 = TDNN(input_dim=input_dim, hidden_dim=hidden_dim)
 
         tdnnfs = []
         for i in range(num_layers):
             kernel_size = kernel_size_list[i]
             subsampling_factor = subsampling_factor_list[i]
-            layer = FactorizedTDNN(dim=hidden_dim,
-                                   bottleneck_dim=bottleneck_dim,
-                                   kernel_size=kernel_size,
-                                   subsampling_factor=subsampling_factor)
+            layer = FactorizedTDNN(
+                dim=hidden_dim,
+                bottleneck_dim=bottleneck_dim,
+                kernel_size=kernel_size,
+                subsampling_factor=subsampling_factor,
+            )
             tdnnfs.append(layer)
 
         # tdnnfs requires [N, C, T]
@@ -126,39 +132,41 @@ class ChainModel(nn.Module):
 
         # prefinal_l affine requires [N, C, T]
         self.prefinal_l = OrthonormalLinear(
-            dim=hidden_dim,
-            bottleneck_dim=prefinal_bottleneck_dim,
-            kernel_size=1)
+            dim=hidden_dim, bottleneck_dim=prefinal_bottleneck_dim, kernel_size=1
+        )
 
         # prefinal_chain requires [N, C, T]
-        self.prefinal_chain = PrefinalLayer(big_dim=hidden_dim,
-                                            small_dim=prefinal_bottleneck_dim)
+        self.prefinal_chain = PrefinalLayer(
+            big_dim=hidden_dim, small_dim=prefinal_bottleneck_dim
+        )
 
         # output_affine requires [N, T, C]
-        self.output_affine = nn.Linear(in_features=prefinal_bottleneck_dim,
-                                       out_features=output_dim)
+        self.output_affine = nn.Linear(
+            in_features=prefinal_bottleneck_dim, out_features=output_dim
+        )
 
         # prefinal_xent requires [N, C, T]
-        self.prefinal_xent = PrefinalLayer(big_dim=hidden_dim,
-                                           small_dim=prefinal_bottleneck_dim)
+        self.prefinal_xent = PrefinalLayer(
+            big_dim=hidden_dim, small_dim=prefinal_bottleneck_dim
+        )
 
-        self.output_xent_affine = nn.Linear(in_features=prefinal_bottleneck_dim,
-                                            out_features=output_dim)
+        self.output_xent_affine = nn.Linear(
+            in_features=prefinal_bottleneck_dim, out_features=output_dim
+        )
 
         if lda_mat_filename:
-            logging.info('Use LDA from {}'.format(lda_mat_filename))
+            logging.info("Use LDA from {}".format(lda_mat_filename))
             self.lda_A, self.lda_b = load_lda_mat(lda_mat_filename)
             assert input_dim == self.lda_A.shape[0]
             self.has_LDA = True
         else:
-            logging.info('replace LDA with BatchNorm')
-            self.input_batch_norm = nn.BatchNorm1d(num_features=input_dim,
-                                                   affine=False)
+            logging.info("replace LDA with BatchNorm")
+            self.input_batch_norm = nn.BatchNorm1d(num_features=input_dim, affine=False)
             self.has_LDA = False
 
         self.register_forward_pre_hook(constrain_orthonormal_hook)
 
-    def forward(self, x, dropout=0.):
+    def forward(self, x, dropout=0.0):
         # input x is of shape: [batch_size, seq_len, feat_dim] = [N, T, C]
         assert x.ndim == 3
 
@@ -213,7 +221,7 @@ class ChainModel(nn.Module):
         return nnet_output, xent_output
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
