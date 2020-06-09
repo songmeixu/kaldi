@@ -6,9 +6,17 @@ WGET ?= wget
 COMMIT_ID := bc29dcfff07ced1c7a19a4ecee48e5ad583cef8e
 
 WARP_CTC_FILENAME := ctc/warp-ctc.tar.gz
-LIB_WARP_CTC := ctc/warp-ctc/build/libwarpctc.so
 
-LDFLAGS += -Wl,-rpath=$(CURDIR)/ctc/warp-ctc/build
+LIB_WARP_CTC_BASE = ctc/warp-ctc/build/libwarpctc
+
+ifeq ($(shell uname), Darwin)
+	LIB_WARP_CTC = $(LIB_WARP_CTC_BASE).dylib
+	LDFLAGS += -Wl,-rpath -Wl,$(CURDIR)/ctc/warp-ctc/build
+else
+	LIB_WARP_CTC = $(LIB_WARP_CTC_BASE).so
+	LDFLAGS += -Wl,-rpath=$(CURDIR)/ctc/warp-ctc/build
+endif
+
 EXTRA_LDLIBS += $(LIB_WARP_CTC)
 
 WITH_OMP := ON
@@ -19,7 +27,7 @@ endif
 
 $(LIB_WARP_CTC): $(WARP_CTC_FILENAME)
 	cd ctc/warp-ctc && \
-	sed -i 's/--std=c++11/-std=c++11/g' CMakeLists.txt && \
+	perl -pi -e 's/--std=c++11/-std=c++11/g' CMakeLists.txt && \
 	mkdir -p build && \
 	cd build && \
 	cmake -DBUILD_TESTS=OFF \
