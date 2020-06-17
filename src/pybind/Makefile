@@ -7,8 +7,6 @@ all:
 # no, it's now needed for context-fst-test.
 # MATHLIB = NONE
 
-EXTRA_CXXFLAGS = -Wno-sign-compare
-
 OPENFST_CXXFLAGS =
 OPENFST_LDLIBS =
 
@@ -74,11 +72,6 @@ OBJFILES = chain/chain_den_graph_pybind.o chain/chain_pybind.o chain/chain_super
 ADDLIBS = ../base/kaldi-base.a ../chain/kaldi-chain.a ../cudamatrix/kaldi-cudamatrix.a ../decoder/kaldi-decoder.a \
 		  ../feat/kaldi-feat.a ../fstext/kaldi-fstext.a ../hmm/kaldi-hmm.a ../lat/kaldi-lat.a \
 		  ../matrix/kaldi-matrix.a ../nnet3/kaldi-nnet3.a ../util/kaldi-util.a
-
-ifdef MKL_LD_PRELOAD
-LD_PRELOAD += $(MKL_LD_PRELOAD)
-export LD_PRELOAD
-endif
 
 .PHONY: all clean test
 
