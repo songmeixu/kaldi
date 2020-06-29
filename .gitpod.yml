@@ -1,13 +1,10 @@
-image:
-  file: .gitpod.Dockerfile
+image: ubuntu:trusty
 
 tasks:
   - init:
       echo "Hi, this is a gitpod workspace for kaldi"
-    command: |
-      brew install gcc@5
-      export CC=gcc-5
-      export CXX=g++-5
+    command:
+      cat /etc/os-release
 
 github:
   prebuilds:
