@@ -1,10 +1,11 @@
-image: ubuntu:trusty
+image:
+  file: .gitpod.Dockerfile
 
 tasks:
   - init:
       echo "Hi, this is a gitpod workspace for kaldi"
-    command:
-      cat /etc/os-release
+    command: >
+      echo "GLHF"
 
 github:
   prebuilds:
